@@ -7,7 +7,7 @@ license = { workspace = true }
 rust-version = { workspace = true }
 repository = { workspace = true }
 links = "tauri-plugin-material-you"
-description = "Tauri plugin to access system theme utilities (Material You)"
+description = "Android-only Tauri plugin for Material You dynamic colour palettes"
 
 [package.metadata.platforms.support]
 windows = { level = "none", notes = "Android-only plugin" }

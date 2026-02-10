@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feat/extract-theme-utils
     paths:
       - '.github/images/ci-base/**'
       - '.github/workflows/ci-base-image.yml'
