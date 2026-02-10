@@ -49,9 +49,9 @@ This plugin exposes one command via the Tauri permissions system:
 
 | Platform | Support Level | Notes |
 |----------|---------------|-------|
-| Windows | Partial | Returns `supported: false` |
-| Linux | Partial | Returns `supported: false` |
-| macOS | Partial | Returns `supported: false` |
+| Windows | None | Android-only plugin |
+| Linux | None | Android-only plugin |
+| macOS | None | Android-only plugin |
 | Android | Full | Returns Material You palettes |
 | iOS | None | Not implemented |
 

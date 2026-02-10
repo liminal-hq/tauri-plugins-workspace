@@ -10,9 +10,9 @@ links = "tauri-plugin-material-you"
 description = "Tauri plugin to access system theme utilities (Material You)"
 
 [package.metadata.platforms.support]
-windows = { level = "partial", notes = "Returns unsupported response on desktop" }
-linux = { level = "partial", notes = "Returns unsupported response on desktop" }
-macos = { level = "partial", notes = "Returns unsupported response on desktop" }
+windows = { level = "none", notes = "Android-only plugin" }
+linux = { level = "none", notes = "Android-only plugin" }
+macos = { level = "none", notes = "Android-only plugin" }
 android = { level = "full", notes = "Provides Material You palette data" }
 ios = { level = "none", notes = "Not implemented" }
 
