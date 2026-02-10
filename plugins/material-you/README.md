@@ -53,7 +53,7 @@ This plugin exposes one command via the Tauri permissions system:
 | Linux    | None          | Android-only plugin           |
 | macOS    | None          | Android-only plugin           |
 | Android  | Full          | Returns Material You palettes |
-| iOS      | None          | Not implemented               |
+| iOS      | None          | Not applicable (Android-only) |
 
 ## Licence
 

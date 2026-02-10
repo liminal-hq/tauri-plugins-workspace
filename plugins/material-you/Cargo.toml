@@ -14,7 +14,7 @@ windows = { level = "none", notes = "Android-only plugin" }
 linux = { level = "none", notes = "Android-only plugin" }
 macos = { level = "none", notes = "Android-only plugin" }
 android = { level = "full", notes = "Provides Material You palette data" }
-ios = { level = "none", notes = "Not implemented" }
+ios = { level = "none", notes = "Not applicable (Material You is Android-only)" }
 
 [lib]
 crate-type = ["staticlib", "cdylib", "rlib"]
