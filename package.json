@@ -15,9 +15,11 @@
 		"build": "pnpm --filter \"./plugins/**\" --parallel build",
 		"test": "pnpm test:rust && pnpm test:js",
 		"test:rust": "cargo test --workspace",
-		"test:js": "vitest run"
+		"test:js": "vitest run",
+		"tauri": "pnpm --filter api-example tauri"
 	},
 	"devDependencies": {
+		"@rollup/plugin-typescript": "^12.1.4",
 		"@eslint/js": "^10.0.1",
 		"eslint": "^10.0.0",
 		"prettier": "^3.0.0",

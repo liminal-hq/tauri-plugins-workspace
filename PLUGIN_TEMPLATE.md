@@ -122,39 +122,34 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
 
 ```json
 {
-  "name": "@liminal-hq/plugin-your-plugin",
-  "version": "0.1.0",
-  "license": "Apache-2.0 OR MIT",
-  "authors": ["Liminal HQ Contributors"],
-  "repository": "https://github.com/liminal-hq/liminal-tauri-plugins",
-  "type": "module",
-  "types": "./dist-js/index.d.ts",
-  "main": "./dist-js/index.cjs",
-  "module": "./dist-js/index.js",
-  "exports": {
-    "types": "./dist-js/index.d.ts",
-    "import": "./dist-js/index.js",
-    "require": "./dist-js/index.cjs"
-  },
-  "scripts": {
-    "build": "rollup -c",
-    "prepare": "pnpm build"
-  },
-  "files": [
-    "dist-js",
-    "README.md",
-    "LICENSE-MIT",
-    "LICENSE-APACHE"
-  ],
-  "dependencies": {
-    "@tauri-apps/api": "^2.10.0"
-  },
-  "devDependencies": {
-    "@rollup/plugin-typescript": "^11.0.0",
-    "rollup": "^4.0.0",
-    "tslib": "^2.6.0",
-    "typescript": "^5.3.0"
-  }
+	"name": "@liminal-hq/plugin-your-plugin",
+	"version": "0.1.0",
+	"license": "Apache-2.0 OR MIT",
+	"authors": ["Liminal HQ Contributors"],
+	"repository": "https://github.com/liminal-hq/liminal-tauri-plugins",
+	"type": "module",
+	"types": "./dist-js/index.d.ts",
+	"main": "./dist-js/index.cjs",
+	"module": "./dist-js/index.js",
+	"exports": {
+		"types": "./dist-js/index.d.ts",
+		"import": "./dist-js/index.js",
+		"require": "./dist-js/index.cjs"
+	},
+	"scripts": {
+		"build": "rollup -c",
+		"prepare": "pnpm build"
+	},
+	"files": ["dist-js", "README.md", "LICENSE-MIT", "LICENSE-APACHE"],
+	"dependencies": {
+		"@tauri-apps/api": "^2.10.0"
+	},
+	"devDependencies": {
+		"@rollup/plugin-typescript": "^11.0.0",
+		"rollup": "^4.0.0",
+		"tslib": "^2.6.0",
+		"typescript": "^5.3.0"
+	}
 }
 ```
 
@@ -175,7 +170,7 @@ import { invoke } from '@tauri-apps/api/core';
  * Your command description.
  */
 export async function yourCommand(arg: string): Promise<string> {
-  return await invoke<string>('plugin:your-plugin|your_command', { arg });
+	return await invoke<string>('plugin:your-plugin|your_command', { arg });
 }
 ```
 
@@ -242,13 +237,13 @@ This plugin requires these permissions:
 
 ## Platform Support
 
-| Platform | Support Level | Notes |
-|----------|---------------|-------|
-| Windows | Full | |
-| Linux | Full | |
-| macOS | Full | |
-| Android | Full | |
-| iOS | None | Not implemented |
+| Platform | Support Level | Notes           |
+| -------- | ------------- | --------------- |
+| Windows  | Full          |                 |
+| Linux    | Full          |                 |
+| macOS    | Full          |                 |
+| Android  | Full          |                 |
+| iOS      | None          | Not implemented |
 
 ## Licence
 
@@ -261,15 +256,15 @@ When creating a new plugin, add both package entries in `.changes/config.json`:
 
 ```json
 {
-  "packages": {
-    "your-plugin": {
-      "path": "./plugins/your-plugin",
-      "manager": "rust"
-    },
-    "your-plugin-js": {
-      "path": "./plugins/your-plugin",
-      "manager": "javascript"
-    }
-  }
+	"packages": {
+		"your-plugin": {
+			"path": "./plugins/your-plugin",
+			"manager": "rust"
+		},
+		"your-plugin-js": {
+			"path": "./plugins/your-plugin",
+			"manager": "javascript"
+		}
+	}
 }
 ```

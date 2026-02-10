@@ -1,0 +1,33 @@
+[package]
+name = "tauri-plugin-material-you"
+version = "0.1.0"
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+rust-version = { workspace = true }
+repository = { workspace = true }
+links = "tauri-plugin-material-you"
+description = "Android-only Tauri plugin for Material You dynamic colour palettes"
+
+[package.metadata.platforms.support]
+windows = { level = "none", notes = "Android-only plugin" }
+linux = { level = "none", notes = "Android-only plugin" }
+macos = { level = "none", notes = "Android-only plugin" }
+android = { level = "full", notes = "Provides Material You palette data" }
+ios = { level = "none", notes = "Not applicable (Material You is Android-only)" }
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+tauri = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[build-dependencies]
+tauri-plugin = { workspace = true, features = ["build"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+tauri-plugin = { workspace = true }
+jni = "0.21"

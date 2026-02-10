@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "plugins/material-you",
   "examples/api/src-tauri",
 ]
 resolver = "2"

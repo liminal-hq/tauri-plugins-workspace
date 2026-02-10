@@ -1,0 +1,3 @@
+[default]
+description = "Default permissions for the material-you plugin"
+permissions = ["allow-get-material-you-colours"]

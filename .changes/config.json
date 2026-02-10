@@ -59,6 +59,14 @@
 		}
 	},
 	"packages": {
+		"material-you": {
+			"path": "./plugins/material-you",
+			"manager": "rust"
+		},
+		"material-you-js": {
+			"path": "./plugins/material-you",
+			"manager": "javascript"
+		},
 		"api-example": {
 			"path": "./examples/api/src-tauri",
 			"manager": "rust",
