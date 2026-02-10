@@ -47,13 +47,13 @@ This plugin exposes one command via the Tauri permissions system:
 
 ## Platform Support
 
-| Platform | Support Level | Notes |
-|----------|---------------|-------|
-| Windows | None | Android-only plugin |
-| Linux | None | Android-only plugin |
-| macOS | None | Android-only plugin |
-| Android | Full | Returns Material You palettes |
-| iOS | None | Not implemented |
+| Platform | Support Level | Notes                         |
+| -------- | ------------- | ----------------------------- |
+| Windows  | None          | Android-only plugin           |
+| Linux    | None          | Android-only plugin           |
+| macOS    | None          | Android-only plugin           |
+| Android  | Full          | Returns Material You palettes |
+| iOS      | None          | Not implemented               |
 
 ## Licence
 

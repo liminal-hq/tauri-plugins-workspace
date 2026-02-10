@@ -4,12 +4,12 @@ A collection of Tauri v2 plugins for building privacy-focused, local-first appli
 
 ## Plugins
 
-| Plugin | Description | Platforms |
-|--------|-------------|-----------|
-| `alarm-manager` | Native alarm scheduling with Android AlarmManager | Android |
-| `time-prefs` | System time format detection | Desktop, Android |
-| `material-you` | Material You theming support | Desktop, Android |
-| `mobile-app-management` | Mobile app lifecycle management | Android, iOS |
+| Plugin                  | Description                                       | Platforms        |
+| ----------------------- | ------------------------------------------------- | ---------------- |
+| `alarm-manager`         | Native alarm scheduling with Android AlarmManager | Android          |
+| `time-prefs`            | System time format detection                      | Desktop, Android |
+| `material-you`          | Material You theming support                      | Desktop, Android |
+| `mobile-app-management` | Mobile app lifecycle management                   | Android, iOS     |
 
 ## Installation
 
@@ -26,9 +26,9 @@ tauri-plugin-alarm-manager = "0.1.0"
 
 ```json
 {
-  "dependencies": {
-    "@liminal-hq/plugin-alarm-manager": "^0.1.0"
-  }
+	"dependencies": {
+		"@liminal-hq/plugin-alarm-manager": "^0.1.0"
+	}
 }
 ```
 
@@ -45,9 +45,9 @@ tauri-plugin-alarm-manager = { git = "https://github.com/liminal-hq/liminal-taur
 
 ```json
 {
-  "dependencies": {
-    "@liminal-hq/plugin-alarm-manager": "github:liminal-hq/liminal-tauri-plugins#alarm-manager-v0.1.0&path:plugins/alarm-manager"
-  }
+	"dependencies": {
+		"@liminal-hq/plugin-alarm-manager": "github:liminal-hq/liminal-tauri-plugins#alarm-manager-v0.1.0&path:plugins/alarm-manager"
+	}
 }
 ```
 
