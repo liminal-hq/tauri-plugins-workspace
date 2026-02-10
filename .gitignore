@@ -1,0 +1,37 @@
+# Rust
+target/
+Cargo.lock
+**/*.rs.bk
+
+# Node
+node_modules/
+dist-js/
+*.log
+pnpm-debug.log*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs
+*.wasm
+*.so
+*.dylib
+*.dll
+
+# Testing
+coverage/
+*.profraw
+
+# Local setup references (do not commit)
+setup-docs/
+
+# Local devcontainer overrides
+.devcontainer/devcontainer.local.json
