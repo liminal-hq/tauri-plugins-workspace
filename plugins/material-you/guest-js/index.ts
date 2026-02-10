@@ -5,5 +5,5 @@ import { invoke } from '@tauri-apps/api/core';
  * Desktop platforms return `supported: false`.
  */
 export async function getMaterialYouColours() {
-	return await invoke('plugin:theme-utils|get_material_you_colours');
+	return await invoke('plugin:material-you|get_material_you_colours');
 }

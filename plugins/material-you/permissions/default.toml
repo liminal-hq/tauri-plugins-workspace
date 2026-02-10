@@ -1,5 +1,5 @@
 [default]
-description = "Default permissions for the theme-utils plugin"
+description = "Default permissions for the material-you plugin"
 permissions = ["allow-get-material-you-colours"]
 
 [[permission]]

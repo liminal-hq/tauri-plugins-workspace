@@ -29,9 +29,9 @@ importers:
 
   examples/api:
     dependencies:
-      '@liminal-hq/plugin-theme-utils':
+      '@liminal-hq/plugin-material-you':
         specifier: workspace:*
-        version: link:../../plugins/theme-utils
+        version: link:../../plugins/material-you
       '@tauri-apps/api':
         specifier: ^2.10.0
         version: 2.10.1
@@ -55,7 +55,7 @@ importers:
         specifier: ^5.0.0
         version: 5.4.21
 
-  plugins/theme-utils:
+  plugins/material-you:
     dependencies:
       '@tauri-apps/api':
         specifier: ^2.10.0

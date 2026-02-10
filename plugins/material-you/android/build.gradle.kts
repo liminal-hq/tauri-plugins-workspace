@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.plugin.themeutils"
+    namespace = "com.plugin.materialyou"
     compileSdk = 34
 
     defaultConfig {

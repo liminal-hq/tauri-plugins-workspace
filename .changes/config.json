@@ -59,12 +59,12 @@
 		}
 	},
 	"packages": {
-		"theme-utils": {
-			"path": "./plugins/theme-utils",
+		"material-you": {
+			"path": "./plugins/material-you",
 			"manager": "rust"
 		},
-		"theme-utils-js": {
-			"path": "./plugins/theme-utils",
+		"material-you-js": {
+			"path": "./plugins/material-you",
 			"manager": "javascript"
 		},
 		"api-example": {

@@ -9,7 +9,7 @@
 		"tauri": "tauri"
 	},
 	"dependencies": {
-		"@liminal-hq/plugin-theme-utils": "workspace:*",
+		"@liminal-hq/plugin-material-you": "workspace:*",
 		"@tauri-apps/api": "^2.10.0",
 		"react": "^19.2.4",
 		"react-dom": "^19.2.4"

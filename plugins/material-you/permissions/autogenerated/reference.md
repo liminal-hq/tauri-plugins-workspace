@@ -1,6 +1,6 @@
 ## Default Permission
 
-Default permissions for the theme-utils plugin
+Default permissions for the material-you plugin
 
 #### This default permission set includes the following:
 
@@ -18,7 +18,7 @@ Default permissions for the theme-utils plugin
 <tr>
 <td>
 
-`theme-utils:allow-get-material-you-colours`
+`material-you:allow-get-material-you-colours`
 
 </td>
 <td>
@@ -31,7 +31,7 @@ Enables the get_material_you_colours command without any pre-configured scope.
 <tr>
 <td>
 
-`theme-utils:deny-get-material-you-colours`
+`material-you:deny-get-material-you-colours`
 
 </td>
 <td>
@@ -44,7 +44,7 @@ Denies the get_material_you_colours command without any pre-configured scope.
 <tr>
 <td>
 
-`theme-utils:allow-get-material-you-colours`
+`material-you:allow-get-material-you-colours`
 
 </td>
 <td>

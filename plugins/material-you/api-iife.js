@@ -1,4 +1,4 @@
-var __TAURI_PLUGIN_THEME_UTILS__ = (function (exports, core) {
+var __TAURI_PLUGIN_MATERIAL_YOU__ = (function (exports, core) {
 	'use strict';
 
 	/******************************************************************************
@@ -164,7 +164,7 @@ var __TAURI_PLUGIN_THEME_UTILS__ = (function (exports, core) {
 			return __generator(this, function (_a) {
 				switch (_a.label) {
 					case 0:
-						return [4 /*yield*/, core.invoke('plugin:theme-utils|get_material_you_colours')];
+						return [4 /*yield*/, core.invoke('plugin:material-you|get_material_you_colours')];
 					case 1:
 						return [2 /*return*/, _a.sent()];
 				}

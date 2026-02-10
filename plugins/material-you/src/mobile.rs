@@ -7,20 +7,20 @@ use tauri::{
 use crate::models::MaterialYouResponse;
 
 #[cfg(target_os = "android")]
-const PLUGIN_IDENTIFIER: &str = "com.plugin.themeutils";
+const PLUGIN_IDENTIFIER: &str = "com.plugin.materialyou";
 
 pub fn init<R: Runtime, C: DeserializeOwned>(
   _api: PluginApi<R, C>,
   _app: &AppHandle<R>,
-) -> crate::Result<ThemeUtils<R>> {
-  let handle = _api.register_android_plugin(PLUGIN_IDENTIFIER, "ThemeUtilsPlugin")?;
-  Ok(ThemeUtils(handle))
+) -> crate::Result<MaterialYou<R>> {
+  let handle = _api.register_android_plugin(PLUGIN_IDENTIFIER, "MaterialYouPlugin")?;
+  Ok(MaterialYou(handle))
 }
 
-/// Access to the theme-utils APIs.
-pub struct ThemeUtils<R: Runtime>(PluginHandle<R>);
+/// Access to the material-you APIs.
+pub struct MaterialYou<R: Runtime>(PluginHandle<R>);
 
-impl<R: Runtime> ThemeUtils<R> {
+impl<R: Runtime> MaterialYou<R> {
   pub fn get_material_you_colours(&self) -> crate::Result<MaterialYouResponse> {
     self
       .0

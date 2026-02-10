@@ -1,4 +1,4 @@
-package com.plugin.themeutils
+package com.plugin.materialyou
 
 import android.app.Activity
 import android.content.Context
@@ -11,7 +11,7 @@ import app.tauri.plugin.Plugin
 import app.tauri.plugin.Invoke
 
 @TauriPlugin
-class ThemeUtilsPlugin(private val activity: Activity) : Plugin(activity) {
+class MaterialYouPlugin(private val activity: Activity) : Plugin(activity) {
 
     @Command
     fun getMaterialYouColours(invoke: Invoke) {
@@ -40,7 +40,7 @@ class ThemeUtilsPlugin(private val activity: Activity) : Plugin(activity) {
                 // Return ARGB format #AARRGGBB to preserve alpha if present
                 return String.format("#%08X", colourInt)
             } catch (e: Exception) {
-                Log.e("ThemeUtils", "Failed to get system colour: $name", e)
+                Log.e("MaterialYou", "Failed to get system colour: $name", e)
                 return null
             }
         }

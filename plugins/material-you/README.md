@@ -1,4 +1,4 @@
-# @liminal-hq/plugin-theme-utils
+# @liminal-hq/plugin-material-you
 
 Access Material You colour palette data from Android system resources.
 
@@ -8,13 +8,13 @@ Access Material You colour palette data from Android system resources.
 
 ```toml
 [dependencies]
-tauri-plugin-theme-utils = "0.1"
+tauri-plugin-material-you = "0.1"
 ```
 
 ### JavaScript
 
 ```bash
-pnpm add @liminal-hq/plugin-theme-utils
+pnpm add @liminal-hq/plugin-material-you
 ```
 
 ## Usage
@@ -24,7 +24,7 @@ pnpm add @liminal-hq/plugin-theme-utils
 ```rust
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_theme_utils::init())
+        .plugin(tauri_plugin_material_you::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -33,7 +33,7 @@ fn main() {
 ### JavaScript
 
 ```ts
-import { getMaterialYouColours } from '@liminal-hq/plugin-theme-utils';
+import { getMaterialYouColours } from '@liminal-hq/plugin-material-you';
 
 const materialYou = await getMaterialYouColours();
 console.log(materialYou.supported, materialYou.palettes);

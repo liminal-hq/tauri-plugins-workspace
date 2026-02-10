@@ -9,4 +9,4 @@ name = "api_example_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [dependencies]
-tauri-plugin-theme-utils = { path = "../../../plugins/theme-utils" }
+tauri-plugin-material-you = { path = "../../../plugins/material-you" }
