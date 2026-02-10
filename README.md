@@ -56,8 +56,8 @@ tauri-plugin-alarm-manager = { git = "https://github.com/liminal-hq/liminal-taur
 ### Prerequisites
 
 - Rust 1.93.0+
-- Node.js 20+
-- pnpm 8+
+- Node.js 22.21.1+
+- pnpm 10+
 - Android NDK r28 (for Android plugins)
 
 ### Setup
@@ -90,7 +90,7 @@ cargo test --workspace
 The devcontainer includes:
 
 - Rust stable with Android targets
-- Node.js 20 with pnpm
+- Node.js 22 with pnpm
 - Android SDK with NDK r28
 - Tauri system dependencies
 - VS Code extensions for Rust and TypeScript
@@ -100,7 +100,7 @@ The devcontainer includes:
 If you are not using devcontainers, install:
 
 - Rust 1.93.0+ with clippy and rustfmt
-- Node.js 20+ with pnpm
+- Node.js 22.21.1+ with pnpm
 - Android NDK r28 (for Android plugins)
 - Tauri system dependencies
 

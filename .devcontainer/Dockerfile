@@ -29,8 +29,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     openjdk-17-jdk \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 20.x
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+# Install Node.js 22.x
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g pnpm
 
