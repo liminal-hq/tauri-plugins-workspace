@@ -1,0 +1,54 @@
+{
+	"name": "Liminal Tauri Plugins Dev",
+	// Local fallback: uncomment to build from source instead of pulling GHCR image.
+	// "dockerFile": "Dockerfile",
+	"image": "ghcr.io/liminal-hq/tauri-plugins-workspace-devcontainer:latest",
+	"forwardPorts": [5173, 1420],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"rust-lang.rust-analyzer",
+				"esbenp.prettier-vscode",
+				"dbaeumer.vscode-eslint",
+				"tauri-apps.tauri-vscode",
+				"ms-vscode.vscode-typescript-next",
+				"streetsidesoftware.code-spell-checker",
+				"tamasfe.even-better-toml"
+			],
+			"settings": {
+				"rust-analyzer.cargo.features": "all",
+				"rust-analyzer.check.command": "clippy",
+				"[typescript]": {
+					"editor.defaultFormatter": "esbenp.prettier-vscode",
+					"editor.formatOnSave": true
+				},
+				"[javascript]": {
+					"editor.defaultFormatter": "esbenp.prettier-vscode",
+					"editor.formatOnSave": true
+				},
+				"[json]": {
+					"editor.defaultFormatter": "esbenp.prettier-vscode",
+					"editor.formatOnSave": true
+				},
+				"[jsonc]": {
+					"editor.defaultFormatter": "esbenp.prettier-vscode",
+					"editor.formatOnSave": true
+				},
+				"[markdown]": {
+					"editor.defaultFormatter": "esbenp.prettier-vscode",
+					"editor.formatOnSave": true
+				},
+				"[rust]": {
+					"editor.defaultFormatter": "rust-lang.rust-analyzer",
+					"editor.formatOnSave": true
+				},
+				"[toml]": {
+					"editor.defaultFormatter": "tamasfe.even-better-toml",
+					"editor.formatOnSave": true
+				}
+			}
+		}
+	},
+	"postCreateCommand": "pnpm install && cargo fetch",
+	"remoteUser": "vscode"
+}
