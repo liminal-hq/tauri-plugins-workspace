@@ -1,0 +1,25 @@
+name: Covector Status
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  covector:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Covector status
+        id: covector
+        uses: jbolda/covector/packages/action@covector-v0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          command: status
+          comment: true

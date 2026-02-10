@@ -16,11 +16,15 @@
 		"test": "pnpm test:rust && pnpm test:js",
 		"test:rust": "cargo test --workspace",
 		"test:js": "vitest run",
-		"tauri": "pnpm --filter api-example tauri"
+		"tauri": "pnpm --filter api-example tauri",
+		"covector:status": "covector status",
+		"covector:version": "covector version",
+		"covector:publish": "covector publish"
 	},
 	"devDependencies": {
-		"@rollup/plugin-typescript": "^12.1.4",
 		"@eslint/js": "^10.0.1",
+		"@rollup/plugin-typescript": "^12.1.4",
+		"covector": "^0.12.4",
 		"eslint": "^10.0.0",
 		"prettier": "^3.0.0",
 		"typescript": "^5.3.0",
