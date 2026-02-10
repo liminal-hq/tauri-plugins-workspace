@@ -18,6 +18,6 @@ export default [
 		},
 	},
 	{
-		ignores: ['**/node_modules/**', '**/dist-js/**', '**/target/**', '**/*.d.ts'],
+		ignores: ['**/node_modules/**', '**/dist-js/**', '**/target/**', '**/*.d.ts', '**/api-iife.js'],
 	},
 ];

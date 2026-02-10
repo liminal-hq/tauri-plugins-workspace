@@ -1,0 +1,33 @@
+[package]
+name = "tauri-plugin-theme-utils"
+version = "0.1.0"
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+rust-version = { workspace = true }
+repository = { workspace = true }
+links = "tauri-plugin-theme-utils"
+description = "Tauri plugin to access system theme utilities (Material You)"
+
+[package.metadata.platforms.support]
+windows = { level = "partial", notes = "Returns unsupported response on desktop" }
+linux = { level = "partial", notes = "Returns unsupported response on desktop" }
+macos = { level = "partial", notes = "Returns unsupported response on desktop" }
+android = { level = "full", notes = "Provides Material You palette data" }
+ios = { level = "none", notes = "Not implemented" }
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+tauri = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[build-dependencies]
+tauri-plugin = { workspace = true, features = ["build"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+tauri-plugin = { workspace = true }
+jni = "0.21"

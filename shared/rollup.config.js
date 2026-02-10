@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import typescript from '@rollup/plugin-typescript';
 
 /**
  * Creates Rollup configuration for building Tauri plugin guest bindings.
@@ -26,12 +27,7 @@ export function createConfig(pluginName) {
 				},
 			],
 			external: [/^@tauri-apps\/api/],
-			plugins: [
-				typescript({
-					declaration: true,
-					declarationDir: './dist-js',
-				}),
-			],
+			plugins: [typescript({ declaration: true, declarationDir: './dist-js' })],
 		},
 		// IIFE build for global mode (used by build.rs).
 		{
@@ -42,28 +38,9 @@ export function createConfig(pluginName) {
 				name: `__TAURI_PLUGIN_${pluginName.toUpperCase().replace(/-/g, '_')}__`,
 			},
 			external: [/^@tauri-apps\/api/],
-			plugins: [typescript()],
+			plugins: [typescript({ tsconfig: false })],
 		},
 	];
-}
-
-// Simple TypeScript plugin placeholder.
-// Replace with @rollup/plugin-typescript for production use.
-function typescript(options = {}) {
-	return {
-		name: 'typescript',
-		transform(code, id) {
-			if (!id.endsWith('.ts')) {
-				return null;
-			}
-
-			return {
-				code: code.replace(/: \w+/g, '').replace(/import type .*/g, ''),
-				map: null,
-			};
-		},
-		options,
-	};
 }
 
 export default createConfig;

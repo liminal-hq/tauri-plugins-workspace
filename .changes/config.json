@@ -59,6 +59,14 @@
 		}
 	},
 	"packages": {
+		"theme-utils": {
+			"path": "./plugins/theme-utils",
+			"manager": "rust"
+		},
+		"theme-utils-js": {
+			"path": "./plugins/theme-utils",
+			"manager": "javascript"
+		},
 		"api-example": {
 			"path": "./examples/api/src-tauri",
 			"manager": "rust",
