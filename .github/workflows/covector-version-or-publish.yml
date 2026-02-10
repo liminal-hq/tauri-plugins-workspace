@@ -34,7 +34,6 @@ jobs:
         with:
           node-version-file: .node-version
           registry-url: https://registry.npmjs.org
-          cache: pnpm
 
       - name: Configure git identity
         run: |
@@ -68,13 +67,32 @@ jobs:
           createRelease: true
           recognizeContributors: true
 
+      - name: Apply Prettier tabs to versioned package manifests
+        if: steps.covector.outputs.commandRan == 'version'
+        run: |
+          mapfile -t package_files < <(git diff --name-only --diff-filter=ACMRT | rg 'package\\.json$' || true)
+
+          if [ "${#package_files[@]}" -eq 0 ]; then
+            echo "No package.json files changed by version step."
+            exit 0
+          fi
+
+          npx --yes prettier@3 --write "${package_files[@]}"
+
+      - name: Build release pull request metadata
+        if: steps.covector.outputs.commandRan == 'version'
+        id: pr_meta
+        run: |
+          release_date="$(date -u +%Y-%m-%d)"
+          echo "title=chore(release): version packages ${release_date}" >> "${GITHUB_OUTPUT}"
+
       - name: Create pull request with version bumps
         if: steps.covector.outputs.commandRan == 'version'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: release/covector
-          title: 'chore: publish new versions'
-          commit-message: 'chore: publish new versions'
+          title: ${{ steps.pr_meta.outputs.title }}
+          commit-message: 'chore(release): version packages'
           labels: version updates
           body: ${{ steps.covector.outputs.change }}
