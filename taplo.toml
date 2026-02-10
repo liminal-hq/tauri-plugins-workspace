@@ -1,0 +1,9 @@
+include = ["**/Cargo.toml", "**/*/Cargo.toml"]
+
+[formatting]
+align_entries = false
+allowed_blank_lines = 1
+indent_tables = false
+indent_entries = false
+trailing_newline = true
+reorder_keys = false
