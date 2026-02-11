@@ -200,12 +200,19 @@ Brief description of what this plugin does.
 ```toml
 [dependencies]
 tauri-plugin-your-plugin = "0.1"
+
+# Alternatively with Git:
+tauri-plugin-your-plugin = { git = "https://github.com/liminal-hq/tauri-plugins-workspace", branch = "main" }
 ```
 
 ### JavaScript
 
 ```bash
 pnpm add @liminal-hq/plugin-your-plugin
+# or
+npm add @liminal-hq/plugin-your-plugin
+# or
+yarn add @liminal-hq/plugin-your-plugin
 ```
 
 ## Usage
