@@ -2,6 +2,12 @@
 
 Access Material You colour palette data from Android system resources.
 
+## Package Links
+
+- crates.io: https://crates.io/crates/tauri-plugin-material-you
+- npm: https://www.npmjs.com/package/@liminal-hq/plugin-material-you
+- Report bugs: https://github.com/liminal-hq/tauri-plugins-workspace/issues
+
 ## Installation
 
 ### Rust
@@ -9,12 +15,19 @@ Access Material You colour palette data from Android system resources.
 ```toml
 [dependencies]
 tauri-plugin-material-you = "0.1"
+
+# Alternatively with Git:
+tauri-plugin-material-you = { git = "https://github.com/liminal-hq/tauri-plugins-workspace", branch = "main" }
 ```
 
 ### JavaScript
 
 ```bash
 pnpm add @liminal-hq/plugin-material-you
+# or
+npm add @liminal-hq/plugin-material-you
+# or
+yarn add @liminal-hq/plugin-material-you
 ```
 
 ## Usage
