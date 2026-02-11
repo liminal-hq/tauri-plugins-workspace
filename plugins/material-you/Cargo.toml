@@ -9,7 +9,7 @@ repository = { workspace = true }
 links = "tauri-plugin-material-you"
 description = "Android-only Tauri plugin for Material You dynamic colour palettes"
 keywords = ["tauri", "plugin", "android", "material-you", "dynamic-colours"]
-categories = ["api-bindings", "os::android"]
+categories = ["api-bindings"]
 
 [package.metadata.platforms.support]
 windows = { level = "none", notes = "Android-only plugin" }
