@@ -103,6 +103,10 @@ jobs:
             }
 
             const pkgName = pkgMatch[1].trim();
+            if (/^version updates$/i.test(pkgName)) {
+              continue;
+            }
+
             let version = '';
 
             for (let j = i + 1; j < Math.min(i + 12, lines.length); j += 1) {
@@ -111,6 +115,10 @@ jobs:
                 version = verMatch[1].trim();
                 break;
               }
+            }
+
+            if (!version) {
+              continue;
             }
 
             releases.push({ pkgName, version });
