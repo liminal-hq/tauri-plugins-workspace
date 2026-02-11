@@ -126,7 +126,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
 	"version": "0.1.0",
 	"license": "Apache-2.0 OR MIT",
 	"authors": ["Liminal HQ Contributors"],
-	"repository": "https://github.com/liminal-hq/liminal-tauri-plugins",
+	"repository": "https://github.com/liminal-hq/tauri-plugins-workspace",
 	"type": "module",
 	"types": "./dist-js/index.d.ts",
 	"main": "./dist-js/index.cjs",

@@ -13,8 +13,8 @@ Thank you for contributing. This document describes the expected workflow.
 ### 1. Fork and clone
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/liminal-tauri-plugins.git
-cd liminal-tauri-plugins
+git clone https://github.com/YOUR_USERNAME/tauri-plugins-workspace.git
+cd tauri-plugins-workspace
 pnpm install
 ```
 
