@@ -38,7 +38,7 @@ tauri-plugin-alarm-manager = "0.1.0"
 
 ```toml
 [dependencies]
-tauri-plugin-alarm-manager = { git = "https://github.com/liminal-hq/liminal-tauri-plugins", tag = "alarm-manager-v0.1.0" }
+tauri-plugin-alarm-manager = { git = "https://github.com/liminal-hq/tauri-plugins-workspace", tag = "alarm-manager-v0.1.0" }
 ```
 
 **JavaScript (`package.json`):**
@@ -46,7 +46,7 @@ tauri-plugin-alarm-manager = { git = "https://github.com/liminal-hq/liminal-taur
 ```json
 {
 	"dependencies": {
-		"@liminal-hq/plugin-alarm-manager": "github:liminal-hq/liminal-tauri-plugins#alarm-manager-v0.1.0&path:plugins/alarm-manager"
+		"@liminal-hq/plugin-alarm-manager": "github:liminal-hq/tauri-plugins-workspace#alarm-manager-v0.1.0&path:plugins/alarm-manager"
 	}
 }
 ```
@@ -64,8 +64,8 @@ tauri-plugin-alarm-manager = { git = "https://github.com/liminal-hq/liminal-taur
 
 ```bash
 # Clone the repository
-git clone https://github.com/liminal-hq/liminal-tauri-plugins.git
-cd liminal-tauri-plugins
+git clone https://github.com/liminal-hq/tauri-plugins-workspace.git
+cd tauri-plugins-workspace
 
 # Install dependencies
 pnpm install

@@ -13,8 +13,8 @@ Thank you for contributing. This document describes the expected workflow.
 ### 1. Fork and clone
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/liminal-tauri-plugins.git
-cd liminal-tauri-plugins
+git clone https://github.com/liminal-hq/tauri-plugins-workspace.git
+cd tauri-plugins-workspace
 pnpm install
 ```
 
@@ -22,6 +22,8 @@ pnpm install
 
 ```bash
 git checkout -b feature/your-feature-name
+# or
+git switch -c feature/your-feature-name
 ```
 
 ### 3. Make changes
