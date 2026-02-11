@@ -1,5 +1,5 @@
 {
-	"name": "liminal-tauri-plugins",
+	"name": "tauri-plugins-workspace",
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
