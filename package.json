@@ -25,6 +25,7 @@
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
 		"@rollup/plugin-typescript": "^12.1.4",
+		"@typescript-eslint/parser": "^8.55.0",
 		"covector": "^0.12.4",
 		"eslint": "^10.0.0",
 		"prettier": "^3.0.0",

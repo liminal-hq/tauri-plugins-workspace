@@ -1,10 +1,22 @@
 #!/usr/bin/env sh
 set -eu
 
-if ! command -v pnpm >/dev/null 2>&1; then
-	echo "pre-commit: pnpm is required to run format checks."
-	exit 1
+run_format_check() {
+	echo "pre-commit: running pnpm format:check"
+	pnpm format:check
+}
+
+if command -v pnpm >/dev/null 2>&1; then
+	run_format_check
+	exit 0
 fi
 
-echo "pre-commit: running pnpm format:check"
-pnpm format:check
+if command -v npx >/dev/null 2>&1; then
+	pm_version="$(node -p "(require('./package.json').packageManager || '').split('@')[1] || '10.28.2'")"
+	echo "pre-commit: pnpm not found on PATH, using npx pnpm@${pm_version}"
+	npx --yes "pnpm@${pm_version}" format:check
+	exit 0
+fi
+
+echo "pre-commit: pnpm or npx is required to run format checks."
+exit 1

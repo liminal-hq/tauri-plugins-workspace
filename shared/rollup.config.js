@@ -11,6 +11,14 @@ import typescript from '@rollup/plugin-typescript';
 export function createConfig(pluginName) {
 	// Read package.json to use package-level output paths.
 	const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
+	const deps = Object.keys(pkg.dependencies || {});
+	const peerDeps = Object.keys(pkg.peerDependencies || {});
+	const pluginJsName = pluginName.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+	const iifeVarName = `__TAURI_PLUGIN_${pluginName.toUpperCase().replace(/-/g, '_')}__`;
+
+	function onwarn(warning) {
+		throw Object.assign(new Error(), warning);
+	}
 
 	return [
 		// ESM and CJS builds for npm distribution.
@@ -28,8 +36,9 @@ export function createConfig(pluginName) {
 					sourcemap: true,
 				},
 			],
-			external: [/^@tauri-apps\/api/],
+			external: [/^@tauri-apps\/api/, ...deps, ...peerDeps],
 			plugins: [typescript({ declaration: true, declarationDir: './dist-js' })],
+			onwarn,
 		},
 		// IIFE build for global mode (used by build.rs).
 		{
@@ -37,13 +46,24 @@ export function createConfig(pluginName) {
 			output: {
 				file: 'api-iife.js',
 				format: 'iife',
-				name: `__TAURI_PLUGIN_${pluginName.toUpperCase().replace(/-/g, '_')}__`,
+				name: iifeVarName,
+				banner: "if ('__TAURI__' in window) {",
+				footer: `Object.defineProperty(window.__TAURI__, '${pluginJsName}', { value: ${iifeVarName} }) }`,
 				globals: {
 					'@tauri-apps/api/core': '__TAURI__.core',
 				},
 			},
-			external: [/^@tauri-apps\/api/],
-			plugins: [typescript({ tsconfig: false })],
+			external: [/^@tauri-apps\/api/, ...deps, ...peerDeps],
+			plugins: [
+				typescript({
+					tsconfig: join(process.cwd(), '../../tsconfig.base.json'),
+					declaration: false,
+					declarationMap: false,
+					noEmit: false,
+					sourceMap: false,
+				}),
+			],
+			onwarn,
 		},
 	];
 }
