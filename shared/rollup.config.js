@@ -20,10 +20,12 @@ export function createConfig(pluginName) {
 				{
 					file: pkg.exports.import,
 					format: 'es',
+					sourcemap: true,
 				},
 				{
 					file: pkg.exports.require,
 					format: 'cjs',
+					sourcemap: true,
 				},
 			],
 			external: [/^@tauri-apps\/api/],
@@ -36,6 +38,9 @@ export function createConfig(pluginName) {
 				file: 'api-iife.js',
 				format: 'iife',
 				name: `__TAURI_PLUGIN_${pluginName.toUpperCase().replace(/-/g, '_')}__`,
+				globals: {
+					'@tauri-apps/api/core': '__TAURI__.core',
+				},
 			},
 			external: [/^@tauri-apps\/api/],
 			plugins: [typescript({ tsconfig: false })],

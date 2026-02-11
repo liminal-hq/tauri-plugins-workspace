@@ -80,4 +80,4 @@ var __TAURI_PLUGIN_MATERIAL_YOU__ = (function (exports, core) {
 
     return exports;
 
-})({}, core);
+})({}, __TAURI__.core);
