@@ -17,6 +17,7 @@
 		"test:rust": "cargo test --workspace",
 		"test:js": "vitest run",
 		"tauri": "pnpm --filter api-example tauri",
+		"hooks:install": "git config core.hooksPath .githooks",
 		"covector:status": "covector status",
 		"covector:version": "covector version",
 		"covector:publish": "covector publish"

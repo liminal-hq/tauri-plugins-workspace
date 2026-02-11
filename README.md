@@ -4,12 +4,12 @@ A collection of Tauri v2 plugins for building privacy-focused, local-first appli
 
 ## Plugins
 
-| Plugin                  | Description                                       | Platforms        |
-| ----------------------- | ------------------------------------------------- | ---------------- |
-| `alarm-manager`         | Native alarm scheduling with Android AlarmManager | Android          |
-| `time-prefs`            | System time format detection                      | Desktop, Android |
-| [`material-you`](plugins/material-you)          | Material You theming support                      | Android          |
-| `mobile-app-management` | Mobile app lifecycle management                   | Android, iOS     |
+| Plugin                                 | Description                                       | Platforms        |
+| -------------------------------------- | ------------------------------------------------- | ---------------- |
+| `alarm-manager`                        | Native alarm scheduling with Android AlarmManager | Android          |
+| `time-prefs`                           | System time format detection                      | Desktop, Android |
+| [`material-you`](plugins/material-you) | Material You theming support                      | Android          |
+| `mobile-app-management`                | Mobile app lifecycle management                   | Android, iOS     |
 
 ## Installation
 
@@ -69,6 +69,9 @@ cd liminal-tauri-plugins
 
 # Install dependencies
 pnpm install
+
+# Install Git hooks
+pnpm hooks:install
 
 # Build all plugins
 pnpm build
