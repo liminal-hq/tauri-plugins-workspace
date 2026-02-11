@@ -34,6 +34,10 @@ jobs:
         with:
           node-version-file: .node-version
           registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Configure git identity
         run: |
@@ -67,17 +71,17 @@ jobs:
           createRelease: true
           recognizeContributors: true
 
-      - name: Apply Prettier tabs to versioned package manifests
+      - name: Apply Prettier formatting to versioned files
         if: steps.covector.outputs.commandRan == 'version'
         run: |
-          mapfile -t package_files < <(git diff --name-only --diff-filter=ACMRT | rg 'package\\.json$' || true)
+          mapfile -t changed_files < <(git diff --name-only --diff-filter=ACMRT || true)
 
-          if [ "${#package_files[@]}" -eq 0 ]; then
-            echo "No package.json files changed by version step."
+          if [ "${#changed_files[@]}" -eq 0 ]; then
+            echo "No files changed by version step."
             exit 0
           fi
 
-          npx --yes prettier@3 --write "${package_files[@]}"
+          npx --yes prettier@3 --write --ignore-unknown "${changed_files[@]}"
 
       - name: Build release pull request metadata
         if: steps.covector.outputs.commandRan == 'version'
