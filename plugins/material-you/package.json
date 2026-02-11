@@ -9,6 +9,13 @@
 		"type": "git",
 		"url": "git+https://github.com/liminal-hq/tauri-plugins-workspace.git"
 	},
+	"keywords": [
+		"tauri",
+		"tauri-plugin",
+		"android",
+		"material-you",
+		"dynamic-colours"
+	],
 	"type": "module",
 	"types": "./dist-js/index.d.ts",
 	"main": "./dist-js/index.cjs",
