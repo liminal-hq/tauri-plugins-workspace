@@ -1,5 +1,5 @@
 {
-	"gitSiteUrl": "https://github.com/liminal-hq/liminal-tauri-plugins/",
+	"gitSiteUrl": "https://github.com/liminal-hq/tauri-plugins-workspace/",
 	"pkgManagers": {
 		"javascript": {
 			"version": true,
