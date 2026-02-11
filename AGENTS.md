@@ -4,6 +4,7 @@
 
 - [Localisation and Spelling](#localisation-and-spelling)
 - [Commit Messages](#commit-messages)
+- [Pull Requests](#pull-requests)
 - [Git Workflow](#git-workflow)
 - [Repository Scope](#repository-scope)
 - [Code Organisation](#code-organisation)
@@ -46,6 +47,18 @@ Examples:
 - Do not pass markdown-heavy commit bodies directly via `git commit -m "..."` when they contain shell-sensitive characters.
 - Prefer a single-quoted heredoc and `git commit -F <file>`.
 - Verify the stored message after committing with `git log -1 --pretty=fuller`.
+
+**Release Commit Naming:**
+
+- Automated and manual release commits MUST start with `Release`.
+- Do not prefix release commits with Conventional Commit types.
+
+## Pull Requests
+
+- PR titles MUST be descriptive titles, not prefixed commit-style strings (for example, avoid `chore:` or `fix:` prefixes).
+- PR titles should start with a capital letter.
+- PRs MUST have appropriate labels applied before merge.
+- At minimum, apply one change-type label (for example, `release`, `ci`, `docs`, `testing`) and one scope label when applicable (for example, `plugin`, `rust`, `javascript`, `meta`).
 
 ## Git Workflow
 
