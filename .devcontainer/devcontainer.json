@@ -12,8 +12,9 @@
 				"dbaeumer.vscode-eslint",
 				"tauri-apps.tauri-vscode",
 				"ms-vscode.vscode-typescript-next",
+				"tamasfe.even-better-toml",
 				"streetsidesoftware.code-spell-checker",
-				"tamasfe.even-better-toml"
+				"streetsidesoftware.code-spell-checker-canadian-english"
 			],
 			"settings": {
 				"rust-analyzer.cargo.features": "all",
