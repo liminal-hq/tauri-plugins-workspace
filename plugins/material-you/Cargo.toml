@@ -32,4 +32,4 @@ tauri-plugin = { workspace = true, features = ["build"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 tauri-plugin = { workspace = true }
-jni = "0.21"
+jni = "0.22"
