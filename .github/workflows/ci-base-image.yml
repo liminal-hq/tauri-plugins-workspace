@@ -58,7 +58,7 @@ jobs:
       - name: Extract Docker metadata
         if: steps.cadence.outputs.run_publish == 'true'
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.GHCR_IMAGE_NAMESPACE }}/${{ env.CI_BASE_IMAGE_NAME }}
           tags: |
