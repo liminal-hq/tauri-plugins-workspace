@@ -28,8 +28,3 @@ updates:
     directory: '/.devcontainer'
     schedule:
       interval: 'weekly'
-
-  - package-ecosystem: 'docker'
-    directory: '/.github/images/ci-base'
-    schedule:
-      interval: 'weekly'

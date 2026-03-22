@@ -14,10 +14,7 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/tauri-plugins-workspace-ci-base:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      image: ghcr.io/liminal-hq/tauri-ci-desktop:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -38,10 +35,7 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/tauri-plugins-workspace-ci-base:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      image: ghcr.io/liminal-hq/tauri-ci-desktop:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -64,10 +58,7 @@ jobs:
   test-rust:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/tauri-plugins-workspace-ci-base:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      image: ghcr.io/liminal-hq/tauri-ci-desktop:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
