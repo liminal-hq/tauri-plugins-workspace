@@ -55,10 +55,37 @@ Examples:
 
 ## Pull Requests
 
-- PR titles MUST be descriptive titles, not prefixed commit-style strings (for example, avoid `chore:` or `fix:` prefixes).
-- PR titles should start with a capital letter.
-- PRs MUST have appropriate labels applied before merge.
-- At minimum, apply one change-type label (for example, `release`, `ci`, `docs`, `testing`) and one scope label when applicable (for example, `plugin`, `rust`, `javascript`, `meta`).
+### Titles
+
+**REQUIREMENT:** PR titles must be human-readable summaries of the behavioural change.
+
+- Start with a capital letter.
+- Do not use Conventional Commit prefixes in PR titles (no `feat:`, `fix:`, `chore:`).
+- Describe the outcome or behaviour change, not the implementation process.
+- Keep title style consistent across an open PR stack when work is split across multiple PRs.
+
+### Description format
+
+Use `## Summary` and `## Test plan` as the main sections.
+
+- Under Summary, optionally use short subsections such as `### Plugin changes`, `### Workspace tooling`, `### Release notes`, or `### Documentation`.
+- Use flat bullets with **bold** lead-ins for concrete changes or reviewer callouts.
+- Under Test plan, use checklist bullets (`- [x]` / `- [ ]`) with concrete commands, environments, or validation notes.
+- If a relevant validation step could not be run, say so explicitly in the Test plan.
+
+### Labels
+
+**REQUIREMENT:** Every PR must have at least one primary category label.
+
+Primary categories: `bug`, `enhancement`, `documentation`, `testing`, `ci`, `build`, `release`, `chore`.
+
+Optional operational labels: `infrastructure`, `blocked`, `epic`, `skip-changelog`.
+
+Optional scope labels (as applicable): `plugin`, `rust`, `javascript`, `android`, `ios`, `meta`.
+
+- Do not use alias labels such as `feat`, `feature`, `fix`, `bugfix`, `docs`, or `test`.
+- Apply labels before merge.
+- At minimum, apply one change-type label and one scope label when applicable.
 
 ## Git Workflow
 
