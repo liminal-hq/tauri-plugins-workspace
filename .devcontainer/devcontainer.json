@@ -1,7 +1,5 @@
 {
 	"name": "Liminal Tauri Plugins Dev (Mobile)",
-	// Local fallback: uncomment to build from source instead of pulling GHCR image.
-	// "dockerFile": "Dockerfile",
 	"image": "ghcr.io/liminal-hq/tauri-dev-mobile:latest",
 	"forwardPorts": [5173, 1420],
 	"customizations": {
