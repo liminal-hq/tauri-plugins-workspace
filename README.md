@@ -91,6 +91,11 @@ cargo test --workspace
 5. If you only need desktop workflows, choose the explicit desktop profile at `.devcontainer/desktop/devcontainer.json`
 6. Wait for the container setup to complete
 
+The devcontainer profiles use shared Liminal HQ GHCR images:
+
+- Mobile default: `ghcr.io/liminal-hq/tauri-dev-mobile:latest`
+- Desktop profile: `ghcr.io/liminal-hq/tauri-dev-desktop:latest`
+
 The devcontainer includes:
 
 - Shared Liminal HQ Tauri tooling images
@@ -104,6 +109,8 @@ Profile guidance:
 
 - Default mobile profile: use for Android plugin work, mobile validation, and cross-platform maintenance
 - Desktop profile: use for faster desktop-only editing, linting, and Rust and JavaScript quality checks
+
+The checked-in `.devcontainer/Dockerfile` remains as local reference material for the toolchain shape, but this repository no longer publishes a repo-specific devcontainer image.
 
 ### Manual setup
 
