@@ -1,6 +1,6 @@
 {
-	"name": "Liminal Tauri Plugins Dev (Mobile)",
-	"image": "ghcr.io/liminal-hq/tauri-dev-mobile:latest",
+	"name": "Liminal Tauri Plugins Dev (Desktop)",
+	"image": "ghcr.io/liminal-hq/tauri-dev-desktop:latest",
 	"forwardPorts": [5173, 1420],
 	"customizations": {
 		"vscode": {

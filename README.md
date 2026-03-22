@@ -56,7 +56,7 @@ tauri-plugin-alarm-manager = { git = "https://github.com/liminal-hq/tauri-plugin
 ### Prerequisites
 
 - Rust 1.93.0+
-- Node.js 22.21.1+
+- Node.js 24.14.0+
 - pnpm 10+
 - Android NDK r28 (for Android plugins)
 
@@ -87,23 +87,37 @@ cargo test --workspace
 1. Install [Docker](https://www.docker.com/products/docker-desktop)
 2. Install [VS Code](https://code.visualstudio.com/) and the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 3. Open this repository in VS Code
-4. Choose **Reopen in Container** when prompted
-5. Wait for the first build to complete
+4. Choose **Reopen in Container** when prompted for the default mobile image
+5. If you only need desktop workflows, choose the explicit desktop profile at `.devcontainer/desktop/devcontainer.json`
+6. Wait for the container setup to complete
+
+The devcontainer profiles use shared Liminal HQ GHCR images:
+
+- Mobile default: `ghcr.io/liminal-hq/tauri-dev-mobile:latest`
+- Desktop profile: `ghcr.io/liminal-hq/tauri-dev-desktop:latest`
 
 The devcontainer includes:
 
-- Rust stable with Android targets
-- Node.js 22 with pnpm
+- Shared Liminal HQ Tauri tooling images
+- Rust stable with Android targets in the mobile profile
+- Node.js 24 with pnpm
 - Android SDK with NDK r28
 - Tauri system dependencies
 - VS Code extensions for Rust and TypeScript
+
+Profile guidance:
+
+- Default mobile profile: use for Android plugin work, mobile validation, and cross-platform maintenance
+- Desktop profile: use for faster desktop-only editing, linting, and Rust and JavaScript quality checks
+
+The checked-in `.devcontainer/Dockerfile` remains as local reference material for the toolchain shape, but this repository no longer publishes a repo-specific devcontainer image.
 
 ### Manual setup
 
 If you are not using devcontainers, install:
 
 - Rust 1.93.0+ with clippy and rustfmt
-- Node.js 22.21.1+ with pnpm
+- Node.js 24.14.0+ with pnpm
 - Android NDK r28 (for Android plugins)
 - Tauri system dependencies
 

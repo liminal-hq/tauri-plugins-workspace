@@ -18,6 +18,15 @@ cd tauri-plugins-workspace
 pnpm install
 ```
 
+### Devcontainer option
+
+For the recommended setup, open the repository in VS Code and reopen it in the default devcontainer.
+
+- Default mobile profile: `ghcr.io/liminal-hq/tauri-dev-mobile:latest`
+- Optional desktop profile: `.devcontainer/desktop/devcontainer.json` using `ghcr.io/liminal-hq/tauri-dev-desktop:latest`
+
+Use the mobile profile when you need Android tooling. Use the desktop profile for lighter desktop-only editing and validation.
+
 ### 2. Create a branch
 
 ```bash

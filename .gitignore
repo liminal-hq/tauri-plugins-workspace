@@ -5,6 +5,7 @@ Cargo.lock
 
 # Node
 node_modules/
+.pnpm-store/
 dist-js/
 *.log
 pnpm-debug.log*

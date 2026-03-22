@@ -3,6 +3,9 @@ use tauri::{
     Runtime,
 };
 
+#[cfg(target_os = "android")]
+use tauri::Manager;
+
 pub use models::*;
 
 #[cfg(target_os = "android")]
