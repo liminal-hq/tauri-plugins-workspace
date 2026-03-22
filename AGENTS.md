@@ -63,13 +63,16 @@ Examples:
 - Do not use Conventional Commit prefixes in PR titles (no `feat:`, `fix:`, `chore:`).
 - Describe the outcome or behaviour change, not the implementation process.
 - Keep title style consistent across an open PR stack when work is split across multiple PRs.
+- Prefer the same scannable style in PR titles and section wording that is already used in strong repository examples.
 
 ### Description format
 
 Use `## Summary` and `## Test plan` as the main sections.
 
 - Under Summary, optionally use short subsections such as `### Plugin changes`, `### Workspace tooling`, `### Release notes`, or `### Documentation`.
-- Use flat bullets with **bold** lead-ins for concrete changes or reviewer callouts.
+- Use flat bullets with short **bold** lead-ins followed by the rest of the sentence on the same line.
+- Make the bold lead-in the scannable part, then use the remainder of the bullet for context, impact, or tradeoffs.
+- Prefer patterns such as `- **Android build:** Restores ...` or `- **Validation:** Ran ...` rather than plain prose bullets.
 - Under Test plan, use checklist bullets (`- [x]` / `- [ ]`) with concrete commands, environments, or validation notes.
 - If a relevant validation step could not be run, say so explicitly in the Test plan.
 
