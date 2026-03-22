@@ -69,6 +69,7 @@ Examples:
 
 Use `## Summary` and `## Test plan` as the main sections.
 
+- Do not mention internal workflow artefacts, internal-only planning notes, or local queue mechanics in outward PR titles or descriptions unless explicitly requested.
 - Under Summary, optionally use short subsections such as `### Plugin changes`, `### Workspace tooling`, `### Release notes`, or `### Documentation`.
 - Use flat bullets with short **bold** lead-ins followed by the rest of the sentence on the same line.
 - Make the bold lead-in the scannable part, then use the remainder of the bullet for context, impact, or tradeoffs.
@@ -89,6 +90,7 @@ Optional scope labels (as applicable): `plugin`, `rust`, `javascript`, `android`
 - Do not use alias labels such as `feat`, `feature`, `fix`, `bugfix`, `docs`, or `test`.
 - Apply labels before merge.
 - At minimum, apply one change-type label and one scope label when applicable.
+- Keep labels accurate as PR scope changes during review.
 
 ## Git Workflow
 
