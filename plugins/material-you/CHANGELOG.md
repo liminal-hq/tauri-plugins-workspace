@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.1.3]
+
+- [`7167807`](https://github.com/liminal-hq/tauri-plugins-workspace/commit/7167807ab9435bde972f0b52a4b0be98557a8d55) Fixes the Android build for `material-you` by restoring the `tauri::Manager` import required by the plugin setup path, and keeps the Rust and JavaScript package versions aligned for the patch release.
+
 ## \[0.1.2]
 
 - [`d604a44`](https://github.com/liminal-hq/tauri-plugins-workspace/commit/d604a4420aeef36466cec363ea68ef112e046df7) Release updates for `material-you` and `material-you-js`:
