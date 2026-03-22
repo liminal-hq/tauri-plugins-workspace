@@ -87,16 +87,23 @@ cargo test --workspace
 1. Install [Docker](https://www.docker.com/products/docker-desktop)
 2. Install [VS Code](https://code.visualstudio.com/) and the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 3. Open this repository in VS Code
-4. Choose **Reopen in Container** when prompted
-5. Wait for the first build to complete
+4. Choose **Reopen in Container** when prompted for the default mobile image
+5. If you only need desktop workflows, choose the explicit desktop profile at `.devcontainer/desktop/devcontainer.json`
+6. Wait for the container setup to complete
 
 The devcontainer includes:
 
-- Rust stable with Android targets
+- Shared Liminal HQ Tauri tooling images
+- Rust stable with Android targets in the mobile profile
 - Node.js 22 with pnpm
 - Android SDK with NDK r28
 - Tauri system dependencies
 - VS Code extensions for Rust and TypeScript
+
+Profile guidance:
+
+- Default mobile profile: use for Android plugin work, mobile validation, and cross-platform maintenance
+- Desktop profile: use for faster desktop-only editing, linting, and Rust and JavaScript quality checks
 
 ### Manual setup
 
