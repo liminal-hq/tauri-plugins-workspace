@@ -56,7 +56,7 @@ tauri-plugin-alarm-manager = { git = "https://github.com/liminal-hq/tauri-plugin
 ### Prerequisites
 
 - Rust 1.93.0+
-- Node.js 22.21.1+
+- Node.js 24.14.0+
 - pnpm 10+
 - Android NDK r28 (for Android plugins)
 
@@ -100,7 +100,7 @@ The devcontainer includes:
 
 - Shared Liminal HQ Tauri tooling images
 - Rust stable with Android targets in the mobile profile
-- Node.js 22 with pnpm
+- Node.js 24 with pnpm
 - Android SDK with NDK r28
 - Tauri system dependencies
 - VS Code extensions for Rust and TypeScript
@@ -117,7 +117,7 @@ The checked-in `.devcontainer/Dockerfile` remains as local reference material fo
 If you are not using devcontainers, install:
 
 - Rust 1.93.0+ with clippy and rustfmt
-- Node.js 22.21.1+ with pnpm
+- Node.js 24.14.0+ with pnpm
 - Android NDK r28 (for Android plugins)
 - Tauri system dependencies
 
