@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Tauri v2 plugin monorepo (pnpm workspace + Cargo workspace) for privacy-first, local-first plugins. Currently contains the `material-you` plugin (Android Material You dynamic colours). See `PLUGIN_TEMPLATE.md` for the canonical new-plugin structure.
 
+**`AGENTS.md` is the canonical source of repository rules** — spelling, commit conventions, PR format, code organisation, plugin development patterns, and release process. Always consult it for authoritative guidance.
+
 ## Essential Commands
 
 ```bash

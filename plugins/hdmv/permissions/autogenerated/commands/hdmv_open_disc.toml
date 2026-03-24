@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-hdmv-open-disc"
+description = "Enables the hdmv_open_disc command without any pre-configured scope."
+commands.allow = ["hdmv_open_disc"]
+
+[[permission]]
+identifier = "deny-hdmv-open-disc"
+description = "Denies the hdmv_open_disc command without any pre-configured scope."
+commands.deny = ["hdmv_open_disc"]

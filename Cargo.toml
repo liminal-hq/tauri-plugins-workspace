@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "plugins/material-you",
+  "plugins/hdmv",
   "examples/api/src-tauri",
 ]
 resolver = "2"
@@ -35,6 +36,9 @@ authors = ["Liminal HQ Contributors"]
 license = "Apache-2.0 OR MIT"
 rust-version = "1.93.0"
 repository = "https://github.com/liminal-hq/tauri-plugins-workspace"
+
+[patch."https://github.com/liminal-hq/libhdmv"]
+libhdmv = { path = "../libhdmv/crates/libhdmv" }
 
 # Optimised release builds
 [profile.release]

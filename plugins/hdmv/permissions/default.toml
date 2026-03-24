@@ -1,0 +1,82 @@
+[[permission]]
+identifier = "allow-hdmv-open-disc"
+description = "Enables the hdmv_open_disc command"
+commands.allow = ["hdmv_open_disc"]
+
+[[permission]]
+identifier = "allow-hdmv-close-disc"
+description = "Enables the hdmv_close_disc command"
+commands.allow = ["hdmv_close_disc"]
+
+[[permission]]
+identifier = "allow-hdmv-get-disc-info"
+description = "Enables the hdmv_get_disc_info command"
+commands.allow = ["hdmv_get_disc_info"]
+
+[[permission]]
+identifier = "allow-hdmv-list-titles"
+description = "Enables the hdmv_list_titles command"
+commands.allow = ["hdmv_list_titles"]
+
+[[permission]]
+identifier = "allow-hdmv-list-playlists"
+description = "Enables the hdmv_list_playlists command"
+commands.allow = ["hdmv_list_playlists"]
+
+[[permission]]
+identifier = "allow-hdmv-get-playlist"
+description = "Enables the hdmv_get_playlist command"
+commands.allow = ["hdmv_get_playlist"]
+
+[[permission]]
+identifier = "allow-hdmv-start-navigation"
+description = "Enables the hdmv_start_navigation command"
+commands.allow = ["hdmv_start_navigation"]
+
+[[permission]]
+identifier = "allow-hdmv-send-key"
+description = "Enables the hdmv_send_key command"
+commands.allow = ["hdmv_send_key"]
+
+[[permission]]
+identifier = "allow-hdmv-mouse-move"
+description = "Enables the hdmv_mouse_move command"
+commands.allow = ["hdmv_mouse_move"]
+
+[[permission]]
+identifier = "allow-hdmv-mouse-click"
+description = "Enables the hdmv_mouse_click command"
+commands.allow = ["hdmv_mouse_click"]
+
+[[permission]]
+identifier = "allow-hdmv-render-preview"
+description = "Enables the hdmv_render_preview command"
+commands.allow = ["hdmv_render_preview"]
+
+[[permission]]
+identifier = "allow-hdmv-get-menu-state"
+description = "Enables the hdmv_get_menu_state command"
+commands.allow = ["hdmv_get_menu_state"]
+
+[[permission]]
+identifier = "allow-hdmv-build-disc"
+description = "Enables the hdmv_build_disc command"
+commands.allow = ["hdmv_build_disc"]
+
+[default]
+description = "Default permissions for the hdmv plugin"
+permissions = [
+    "allow-hdmv-open-disc",
+    "allow-hdmv-close-disc",
+    "allow-hdmv-get-disc-info",
+    "allow-hdmv-list-titles",
+    "allow-hdmv-list-playlists",
+    "allow-hdmv-get-playlist",
+    "allow-hdmv-start-navigation",
+    "allow-hdmv-send-key",
+    "allow-hdmv-mouse-move",
+    "allow-hdmv-mouse-click",
+    "allow-hdmv-render-preview",
+    "allow-hdmv-get-menu-state",
+    "allow-hdmv-build-disc",
+]
