@@ -1,9 +1,12 @@
 [workspace]
 members = [
   "plugins/material-you",
-  "plugins/hdmv",
   "examples/api/src-tauri",
 ]
+# plugins/hdmv depends on libhdmv which is not available in CI.
+# It is excluded from workspace commands; build it separately:
+#   cargo check --manifest-path plugins/hdmv/Cargo.toml
+exclude = ["plugins/hdmv"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -36,9 +39,6 @@ authors = ["Liminal HQ Contributors"]
 license = "Apache-2.0 OR MIT"
 rust-version = "1.93.0"
 repository = "https://github.com/liminal-hq/tauri-plugins-workspace"
-
-[patch."https://github.com/liminal-hq/libhdmv"]
-libhdmv = { path = "../libhdmv/crates/libhdmv" }
 
 # Optimised release builds
 [profile.release]

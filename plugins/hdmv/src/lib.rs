@@ -22,6 +22,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::hdmv_list_playlists,
             commands::hdmv_get_playlist,
             commands::hdmv_start_navigation,
+            commands::hdmv_load_scene,
             commands::hdmv_send_key,
             commands::hdmv_mouse_move,
             commands::hdmv_mouse_click,

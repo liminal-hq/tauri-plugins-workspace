@@ -20,6 +20,10 @@ pub struct HdmvSession {
     pub playlists: Vec<Playlist>,
     pub vm: Option<VmSession>,
     pub scene: Option<MenuScene>,
+    /// Decoded IGS objects for rendering, stored alongside the scene.
+    pub ig_objects: Vec<libhdmv::igs::IgObject>,
+    /// Decoded IGS palettes for rendering.
+    pub ig_palettes: Vec<libhdmv::igs::IgPalette>,
 }
 
 impl HdmvSession {
@@ -51,10 +55,15 @@ impl HdmvSession {
             playlists,
             vm: None,
             scene: None,
+            ig_objects: Vec::new(),
+            ig_palettes: Vec::new(),
         })
     }
 
     /// Create a VM session and execute the First Play object.
+    ///
+    /// Processes the resulting nav events to initialise the menu scene
+    /// when IGS data has been loaded via `load_scene`.
     pub fn start_navigation(&mut self) -> Vec<NavEvent> {
         let commands: Vec<Vec<[u8; 12]>> = self
             .movie_objects
@@ -64,32 +73,58 @@ impl HdmvSession {
             .collect();
         let mut vm = VmSession::new(commands);
         let events = vm.execute_object(self.index.first_play.object_id_ref as usize);
+
+        // Process SetButtonPage events to update the scene if one is loaded
+        if let Some(scene) = &mut self.scene {
+            for event in &events {
+                if let NavEvent::SetButtonPage { page_id } = event {
+                    scene.set_page(*page_id as u8);
+                }
+            }
+        }
+
         self.vm = Some(vm);
         events
     }
 
+    /// Load a menu scene from an `InteractiveComposition` and its associated objects.
+    ///
+    /// This must be called before scene-dependent commands (`send_key`, `mouse_move`,
+    /// `mouse_click`, `render_preview`) will work. IGS composition data must be
+    /// extracted from the disc's transport streams externally, as libhdmv does not
+    /// yet include a transport stream demuxer.
+    pub fn load_scene(
+        &mut self,
+        composition: libhdmv::igs::InteractiveComposition,
+        objects: Vec<libhdmv::igs::IgObject>,
+        palettes: Vec<libhdmv::igs::IgPalette>,
+    ) {
+        self.scene = Some(MenuScene::with_objects(composition, &objects));
+        self.ig_objects = objects;
+        self.ig_palettes = palettes;
+    }
+
     /// Send a remote key to the VM via the menu scene.
     pub fn send_key(&mut self, key: libhdmv::RemoteKey) -> Result<Vec<NavEvent>> {
-        let vm = self
-            .vm
-            .as_mut()
-            .ok_or(Error::NavigationNotStarted(String::new()))?;
         let scene = self
             .scene
             .as_mut()
             .ok_or(Error::NoMenuScene(String::new()))?;
 
         let update = scene.process_input(&libhdmv::SceneInput::Key(key));
-        let mut events = Vec::new();
+        let events = execute_nav_commands(&update.nav_commands);
+        Ok(events)
+    }
 
-        // Execute any navigation commands from the scene update
-        for cmd in &update.nav_commands {
-            // Nav commands reference movie objects; decode and execute
-            // The command bytes encode the target object
-            let obj_events = execute_nav_commands(vm, cmd);
-            events.extend(obj_events);
-        }
+    /// Process a mouse click and return resulting navigation events.
+    pub fn mouse_click(&mut self, x: u16, y: u16) -> Result<Vec<NavEvent>> {
+        let scene = self
+            .scene
+            .as_mut()
+            .ok_or(Error::NoMenuScene(String::new()))?;
 
+        let update = scene.process_input(&libhdmv::SceneInput::MouseClick { x, y });
+        let events = execute_nav_commands(&update.nav_commands);
         Ok(events)
     }
 
@@ -104,20 +139,52 @@ impl HdmvSession {
             .current_page()
             .ok_or(Error::Plugin("No current page".into()))?;
 
-        // Determine output dimensions
         let renderer = CpuRenderer::new(max_width, max_width * 9 / 16);
 
-        // We need IGS objects and palette data to render — these would come from
-        // the parsed interactive graphics stream. For now, render with what we have.
+        // Build palette from stored IG palettes
+        let palette = if let Some(ig_palette) = self
+            .ig_palettes
+            .iter()
+            .find(|p| p.palette_id == page.palette_id)
+        {
+            libhdmv::pgs::PgsPalette::from_entries(
+                &ig_palette
+                    .entries
+                    .iter()
+                    .map(|e| libhdmv::pgs::PaletteEntry {
+                        id: e.id,
+                        y: e.y,
+                        cr: e.cr,
+                        cb: e.cb,
+                        alpha: e.alpha,
+                    })
+                    .collect::<Vec<_>>(),
+            )
+        } else {
+            libhdmv::pgs::PgsPalette::new()
+        };
+
         let frame = renderer.render_page_with_selection(
             page,
-            &[], // objects loaded from IGS
-            &libhdmv::pgs::PgsPalette::new(),
+            &self.ig_objects,
+            &palette,
             scene.selected_button_id(),
         );
 
         encode_frame_as_base64_png(&frame)
     }
+}
+
+/// Execute button navigation commands by creating a temporary VM.
+///
+/// Button nav commands are raw 12-byte HDMV instructions. We execute them
+/// in a temporary VM session to produce navigation events.
+fn execute_nav_commands(commands: &[[u8; 12]]) -> Vec<NavEvent> {
+    if commands.is_empty() {
+        return Vec::new();
+    }
+    let mut temp_vm = VmSession::new(vec![commands.to_vec()]);
+    temp_vm.execute_object(0)
 }
 
 /// Encode an OverlayFrame as a base64-encoded PNG string.
@@ -138,15 +205,6 @@ fn encode_frame_as_base64_png(frame: &libhdmv::OverlayFrame) -> Result<String> {
     }
 
     Ok(base64::engine::general_purpose::STANDARD.encode(&buf))
-}
-
-/// Execute navigation command bytes through the VM.
-fn execute_nav_commands(vm: &mut VmSession, _cmd: &[u8; 12]) -> Vec<NavEvent> {
-    // Navigation commands from button activations encode a target object.
-    // In the full implementation, decode the command to find the object ID
-    // and call vm.execute_object(). For now, return empty.
-    let _ = vm;
-    Vec::new()
 }
 
 /// Convert libhdmv NavEvent to our serialisable DTO.

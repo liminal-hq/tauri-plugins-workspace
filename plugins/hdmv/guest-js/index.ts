@@ -79,6 +79,17 @@ export interface DiscBuildConfig {
 	titles: TitleSpecDto[];
 }
 
+export interface SceneData {
+	/** Composition width in pixels. */
+	width: number;
+	/** Composition height in pixels. */
+	height: number;
+	/** Base64-encoded raw palette segment bytes. */
+	paletteSegments: string[];
+	/** Base64-encoded raw object segment bytes. */
+	objectSegments: string[];
+}
+
 // -- Session lifecycle --
 
 /**
@@ -138,6 +149,16 @@ export async function getPlaylist(
  */
 export async function startNavigation(sessionId: string): Promise<NavEvent[]> {
 	return await invoke<NavEvent[]>('plugin:hdmv|hdmv_start_navigation', { sessionId });
+}
+
+/**
+ * Load an interactive menu scene from externally-parsed IGS data.
+ *
+ * Must be called before scene-dependent commands (sendKey, mouseMove,
+ * mouseClick, renderPreview) will work.
+ */
+export async function loadScene(sessionId: string, sceneData: SceneData): Promise<void> {
+	await invoke<void>('plugin:hdmv|hdmv_load_scene', { sessionId, sceneData });
 }
 
 /**

@@ -14,6 +14,7 @@ Default permissions for the hdmv plugin
 - `allow-hdmv-send-key`
 - `allow-hdmv-mouse-move`
 - `allow-hdmv-mouse-click`
+- `allow-hdmv-load-scene`
 - `allow-hdmv-render-preview`
 - `allow-hdmv-get-menu-state`
 - `allow-hdmv-build-disc`
@@ -205,6 +206,32 @@ Enables the hdmv_list_titles command without any pre-configured scope.
 <td>
 
 Denies the hdmv_list_titles command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`hdmv:allow-hdmv-load-scene`
+
+</td>
+<td>
+
+Enables the hdmv_load_scene command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`hdmv:deny-hdmv-load-scene`
+
+</td>
+<td>
+
+Denies the hdmv_load_scene command without any pre-configured scope.
 
 </td>
 </tr>
@@ -491,6 +518,19 @@ Enables the hdmv_mouse_move command
 <td>
 
 Enables the hdmv_mouse_click command
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`hdmv:allow-hdmv-load-scene`
+
+</td>
+<td>
+
+Enables the hdmv_load_scene command
 
 </td>
 </tr>

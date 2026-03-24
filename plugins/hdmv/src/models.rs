@@ -69,26 +69,85 @@ pub struct MenuStateSnapshot {
 }
 
 /// A navigation event emitted by the VM.
+///
+/// Tag values are PascalCase (matching Rust variant names), field names are camelCase.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum NavEventDto {
-    PlayTitle { title_id: u16 },
-    PlayPlaylist { playlist_id: u16 },
-    PlayPlaylistItem { playlist_id: u16, play_item_id: u16 },
-    SeekPlayMark { playlist_id: u16, play_mark_id: u16 },
-    LinkPlayItem { play_item_id: u16 },
-    LinkPlayMark { play_mark_id: u16 },
+    #[serde(rename_all = "camelCase")]
+    PlayTitle {
+        title_id: u16,
+    },
+    #[serde(rename_all = "camelCase")]
+    PlayPlaylist {
+        playlist_id: u16,
+    },
+    #[serde(rename_all = "camelCase")]
+    PlayPlaylistItem {
+        playlist_id: u16,
+        play_item_id: u16,
+    },
+    #[serde(rename_all = "camelCase")]
+    SeekPlayMark {
+        playlist_id: u16,
+        play_mark_id: u16,
+    },
+    #[serde(rename_all = "camelCase")]
+    LinkPlayItem {
+        play_item_id: u16,
+    },
+    #[serde(rename_all = "camelCase")]
+    LinkPlayMark {
+        play_mark_id: u16,
+    },
     PlayStop,
     StillOn,
     StillOff,
-    SetButtonPage { page_id: u16 },
-    EnableButton { button_id: u16 },
-    DisableButton { button_id: u16 },
+    #[serde(rename_all = "camelCase")]
+    SetButtonPage {
+        page_id: u16,
+    },
+    #[serde(rename_all = "camelCase")]
+    EnableButton {
+        button_id: u16,
+    },
+    #[serde(rename_all = "camelCase")]
+    DisableButton {
+        button_id: u16,
+    },
     PopupOff,
-    SetOutputMode { mode: u32 },
-    SetStream { stream_type: u8, stream_id: u16 },
-    SetNvTimer { timer_id: u32, value: u32 },
+    SetOutputMode {
+        mode: u32,
+    },
+    #[serde(rename_all = "camelCase")]
+    SetStream {
+        stream_type: u8,
+        stream_id: u16,
+    },
+    #[serde(rename_all = "camelCase")]
+    SetNvTimer {
+        timer_id: u32,
+        value: u32,
+    },
+}
+
+/// Data required to load an interactive menu scene.
+///
+/// Accepts pre-parsed IGS segment data (palette and object segments) plus
+/// composition metadata. IGS segments must be extracted from the disc's
+/// transport streams externally, as libhdmv does not yet include a
+/// transport stream demuxer.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SceneData {
+    /// Base64-encoded raw palette segment bytes (each parsed via `igs::parse_palette_segment`).
+    pub palette_segments: Vec<String>,
+    /// Base64-encoded raw object segment bytes (each parsed via `igs::parse_object_segment`).
+    pub object_segments: Vec<String>,
+    /// Composition width in pixels.
+    pub width: u16,
+    /// Composition height in pixels.
+    pub height: u16,
 }
 
 /// Configuration for building a new BDMV disc structure.

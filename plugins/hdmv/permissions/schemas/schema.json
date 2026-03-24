@@ -379,6 +379,18 @@
           "markdownDescription": "Denies the hdmv_list_titles command without any pre-configured scope."
         },
         {
+          "description": "Enables the hdmv_load_scene command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-hdmv-load-scene",
+          "markdownDescription": "Enables the hdmv_load_scene command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the hdmv_load_scene command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-hdmv-load-scene",
+          "markdownDescription": "Denies the hdmv_load_scene command without any pre-configured scope."
+        },
+        {
           "description": "Enables the hdmv_mouse_click command without any pre-configured scope.",
           "type": "string",
           "const": "allow-hdmv-mouse-click",
@@ -451,10 +463,10 @@
           "markdownDescription": "Denies the hdmv_start_navigation command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the hdmv plugin\n#### This default permission set includes:\n\n- `allow-hdmv-open-disc`\n- `allow-hdmv-close-disc`\n- `allow-hdmv-get-disc-info`\n- `allow-hdmv-list-titles`\n- `allow-hdmv-list-playlists`\n- `allow-hdmv-get-playlist`\n- `allow-hdmv-start-navigation`\n- `allow-hdmv-send-key`\n- `allow-hdmv-mouse-move`\n- `allow-hdmv-mouse-click`\n- `allow-hdmv-render-preview`\n- `allow-hdmv-get-menu-state`\n- `allow-hdmv-build-disc`",
+          "description": "Default permissions for the hdmv plugin\n#### This default permission set includes:\n\n- `allow-hdmv-open-disc`\n- `allow-hdmv-close-disc`\n- `allow-hdmv-get-disc-info`\n- `allow-hdmv-list-titles`\n- `allow-hdmv-list-playlists`\n- `allow-hdmv-get-playlist`\n- `allow-hdmv-start-navigation`\n- `allow-hdmv-send-key`\n- `allow-hdmv-mouse-move`\n- `allow-hdmv-mouse-click`\n- `allow-hdmv-load-scene`\n- `allow-hdmv-render-preview`\n- `allow-hdmv-get-menu-state`\n- `allow-hdmv-build-disc`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the hdmv plugin\n#### This default permission set includes:\n\n- `allow-hdmv-open-disc`\n- `allow-hdmv-close-disc`\n- `allow-hdmv-get-disc-info`\n- `allow-hdmv-list-titles`\n- `allow-hdmv-list-playlists`\n- `allow-hdmv-get-playlist`\n- `allow-hdmv-start-navigation`\n- `allow-hdmv-send-key`\n- `allow-hdmv-mouse-move`\n- `allow-hdmv-mouse-click`\n- `allow-hdmv-render-preview`\n- `allow-hdmv-get-menu-state`\n- `allow-hdmv-build-disc`"
+          "markdownDescription": "Default permissions for the hdmv plugin\n#### This default permission set includes:\n\n- `allow-hdmv-open-disc`\n- `allow-hdmv-close-disc`\n- `allow-hdmv-get-disc-info`\n- `allow-hdmv-list-titles`\n- `allow-hdmv-list-playlists`\n- `allow-hdmv-get-playlist`\n- `allow-hdmv-start-navigation`\n- `allow-hdmv-send-key`\n- `allow-hdmv-mouse-move`\n- `allow-hdmv-mouse-click`\n- `allow-hdmv-load-scene`\n- `allow-hdmv-render-preview`\n- `allow-hdmv-get-menu-state`\n- `allow-hdmv-build-disc`"
         },
         {
           "description": "Enables the hdmv_open_disc command",
@@ -515,6 +527,12 @@
           "type": "string",
           "const": "allow-hdmv-mouse-click",
           "markdownDescription": "Enables the hdmv_mouse_click command"
+        },
+        {
+          "description": "Enables the hdmv_load_scene command",
+          "type": "string",
+          "const": "allow-hdmv-load-scene",
+          "markdownDescription": "Enables the hdmv_load_scene command"
         },
         {
           "description": "Enables the hdmv_render_preview command",

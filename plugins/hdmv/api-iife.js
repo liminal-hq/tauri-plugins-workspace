@@ -51,6 +51,15 @@ var __TAURI_PLUGIN_HDMV__ = (function (exports, core) {
         return await core.invoke('plugin:hdmv|hdmv_start_navigation', { sessionId });
     }
     /**
+     * Load an interactive menu scene from externally-parsed IGS data.
+     *
+     * Must be called before scene-dependent commands (sendKey, mouseMove,
+     * mouseClick, renderPreview) will work.
+     */
+    async function loadScene(sessionId, sceneData) {
+        await core.invoke('plugin:hdmv|hdmv_load_scene', { sessionId, sceneData });
+    }
+    /**
      * Send a remote key input and return resulting navigation events.
      */
     async function sendKey(sessionId, key) {
@@ -96,6 +105,7 @@ var __TAURI_PLUGIN_HDMV__ = (function (exports, core) {
     exports.getPlaylist = getPlaylist;
     exports.listPlaylists = listPlaylists;
     exports.listTitles = listTitles;
+    exports.loadScene = loadScene;
     exports.mouseClick = mouseClick;
     exports.mouseMove = mouseMove;
     exports.openDisc = openDisc;

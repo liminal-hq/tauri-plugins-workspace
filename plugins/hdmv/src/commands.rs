@@ -190,6 +190,67 @@ pub(crate) async fn hdmv_start_navigation(
     Ok(events.iter().map(nav_event_to_dto).collect())
 }
 
+/// Load an interactive menu scene from raw IGS segment data.
+///
+/// Accepts base64-encoded raw palette and object segments extracted from
+/// the disc's transport stream. Must be called before scene-dependent
+/// commands (`hdmv_send_key`, `hdmv_mouse_move`, `hdmv_mouse_click`,
+/// `hdmv_render_preview`) will work.
+#[command]
+pub(crate) async fn hdmv_load_scene(
+    session_id: String,
+    scene_data: SceneData,
+    store: State<'_, SessionStore>,
+) -> Result<()> {
+    use base64::Engine;
+    use libhdmv::igs::{parse_object_segment, parse_palette_segment, IgsDecoder};
+
+    let mut sessions = store
+        .sessions
+        .lock()
+        .map_err(|e| Error::Plugin(e.to_string()))?;
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or(Error::SessionNotFound(session_id))?;
+
+    let mut decoder = IgsDecoder::new();
+
+    // Parse palette segments
+    for (i, seg_b64) in scene_data.palette_segments.iter().enumerate() {
+        let raw = base64::engine::general_purpose::STANDARD
+            .decode(seg_b64)
+            .map_err(|e| {
+                Error::Plugin(format!("Invalid base64 in palette segment {}: {}", i, e))
+            })?;
+        let palette = parse_palette_segment(&raw)
+            .map_err(|e| Error::Parse(format!("Palette segment {}: {}", i, e)))?;
+        decoder.add_palette(palette);
+    }
+
+    // Parse object segments
+    for (i, seg_b64) in scene_data.object_segments.iter().enumerate() {
+        let raw = base64::engine::general_purpose::STANDARD
+            .decode(seg_b64)
+            .map_err(|e| Error::Plugin(format!("Invalid base64 in object segment {}: {}", i, e)))?;
+        let object = parse_object_segment(&raw)
+            .map_err(|e| Error::Parse(format!("Object segment {}: {}", i, e)))?;
+        decoder.add_object(object);
+    }
+
+    // Build composition from decoded data
+    let composition = libhdmv::igs::build_composition(
+        scene_data.width,
+        scene_data.height,
+        Vec::new(), // Pages are built from the composition segments
+    );
+
+    let objects = decoder.objects().to_vec();
+    let palettes = decoder.palettes().to_vec();
+
+    session.load_scene(composition, objects, palettes);
+    Ok(())
+}
+
 /// Send a remote key input and return resulting navigation events.
 #[command]
 pub(crate) async fn hdmv_send_key(
@@ -251,22 +312,7 @@ pub(crate) async fn hdmv_mouse_click(
         .get_mut(&session_id)
         .ok_or(Error::SessionNotFound(session_id))?;
 
-    let scene = session
-        .scene
-        .as_mut()
-        .ok_or(Error::NoMenuScene(String::new()))?;
-    let vm = session
-        .vm
-        .as_mut()
-        .ok_or(Error::NavigationNotStarted(String::new()))?;
-
-    let update = scene.process_input(&libhdmv::SceneInput::MouseClick { x, y });
-    let events = Vec::new();
-    for _cmd in &update.nav_commands {
-        // Execute navigation commands through the VM
-        let _ = vm;
-    }
-
+    let events = session.mouse_click(x, y)?;
     Ok(events.iter().map(nav_event_to_dto).collect())
 }
 

@@ -9,6 +9,7 @@ const COMMANDS: &[&str] = &[
     "hdmv_send_key",
     "hdmv_mouse_move",
     "hdmv_mouse_click",
+    "hdmv_load_scene",
     "hdmv_render_preview",
     "hdmv_get_menu_state",
     "hdmv_build_disc",
