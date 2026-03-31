@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-hdmv-close-disc"
+description = "Enables the hdmv_close_disc command without any pre-configured scope."
+commands.allow = ["hdmv_close_disc"]
+
+[[permission]]
+identifier = "deny-hdmv-close-disc"
+description = "Denies the hdmv_close_disc command without any pre-configured scope."
+commands.deny = ["hdmv_close_disc"]

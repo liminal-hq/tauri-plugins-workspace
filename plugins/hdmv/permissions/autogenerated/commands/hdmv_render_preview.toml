@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-hdmv-render-preview"
+description = "Enables the hdmv_render_preview command without any pre-configured scope."
+commands.allow = ["hdmv_render_preview"]
+
+[[permission]]
+identifier = "deny-hdmv-render-preview"
+description = "Denies the hdmv_render_preview command without any pre-configured scope."
+commands.deny = ["hdmv_render_preview"]

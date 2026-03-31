@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-hdmv-list-titles"
+description = "Enables the hdmv_list_titles command without any pre-configured scope."
+commands.allow = ["hdmv_list_titles"]
+
+[[permission]]
+identifier = "deny-hdmv-list-titles"
+description = "Denies the hdmv_list_titles command without any pre-configured scope."
+commands.deny = ["hdmv_list_titles"]

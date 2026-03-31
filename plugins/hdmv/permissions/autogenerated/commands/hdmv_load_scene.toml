@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-hdmv-load-scene"
+description = "Enables the hdmv_load_scene command without any pre-configured scope."
+commands.allow = ["hdmv_load_scene"]
+
+[[permission]]
+identifier = "deny-hdmv-load-scene"
+description = "Denies the hdmv_load_scene command without any pre-configured scope."
+commands.deny = ["hdmv_load_scene"]

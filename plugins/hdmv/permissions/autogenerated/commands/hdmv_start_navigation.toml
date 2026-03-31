@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-hdmv-start-navigation"
+description = "Enables the hdmv_start_navigation command without any pre-configured scope."
+commands.allow = ["hdmv_start_navigation"]
+
+[[permission]]
+identifier = "deny-hdmv-start-navigation"
+description = "Denies the hdmv_start_navigation command without any pre-configured scope."
+commands.deny = ["hdmv_start_navigation"]

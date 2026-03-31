@@ -1,0 +1,18 @@
+[default]
+description = "Default permissions for the hdmv plugin"
+permissions = [
+    "allow-hdmv-open-disc",
+    "allow-hdmv-close-disc",
+    "allow-hdmv-get-disc-info",
+    "allow-hdmv-list-titles",
+    "allow-hdmv-list-playlists",
+    "allow-hdmv-get-playlist",
+    "allow-hdmv-start-navigation",
+    "allow-hdmv-load-scene",
+    "allow-hdmv-send-key",
+    "allow-hdmv-mouse-move",
+    "allow-hdmv-mouse-click",
+    "allow-hdmv-render-preview",
+    "allow-hdmv-get-menu-state",
+    "allow-hdmv-build-disc",
+]

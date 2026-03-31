@@ -3,6 +3,10 @@ members = [
   "plugins/material-you",
   "examples/api/src-tauri",
 ]
+# plugins/hdmv depends on libhdmv which is not available in CI.
+# It is excluded from workspace commands; build it separately:
+#   cargo check --manifest-path plugins/hdmv/Cargo.toml
+exclude = ["plugins/hdmv"]
 resolver = "2"
 
 [workspace.dependencies]

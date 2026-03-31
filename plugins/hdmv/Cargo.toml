@@ -1,0 +1,35 @@
+[package]
+name = "tauri-plugin-hdmv"
+version = "0.1.0"
+description = "Tauri v2 plugin wrapping libhdmv for HDMV/Blu-ray menu engine access"
+authors = ["Liminal HQ Contributors"]
+license = "Apache-2.0 OR MIT"
+edition = "2021"
+rust-version = "1.93.0"
+repository = "https://github.com/liminal-hq/tauri-plugins-workspace"
+links = "tauri-plugin-hdmv"
+
+[package.metadata.platforms.support]
+windows = { level = "full", notes = "" }
+linux = { level = "full", notes = "" }
+macos = { level = "full", notes = "" }
+android = { level = "none", notes = "Desktop only" }
+ios = { level = "none", notes = "Desktop only" }
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+tauri = { version = "2.0", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+# Use path dep for local development; switch to git for release:
+#   libhdmv = { git = "https://github.com/liminal-hq/libhdmv", branch = "main" }
+libhdmv = { path = "../../../libhdmv/crates/libhdmv" }
+base64 = "0.22"
+png = "0.17"
+uuid = { version = "1", features = ["v4"] }
+
+[build-dependencies]
+tauri-plugin = { version = "2.0", features = ["build"] }

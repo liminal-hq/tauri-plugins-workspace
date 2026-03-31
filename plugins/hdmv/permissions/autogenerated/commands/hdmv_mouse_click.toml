@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-hdmv-mouse-click"
+description = "Enables the hdmv_mouse_click command without any pre-configured scope."
+commands.allow = ["hdmv_mouse_click"]
+
+[[permission]]
+identifier = "deny-hdmv-mouse-click"
+description = "Denies the hdmv_mouse_click command without any pre-configured scope."
+commands.deny = ["hdmv_mouse_click"]
