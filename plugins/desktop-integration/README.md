@@ -20,7 +20,7 @@ Wayland portal) automatically based on session type.
 
 ```toml
 [dependencies]
-tauri-plugin-desktop-integration = "0.2"
+tauri-plugin-desktop-integration = "0.1"
 
 # Alternatively with Git:
 tauri-plugin-desktop-integration = { git = "https://github.com/liminal-hq/tauri-plugins-workspace", branch = "main" }

@@ -10,7 +10,7 @@ the standard freedesktop.org portal APIs instead of platform-specific hacks.
 
 ```toml
 [dependencies]
-tauri-plugin-xdg-portal = "0.2"
+tauri-plugin-xdg-portal = "0.1"
 
 # Alternatively with Git:
 tauri-plugin-xdg-portal = { git = "https://github.com/liminal-hq/tauri-plugins-workspace", branch = "main" }
