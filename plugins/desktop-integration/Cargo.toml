@@ -1,0 +1,40 @@
+[package]
+name = "tauri-plugin-desktop-integration"
+version = "0.2.0"
+description = "Desktop activation helpers for X11/Wayland window focus and global shortcuts"
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+rust-version = { workspace = true }
+repository = { workspace = true }
+build = "build.rs"
+links = "tauri-plugin-desktop-integration"
+
+[package.metadata.platforms.support]
+windows = { level = "none", notes = "X11/Wayland activation helpers only" }
+linux = { level = "full", notes = "X11 window activation via gdkx11, Wayland global shortcuts via the portal" }
+macos = { level = "none", notes = "X11/Wayland activation helpers only" }
+android = { level = "none", notes = "X11/Wayland activation helpers only" }
+ios = { level = "none", notes = "X11/Wayland activation helpers only" }
+
+[lib]
+name = "tauri_plugin_desktop_integration"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+ashpd = { version = "0.9", default-features = false, features = ["tokio", "wayland"] }
+log = { workspace = true }
+raw-window-handle = "0.6"
+serde = { workspace = true }
+tauri = { workspace = true }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-xdg-portal = { path = "../xdg-portal", version = "0.2" }
+tokio = { version = "1", features = ["sync"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gdk = "0.18"
+gdkx11 = "0.18"
+gtk = "0.18"
+
+[build-dependencies]
+tauri-plugin = { workspace = true, features = ["build"] }

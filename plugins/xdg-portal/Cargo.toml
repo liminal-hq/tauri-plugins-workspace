@@ -1,0 +1,40 @@
+[package]
+name = "tauri-plugin-xdg-portal"
+version = "0.2.0"
+description = "Tauri plugin for xdg-desktop-portal integrations"
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+rust-version = { workspace = true }
+repository = { workspace = true }
+build = "build.rs"
+links = "tauri-plugin-xdg-portal"
+
+[package.metadata.platforms.support]
+windows = { level = "none", notes = "xdg-desktop-portal is Linux-only" }
+linux = { level = "full", notes = "Bridges xdg-desktop-portal Settings and GlobalShortcuts interfaces" }
+macos = { level = "none", notes = "xdg-desktop-portal is Linux-only" }
+android = { level = "none", notes = "xdg-desktop-portal is Linux-only" }
+ios = { level = "none", notes = "xdg-desktop-portal is Linux-only" }
+
+[lib]
+name = "tauri_plugin_xdg_portal"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+ashpd = { version = "0.9", default-features = false, features = ["tokio", "wayland"] }
+futures-util = "0.3"
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { workspace = true }
+thiserror = { workspace = true }
+tokio = { version = "1", features = ["macros", "sync"] }
+log = { workspace = true }
+
+[features]
+default = []
+global-shortcuts = []
+remote-desktop = []
+
+[build-dependencies]
+tauri-plugin = { workspace = true, features = ["build"] }
