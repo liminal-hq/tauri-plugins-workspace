@@ -1,0 +1,6 @@
+[default]
+description = "Default permissions for the xdg-portal plugin"
+permissions = [
+  "allow-check-availability",
+  "allow-get-theme-info",
+]

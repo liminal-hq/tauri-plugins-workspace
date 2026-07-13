@@ -71,6 +71,10 @@ jobs:
           createRelease: true
           recognizeContributors: true
 
+      - name: Sync internal path-dependency version requirements
+        if: steps.covector.outputs.commandRan == 'version'
+        run: pnpm sync-internal-deps
+
       - name: Apply Prettier formatting to versioned files
         if: steps.covector.outputs.commandRan == 'version'
         run: |

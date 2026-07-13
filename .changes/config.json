@@ -67,6 +67,22 @@
 			"path": "./plugins/material-you",
 			"manager": "javascript"
 		},
+		"xdg-portal": {
+			"path": "./plugins/xdg-portal",
+			"manager": "rust"
+		},
+		"xdg-portal-js": {
+			"path": "./plugins/xdg-portal",
+			"manager": "javascript"
+		},
+		"desktop-integration": {
+			"path": "./plugins/desktop-integration",
+			"manager": "rust"
+		},
+		"desktop-integration-js": {
+			"path": "./plugins/desktop-integration",
+			"manager": "javascript"
+		},
 		"api-example": {
 			"path": "./examples/api/src-tauri",
 			"manager": "rust",

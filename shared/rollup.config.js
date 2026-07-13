@@ -49,8 +49,11 @@ export function createConfig(pluginName) {
 				name: iifeVarName,
 				banner: "if ('__TAURI__' in window) {",
 				footer: `Object.defineProperty(window.__TAURI__, '${pluginJsName}', { value: ${iifeVarName} }) }`,
-				globals: {
-					'@tauri-apps/api/core': '__TAURI__.core',
+				// Maps any @tauri-apps/api/<module> import to window.__TAURI__.<module>,
+				// which Tauri's runtime populates in IIFE/global mode.
+				globals: (id) => {
+					const match = id.match(/^@tauri-apps\/api\/(.+)$/);
+					return match ? `__TAURI__.${match[1]}` : id;
 				},
 			},
 			external: [/^@tauri-apps\/api/, ...deps, ...peerDeps],
