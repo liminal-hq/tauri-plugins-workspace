@@ -18,6 +18,7 @@
 		"test:js": "vitest run",
 		"tauri": "pnpm --filter api-example tauri",
 		"hooks:install": "git config core.hooksPath .githooks",
+		"sync-internal-deps": "node scripts/sync-internal-dependency-versions.js",
 		"covector:status": "covector status",
 		"covector:version": "covector version",
 		"covector:publish": "covector publish"

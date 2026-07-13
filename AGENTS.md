@@ -165,6 +165,11 @@ fn inject_android_permissions() -> std::io::Result<()> {
 - Keep Rust and JavaScript package versions aligned per plugin.
 - Use semantic versioning and call out breaking changes clearly.
 - Ensure CI passes (`fmt`, `clippy`, tests, lint, format checks, build) before release work.
+- Covector only bumps each package's own manifest version — it does not update other
+  packages' pinned `version` requirement on an internal `{ path = ..., version = ... }`
+  dependency. `scripts/sync-internal-dependency-versions.js` closes that gap and runs
+  automatically in `covector-version-or-publish.yml` right after `covector version`; run
+  `pnpm sync-internal-deps` locally if you need to check it by hand.
 
 ## Tauri v2
 
