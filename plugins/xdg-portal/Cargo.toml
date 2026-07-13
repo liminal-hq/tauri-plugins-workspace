@@ -30,6 +30,7 @@ tauri = { workspace = true }
 thiserror = { workspace = true }
 tokio = { version = "1", features = ["macros", "sync"] }
 log = { workspace = true }
+ts-rs = "12"
 
 [features]
 default = []

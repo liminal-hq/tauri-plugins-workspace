@@ -4,9 +4,11 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
 pub struct AvailabilityInfo {
     pub is_linux: bool,
     pub sandboxed: bool,
@@ -14,8 +16,9 @@ pub struct AvailabilityInfo {
 }
 
 /// Colour scheme preference from the desktop portal.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export, export_to = "../guest-js/bindings/")]
 pub enum ColourScheme {
     NoPreference,
     PreferDark,
@@ -23,8 +26,9 @@ pub enum ColourScheme {
 }
 
 /// Desktop environment family, used to select widget style maps.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "kebab-case")]
+#[ts(export, export_to = "../guest-js/bindings/")]
 pub enum DesktopEnvironment {
     Gnome,
     Kde,
@@ -36,8 +40,9 @@ pub enum DesktopEnvironment {
 
 /// Accent colour as sRGB values in 0.0–1.0 range.
 /// Absent if the desktop does not report an accent colour.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
 pub struct AccentColour {
     pub r: f64,
     pub g: f64,
@@ -45,8 +50,9 @@ pub struct AccentColour {
 }
 
 /// Combined theme information from the desktop portal and environment.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
 pub struct ThemeInfo {
     pub colour_scheme: ColourScheme,
     pub accent_colour: Option<AccentColour>,

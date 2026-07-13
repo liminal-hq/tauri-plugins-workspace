@@ -69,6 +69,21 @@ On X11, prefer `tauri-plugin-global-shortcut` directly — the portal path is Wa
 See [`@liminal-hq/plugin-desktop-integration`](../desktop-integration) for a helper that
 picks the right path automatically based on session type.
 
+### Generated types
+
+`AvailabilityInfo`, `ColourScheme`, `DesktopEnvironment`, `AccentColour`, and `ThemeInfo`
+are generated from their Rust definitions via [`ts-rs`](https://github.com/Aleph-Alpha/ts-rs)
+into `guest-js/bindings/` and re-exported from the package root, so the JS/Rust shapes
+can't drift:
+
+```typescript
+import type { ThemeInfo, ColourScheme } from '@liminal-hq/plugin-xdg-portal';
+```
+
+The bindings regenerate automatically as part of `cargo test` (each type's `#[ts(export)]`
+attribute creates a test that writes its `.ts` file) — run `cargo test -p
+tauri-plugin-xdg-portal` after changing any model and commit the result.
+
 ## Permissions
 
 This plugin requires these permissions:
