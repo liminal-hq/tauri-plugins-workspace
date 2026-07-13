@@ -1,6 +1,7 @@
 [default]
 description = "Default permissions for the desktop-integration plugin"
 permissions = [
+  "allow-register-shortcut",
   "allow-check-shortcut-binding-complete",
   "allow-check-shortcut-binding-error",
 ]

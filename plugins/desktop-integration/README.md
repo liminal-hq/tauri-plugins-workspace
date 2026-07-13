@@ -66,17 +66,54 @@ event to know when it resolves.
 
 ### JavaScript
 
+JS-only apps (no custom Rust command of their own) can register shortcuts directly —
+activation is delivered as a `shortcut-activated` event under the hood, but
+`registerShortcut` hides that and takes a plain callback:
+
 ```typescript
 import { desktopIntegration } from '@liminal-hq/plugin-desktop-integration';
+
+await desktopIntegration.registerShortcut(
+	'your-app-toggle', // stable Wayland portal session id
+	'Toggle Your App', // shown in the compositor's shortcut dialog
+	'Alt+Shift+T',
+	() => {
+		/* shortcut activated */
+	}
+);
 
 const complete = await desktopIntegration.checkShortcutBindingComplete();
 const error = await desktopIntegration.checkShortcutBindingError();
 ```
 
+Rust consumers should prefer calling `DesktopIntegrationExt::register_shortcut` directly
+from `setup()` — it delivers activation via a real closure instead of an event
+round-trip. The `register_shortcut` command exists specifically for JS-only consumers.
+
+### Generated types
+
+`ShortcutBindingResult` and `ShortcutActivatedPayload` (the payloads of the
+`shortcut-binding-result` and `shortcut-activated` events) are generated from their Rust
+definitions via [`ts-rs`](https://github.com/Aleph-Alpha/ts-rs) into
+`guest-js/bindings/` and re-exported from the package root, so the JS/Rust shapes can't
+drift:
+
+```typescript
+import type {
+	ShortcutActivatedPayload,
+	ShortcutBindingResult,
+} from '@liminal-hq/plugin-desktop-integration';
+```
+
+The bindings regenerate automatically as part of `cargo test` (each type's `#[ts(export)]`
+attribute creates a test that writes its `.ts` file) — run `cargo test -p
+tauri-plugin-desktop-integration` after changing either struct and commit the result.
+
 ## Permissions
 
 This plugin requires these permissions:
 
+- `allow-register-shortcut`: Grants access to `register_shortcut`
 - `allow-check-shortcut-binding-complete`: Grants access to `check_shortcut_binding_complete`
 - `allow-check-shortcut-binding-error`: Grants access to `check_shortcut_binding_error`
 

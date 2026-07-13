@@ -4,6 +4,7 @@ Default permissions for the desktop-integration plugin
 
 #### This default permission set includes the following:
 
+- `allow-register-shortcut`
 - `allow-check-shortcut-binding-complete`
 - `allow-check-shortcut-binding-error`
 
@@ -64,6 +65,32 @@ Enables the check_shortcut_binding_error command without any pre-configured scop
 <td>
 
 Denies the check_shortcut_binding_error command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`desktop-integration:allow-register-shortcut`
+
+</td>
+<td>
+
+Enables the register_shortcut command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`desktop-integration:deny-register-shortcut`
+
+</td>
+<td>
+
+Denies the register_shortcut command without any pre-configured scope.
 
 </td>
 </tr>

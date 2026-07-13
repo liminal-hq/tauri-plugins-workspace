@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 const COMMANDS: &[&str] = &[
+    "register_shortcut",
     "check_shortcut_binding_complete",
     "check_shortcut_binding_error",
 ];

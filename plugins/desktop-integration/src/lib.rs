@@ -12,6 +12,7 @@ use tauri::{
     plugin::{Builder, TauriPlugin},
     AppHandle, Emitter, Manager, Runtime, WebviewWindow,
 };
+use ts_rs::TS;
 
 #[cfg(target_os = "linux")]
 use gdkx11::functions::x11_get_server_time;
@@ -21,11 +22,23 @@ use gtk::glib::object::Cast;
 use gtk::prelude::*;
 
 /// Payload emitted on the `shortcut-binding-result` event.
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, serde::Serialize, TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
 pub struct ShortcutBindingResult {
     pub success: bool,
     pub error: Option<String>,
+}
+
+/// Payload emitted on the `shortcut-activated` event, fired when the shortcut
+/// registered via the `register_shortcut` command is pressed. Rust consumers using
+/// `DesktopIntegrationExt::register_shortcut` directly get a real closure instead —
+/// this event exists so JS-only consumers can use the plugin without writing Rust.
+#[derive(Clone, serde::Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub struct ShortcutActivatedPayload {
+    pub session_id: String,
 }
 
 /// Plugin-managed state for shortcut registration.
@@ -130,6 +143,34 @@ pub trait DesktopIntegrationExt<R: Runtime> {
     fn shortcut_binding_error(&self) -> Option<String>;
 }
 
+/// Registers a global shortcut from JS. Rust consumers should prefer
+/// `DesktopIntegrationExt::register_shortcut` directly, which delivers activation
+/// via a real closure; this command exists so JS-only consumers (no custom Rust
+/// command of their own) can use the plugin too. Activation is delivered as a
+/// `shortcut-activated` event instead of a callback, since closures can't cross
+/// the IPC boundary.
+///
+/// `session_id` and `session_description` identify the Wayland portal session —
+/// see `DesktopIntegrationExt::register_shortcut` for details.
+#[tauri::command]
+fn register_shortcut<R: Runtime>(
+    app: AppHandle<R>,
+    session_id: String,
+    session_description: String,
+    shortcut: String,
+) {
+    let emit_handle = app.clone();
+    let event_session_id = session_id.clone();
+    app.register_shortcut(&session_id, &session_description, &shortcut, move || {
+        let _ = emit_handle.emit(
+            "shortcut-activated",
+            ShortcutActivatedPayload {
+                session_id: event_session_id.clone(),
+            },
+        );
+    });
+}
+
 /// Returns true once the portal BindShortcuts call has completed successfully.
 /// Exposed to the frontend so it can recover from the race where the backend
 /// emitted shortcut-binding-result before the webview listener was registered.
@@ -149,6 +190,7 @@ fn check_shortcut_binding_error<R: Runtime>(app: tauri::AppHandle<R>) -> Option<
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("desktop-integration")
         .invoke_handler(tauri::generate_handler![
+            register_shortcut,
             check_shortcut_binding_complete,
             check_shortcut_binding_error,
         ])
