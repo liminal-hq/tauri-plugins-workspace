@@ -52,6 +52,10 @@ pnpm covector change        # create a change file
 - **PR descriptions:** Use `## Summary` and `## Test plan` sections. Test plan uses checklist bullets (`- [x]`/`- [ ]`).
 - **PR labels:** Required primary category (`bug`, `enhancement`, `documentation`, `testing`, `ci`, `build`, `release`, `chore`). Do not use aliases like `feat` or `fix`.
 
+## Authoring Voice
+
+**Ship the result, not how the conversation arrived at it.** Code comments, identifier names, and changeset/PR prose are written for the reader of the artifact, not as a record of the review process (no "this PR", no reviewer names, no commit SHAs). Commit messages are the one place process context belongs.
+
 ## Architecture
 
 ### Workspace Layout
