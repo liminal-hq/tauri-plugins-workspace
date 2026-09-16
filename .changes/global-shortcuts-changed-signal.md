@@ -13,7 +13,10 @@ Settings → Apps → <App> → Global Shortcuts) instead of through the app.
 - **Breaking (xdg-portal):** `create_session()` gains a new required
   `on_shortcuts_changed` callback parameter, inserted before `window_rx`. Any direct
   caller must update its call site.
-- **Non-breaking (desktop-integration):** adds the `shortcut-changed` event, the
-  `ShortcutChangedPayload` type, `DesktopIntegrationExt::last_shortcut_trigger_description`,
-  and the `check_shortcut_trigger_description` command/permission as an additive race
-  guard.
+- **Breaking (desktop-integration):** `DesktopIntegrationExt` gains a new required
+  trait method, `last_shortcut_trigger_description`, with no default implementation
+  (matching every other method on this trait). Any crate implementing
+  `DesktopIntegrationExt` for its own type — rather than relying on this crate's own
+  `AppHandle<R>` implementation — must add it to keep compiling. The rest of the
+  change (the `shortcut-changed` event, `ShortcutChangedPayload`, and the
+  `check_shortcut_trigger_description` command/permission) is purely additive.
