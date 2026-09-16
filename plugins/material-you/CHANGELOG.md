@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.4]
+
+- [`9ca5b53`](https://github.com/liminal-hq/tauri-plugins-workspace/commit/9ca5b53ab786ca77e768b4ba0a795b761f814f57) Fixes `material-you` so it registers its command on every platform instead of Android only. Previously, calling `getMaterialYouColours()` from a desktop (or iOS) app threw a "command not found" error rather than resolving gracefully; it now returns `{ supported: false }` outside Android, matching the plugin's own documented platform-support metadata.
+
 ## \[0.1.3]
 
 - [`7167807`](https://github.com/liminal-hq/tauri-plugins-workspace/commit/7167807ab9435bde972f0b52a4b0be98557a8d55) Fixes the Android build for `material-you` by restoring the `tauri::Manager` import required by the plugin setup path, and keeps the Rust and JavaScript package versions aligned for the patch release.
