@@ -7,8 +7,9 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { ShortcutActivatedPayload } from './bindings/ShortcutActivatedPayload';
 import type { ShortcutBindingResult } from './bindings/ShortcutBindingResult';
+import type { ShortcutChangedPayload } from './bindings/ShortcutChangedPayload';
 
-export type { ShortcutActivatedPayload, ShortcutBindingResult };
+export type { ShortcutActivatedPayload, ShortcutBindingResult, ShortcutChangedPayload };
 
 const PREFIX = 'plugin:desktop-integration|';
 
@@ -63,4 +64,13 @@ export const desktopIntegration = {
 	 * shortcut-binding-result listener — complements checkShortcutBindingComplete.
 	 */
 	checkShortcutBindingError: () => cmd<string | null>('check_shortcut_binding_error'),
+
+	/**
+	 * Returns the trigger description (e.g. "Super+E") from the most recent
+	 * shortcut-changed event, or null if the shortcut hasn't been externally
+	 * rebound yet this session. Use this to hydrate UI that mounts after a missed
+	 * event — listen for the `shortcut-changed` event directly via
+	 * `@tauri-apps/api/event`'s `listen()` for live updates.
+	 */
+	checkShortcutTriggerDescription: () => cmd<string | null>('check_shortcut_trigger_description'),
 };

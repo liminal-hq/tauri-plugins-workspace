@@ -7,6 +7,7 @@ const COMMANDS: &[&str] = &[
     "register_shortcut",
     "check_shortcut_binding_complete",
     "check_shortcut_binding_error",
+    "check_shortcut_trigger_description",
 ];
 
 fn main() {

@@ -49,6 +49,14 @@ var __TAURI_PLUGIN_DESKTOP_INTEGRATION__ = (function (exports, core, event) {
          * shortcut-binding-result listener — complements checkShortcutBindingComplete.
          */
         checkShortcutBindingError: () => cmd('check_shortcut_binding_error'),
+        /**
+         * Returns the trigger description (e.g. "Super+E") from the most recent
+         * shortcut-changed event, or null if the shortcut hasn't been externally
+         * rebound yet this session. Use this to hydrate UI that mounts after a missed
+         * event — listen for the `shortcut-changed` event directly via
+         * `@tauri-apps/api/event`'s `listen()` for live updates.
+         */
+        checkShortcutTriggerDescription: () => cmd('check_shortcut_trigger_description'),
     };
 
     exports.desktopIntegration = desktopIntegration;

@@ -41,6 +41,18 @@ pub struct ShortcutActivatedPayload {
     pub session_id: String,
 }
 
+/// Payload emitted on the `shortcut-changed` event, fired when the user rebinds the
+/// shortcut through the compositor's own settings UI (e.g. GNOME Settings → Apps →
+/// <App> → Global Shortcuts) rather than through this app. Wayland-only — X11 direct
+/// grabs have no equivalent out-of-band rebind path, so this never fires there.
+#[derive(Clone, serde::Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub struct ShortcutChangedPayload {
+    pub session_id: String,
+    pub trigger_description: String,
+}
+
 /// Plugin-managed state for shortcut registration.
 pub struct ShortcutState {
     /// Sender to deliver the window identifier to the deferred BindShortcuts call.
@@ -70,6 +82,11 @@ pub struct ShortcutState {
     /// Stored portal session description for retry after failure. App-supplied,
     /// see `register_shortcut`.
     pub wayland_session_description: Mutex<Option<String>>,
+    /// Trigger description from the most recent ShortcutsChanged signal. None until
+    /// the compositor first reports an external rebind — this is a "has drift
+    /// happened" signal, not a mirror of the currently-bound trigger, so a value of
+    /// None does NOT mean no shortcut is bound.
+    pub last_trigger_description: Mutex<Option<String>>,
 }
 
 impl Default for ShortcutState {
@@ -85,6 +102,7 @@ impl Default for ShortcutState {
             wayland_bind_on_activated: Mutex::new(None),
             wayland_session_id: Mutex::new(None),
             wayland_session_description: Mutex::new(None),
+            last_trigger_description: Mutex::new(None),
         }
     }
 }
@@ -141,6 +159,11 @@ pub trait DesktopIntegrationExt<R: Runtime> {
     /// still pending or successful. Used by the frontend race guard to detect a
     /// missed shortcut-binding-result error event.
     fn shortcut_binding_error(&self) -> Option<String>;
+
+    /// Returns the trigger description from the most recent shortcut-changed signal
+    /// (an external rebind via the compositor's own settings UI), or None if no such
+    /// signal has fired yet this session. Wayland-only; always None on X11.
+    fn last_shortcut_trigger_description(&self) -> Option<String>;
 }
 
 /// Registers a global shortcut from JS. Rust consumers should prefer
@@ -187,12 +210,22 @@ fn check_shortcut_binding_error<R: Runtime>(app: tauri::AppHandle<R>) -> Option<
     app.shortcut_binding_error()
 }
 
+/// Returns the trigger description from the most recent shortcut-changed signal, or
+/// null if none has fired yet. Complements the shortcut-changed event for the race
+/// where a rebind happens before the webview listener is registered (or while a
+/// consuming Settings UI is unmounted).
+#[tauri::command]
+fn check_shortcut_trigger_description<R: Runtime>(app: tauri::AppHandle<R>) -> Option<String> {
+    app.last_shortcut_trigger_description()
+}
+
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("desktop-integration")
         .invoke_handler(tauri::generate_handler![
             register_shortcut,
             check_shortcut_binding_complete,
             check_shortcut_binding_error,
+            check_shortcut_trigger_description,
         ])
         .setup(|app, _api| {
             app.manage(ShortcutState::default());
@@ -399,6 +432,14 @@ impl<R: Runtime> DesktopIntegrationExt<R> for AppHandle<R> {
             .ok()
             .and_then(|g| g.clone())
     }
+
+    fn last_shortcut_trigger_description(&self) -> Option<String> {
+        self.state::<ShortcutState>()
+            .last_trigger_description
+            .lock()
+            .ok()
+            .and_then(|g| g.clone())
+    }
 }
 
 /// Internal helpers — not part of the public trait.
@@ -466,6 +507,27 @@ fn spawn_wayland_bind_task<R: Runtime>(
         app_for_result.emit("shortcut-binding-result", payload).ok();
     };
 
+    let app_for_changed = app.clone();
+    let event_session_id = session_id.clone();
+    let on_shortcuts_changed = move |trigger_description: String| {
+        if let Ok(mut g) = app_for_changed
+            .state::<ShortcutState>()
+            .last_trigger_description
+            .lock()
+        {
+            *g = Some(trigger_description.clone());
+        }
+        app_for_changed
+            .emit(
+                "shortcut-changed",
+                ShortcutChangedPayload {
+                    session_id: event_session_id.clone(),
+                    trigger_description,
+                },
+            )
+            .ok();
+    };
+
     tauri::async_runtime::spawn(async move {
         match tauri_plugin_xdg_portal::global_shortcuts::create_session(
             &session_id,
@@ -473,6 +535,7 @@ fn spawn_wayland_bind_task<R: Runtime>(
             Some(&shortcut),
             move || on_activated(),
             on_binding_result,
+            on_shortcuts_changed,
             window_rx,
         )
         .await
@@ -593,5 +656,21 @@ impl<R: Runtime> DesktopIntegrationInternal<R> for AppHandle<R> {
                 on_activated,
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ShortcutChangedPayload;
+
+    #[test]
+    fn shortcut_changed_payload_serialises_camel_case() {
+        let payload = ShortcutChangedPayload {
+            session_id: "emoji-nook-toggle".to_string(),
+            trigger_description: "Super+E".to_string(),
+        };
+        let json = serde_json::to_value(&payload).unwrap();
+        assert_eq!(json["sessionId"], "emoji-nook-toggle");
+        assert_eq!(json["triggerDescription"], "Super+E");
     }
 }

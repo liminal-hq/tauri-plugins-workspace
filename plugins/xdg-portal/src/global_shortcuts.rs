@@ -49,6 +49,20 @@ fn to_xdg_trigger(shortcut: &str) -> String {
     result
 }
 
+/// Finds the trigger description for `id` among `(id, trigger_description)` pairs.
+/// Generic over plain string pairs rather than ashpd's own `Shortcut` type — its
+/// fields are private to ashpd, making it unconstructable (and so untestable) from
+/// this crate directly; this indirection is what makes selection logic testable.
+fn find_trigger_description<'a>(
+    shortcuts: impl IntoIterator<Item = (&'a str, &'a str)>,
+    id: &str,
+) -> Option<&'a str> {
+    shortcuts
+        .into_iter()
+        .find(|(sid, _)| *sid == id)
+        .map(|(_, desc)| desc)
+}
+
 /// Creates a GlobalShortcuts portal session.
 ///
 /// `window_rx` must deliver the `WindowIdentifier` for the parent window once
@@ -58,15 +72,23 @@ fn to_xdg_trigger(shortcut: &str) -> String {
 ///
 /// `on_binding_result` is called once binding completes (or fails).
 /// `on_activated` is called each time the shortcut fires.
+/// `on_shortcuts_changed` is called with the new trigger description (e.g.
+/// `"Super+E"`) whenever the compositor's own settings UI reports the shortcut's
+/// trigger has changed independently of this app (the `ShortcutsChanged` portal
+/// signal) — e.g. GNOME Settings → Apps → <App> → Global Shortcuts. There is no
+/// confirmed behaviour here for a shortcut being removed entirely (as opposed to
+/// rebound) via that UI — not reproduced, deliberately left unhandled rather than
+/// guessed at.
 ///
 /// Returns a `ShortcutHandle`; dropping it cancels the listener and closes the
 /// portal session.
-pub async fn create_session<F, B>(
+pub async fn create_session<F, B, C>(
     shortcut_id: &str,
     description: &str,
     preferred_trigger: Option<&str>,
     on_activated: F,
     on_binding_result: B,
+    on_shortcuts_changed: C,
     window_rx: tokio::sync::oneshot::Receiver<Option<WindowIdentifier>>,
 ) -> Result<ShortcutHandle, PortalError>
 where
@@ -74,6 +96,7 @@ where
     // thread rather than blocking the Tokio worker during window creation.
     F: Fn() + Send + Sync + 'static,
     B: Fn(Result<(), String>) + Send + 'static,
+    C: Fn(String) + Send + Sync + 'static,
 {
     use ashpd::desktop::global_shortcuts::{GlobalShortcuts, NewShortcut};
 
@@ -100,11 +123,16 @@ where
         .await
         .map_err(|e| PortalError::Internal(format!("failed to subscribe to activations: {e}")))?;
 
+    let shortcuts_changed_stream = portal.receive_shortcuts_changed().await.map_err(|e| {
+        PortalError::Internal(format!("failed to subscribe to shortcut changes: {e}"))
+    })?;
+
     let (cancel_tx, mut cancel_rx) = tokio::sync::oneshot::channel::<()>();
     let sid = shortcut_id.to_string();
     // Wrap in Arc so we can clone into each per-activation OS thread without
     // moving or blocking the Tokio worker during WebviewWindowBuilder::build().
     let on_activated = std::sync::Arc::new(on_activated);
+    let on_shortcuts_changed = std::sync::Arc::new(on_shortcuts_changed);
 
     tokio::spawn(async move {
         // Keep portal and session alive for the lifetime of this task.
@@ -161,6 +189,13 @@ where
         }
 
         tokio::pin!(activated_stream);
+        tokio::pin!(shortcuts_changed_stream);
+        // Set once the ShortcutsChanged stream ends, to disable that select! branch
+        // without tearing down activation delivery — unlike activated_stream ending
+        // (which is fatal to the session's whole purpose), this is a secondary,
+        // best-effort channel that some compositor backends may not implement at all.
+        let mut changed_stream_ended = false;
+
         loop {
             tokio::select! {
                 event = activated_stream.next() => {
@@ -176,6 +211,23 @@ where
                         None => {
                             warn!("global shortcut activation stream ended for: {}", sid);
                             break;
+                        }
+                    }
+                }
+                event = shortcuts_changed_stream.next(), if !changed_stream_ended => {
+                    match event {
+                        Some(event) => {
+                            let pairs = event.shortcuts().iter().map(|s| (s.id(), s.trigger_description()));
+                            if let Some(desc) = find_trigger_description(pairs, &sid) {
+                                info!("global shortcut trigger changed externally: {} -> {}", sid, desc);
+                                let f = std::sync::Arc::clone(&on_shortcuts_changed);
+                                let desc = desc.to_string();
+                                std::thread::spawn(move || f(desc));
+                            }
+                        }
+                        None => {
+                            warn!("shortcuts-changed stream ended for: {}", sid);
+                            changed_stream_ended = true;
                         }
                     }
                 }
@@ -197,7 +249,25 @@ pub struct ShortcutHandle {
 
 #[cfg(test)]
 mod tests {
-    use super::to_xdg_trigger;
+    use super::{find_trigger_description, to_xdg_trigger};
+
+    #[test]
+    fn find_trigger_description_matches_by_id() {
+        let shortcuts = [("other-id", "Ctrl+X"), ("emoji-nook-toggle", "Super+E")];
+        assert_eq!(
+            find_trigger_description(shortcuts, "emoji-nook-toggle"),
+            Some("Super+E")
+        );
+    }
+
+    #[test]
+    fn find_trigger_description_returns_none_when_missing() {
+        let shortcuts = [("other-id", "Ctrl+X")];
+        assert_eq!(
+            find_trigger_description(shortcuts, "emoji-nook-toggle"),
+            None
+        );
+    }
 
     #[test]
     fn translates_single_char_keys_to_lowercase() {

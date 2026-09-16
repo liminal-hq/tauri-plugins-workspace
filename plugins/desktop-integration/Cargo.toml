@@ -39,3 +39,6 @@ gtk = "0.18"
 
 [build-dependencies]
 tauri-plugin = { workspace = true, features = ["build"] }
+
+[dev-dependencies]
+serde_json = { workspace = true }

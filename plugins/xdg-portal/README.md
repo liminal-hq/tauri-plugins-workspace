@@ -60,10 +60,15 @@ let handle = create_session(
     Some("<Alt><Shift>t"),   // GTK/libxkbcommon accelerator format
     move || { /* shortcut activated */ },
     move |result| { /* bind result */ },
+    move |trigger_description| { /* rebound externally, e.g. "Super+E" */ },
     window_id_receiver,
 )
 .await?;
 ```
+
+`trigger_description` is delivered whenever the compositor's own settings UI reports
+the shortcut's trigger has changed independently of this call (the portal's
+`ShortcutsChanged` signal) — e.g. GNOME Settings → Apps → <App> → Global Shortcuts.
 
 On X11, prefer `tauri-plugin-global-shortcut` directly — the portal path is Wayland-specific.
 See [`@liminal-hq/plugin-desktop-integration`](../desktop-integration) for a helper that
