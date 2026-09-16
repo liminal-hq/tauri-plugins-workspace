@@ -64,6 +64,12 @@ confirmation dialog. Call `set_shortcut_window(&window)` once your first window 
 shown to kick off the deferred binding, and listen for the `shortcut-binding-result`
 event to know when it resolves.
 
+The compositor's own settings UI can also rebind the shortcut independently of the app
+(e.g. GNOME Settings → Apps → <App> → Global Shortcuts) — listen for the
+`shortcut-changed` event (Wayland-only) to keep your own UI in sync.
+`DesktopIntegrationExt::last_shortcut_trigger_description` covers the race where the
+rebind happens before your listener attaches.
+
 ### JavaScript
 
 JS-only apps (no custom Rust command of their own) can register shortcuts directly —
@@ -90,18 +96,37 @@ Rust consumers should prefer calling `DesktopIntegrationExt::register_shortcut` 
 from `setup()` — it delivers activation via a real closure instead of an event
 round-trip. The `register_shortcut` command exists specifically for JS-only consumers.
 
+To detect an external rebind (Wayland-only), listen for `shortcut-changed` directly via
+`@tauri-apps/api/event`, and use `checkShortcutTriggerDescription` as a race guard for
+UI that mounts after a missed event:
+
+```typescript
+import { listen } from '@tauri-apps/api/event';
+import {
+	desktopIntegration,
+	type ShortcutChangedPayload,
+} from '@liminal-hq/plugin-desktop-integration';
+
+await listen<ShortcutChangedPayload>('shortcut-changed', ({ payload }) => {
+	console.log(`rebound externally to: ${payload.triggerDescription}`);
+});
+
+const lastKnownTrigger = await desktopIntegration.checkShortcutTriggerDescription();
+```
+
 ### Generated types
 
-`ShortcutBindingResult` and `ShortcutActivatedPayload` (the payloads of the
-`shortcut-binding-result` and `shortcut-activated` events) are generated from their Rust
-definitions via [`ts-rs`](https://github.com/Aleph-Alpha/ts-rs) into
-`guest-js/bindings/` and re-exported from the package root, so the JS/Rust shapes can't
-drift:
+`ShortcutBindingResult`, `ShortcutActivatedPayload`, and `ShortcutChangedPayload` (the
+payloads of the `shortcut-binding-result`, `shortcut-activated`, and `shortcut-changed`
+events) are generated from their Rust definitions via
+[`ts-rs`](https://github.com/Aleph-Alpha/ts-rs) into `guest-js/bindings/` and re-exported
+from the package root, so the JS/Rust shapes can't drift:
 
 ```typescript
 import type {
 	ShortcutActivatedPayload,
 	ShortcutBindingResult,
+	ShortcutChangedPayload,
 } from '@liminal-hq/plugin-desktop-integration';
 ```
 
@@ -116,6 +141,7 @@ This plugin requires these permissions:
 - `allow-register-shortcut`: Grants access to `register_shortcut`
 - `allow-check-shortcut-binding-complete`: Grants access to `check_shortcut_binding_complete`
 - `allow-check-shortcut-binding-error`: Grants access to `check_shortcut_binding_error`
+- `allow-check-shortcut-trigger-description`: Grants access to `check_shortcut_trigger_description`
 
 ## Platform Support
 

@@ -4,4 +4,5 @@ permissions = [
   "allow-register-shortcut",
   "allow-check-shortcut-binding-complete",
   "allow-check-shortcut-binding-error",
+  "allow-check-shortcut-trigger-description",
 ]
