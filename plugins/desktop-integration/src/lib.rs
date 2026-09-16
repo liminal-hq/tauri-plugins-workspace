@@ -5,7 +5,7 @@
 
 use log::info;
 use std::sync::{
-    atomic::{AtomicBool, AtomicU64, Ordering},
+    atomic::{AtomicBool, Ordering},
     Arc, Mutex,
 };
 use tauri::{
@@ -53,6 +53,32 @@ pub struct ShortcutChangedPayload {
     pub trigger_description: String,
 }
 
+/// Generation-guarded state for the current Wayland registration attempt, held
+/// behind one lock so a callback from a superseded attempt can never observe a
+/// torn state — e.g. seeing its own generation as still current, then having a
+/// newer attempt's reset land before it finishes writing `last_trigger_description`.
+/// A separate `AtomicU64` generation counter plus a separate `Mutex` for the trigger
+/// cache would allow exactly that interleaving; one lock covering both does not.
+#[derive(Default)]
+struct WaylandAttempt {
+    generation: u64,
+    last_trigger_description: Option<String>,
+}
+
+/// Returns whether `generation` (captured by a closure when its attempt started)
+/// is still the current one — false once a newer `spawn_wayland_bind_task` call has
+/// superseded it. Shared by every callback `spawn_wayland_bind_task` builds
+/// (`on_binding_result`, `on_shortcuts_changed`, and the outer task's Ok/Err arms)
+/// so a stale attempt's outcome — success, failure, or an external rebind — can
+/// never overwrite state that belongs to whatever attempt replaced it.
+fn is_current_wayland_generation(state: &ShortcutState, generation: u64) -> bool {
+    state
+        .wayland_attempt
+        .lock()
+        .map(|a| a.generation == generation)
+        .unwrap_or(false)
+}
+
 /// Plugin-managed state for shortcut registration.
 pub struct ShortcutState {
     /// Sender to deliver the window identifier to the deferred BindShortcuts call.
@@ -82,19 +108,20 @@ pub struct ShortcutState {
     /// Stored portal session description for retry after failure. App-supplied,
     /// see `register_shortcut`.
     pub wayland_session_description: Mutex<Option<String>>,
-    /// Trigger description from the most recent ShortcutsChanged signal. None until
-    /// the compositor first reports an external rebind — this is a "has drift
-    /// happened" signal, not a mirror of the currently-bound trigger, so a value of
-    /// None does NOT mean no shortcut is bound.
-    pub last_trigger_description: Mutex<Option<String>>,
-    /// Incremented once per `spawn_wayland_bind_task` call (fresh registration or
-    /// retry). `session_id` is documented as a *stable* string callers are expected
-    /// to reuse across re-registrations, so it cannot identify which registration
-    /// attempt a queued callback belongs to when a session is replaced — this can.
-    /// Each `on_shortcuts_changed` closure captures the generation current at spawn
-    /// time and compares against this at call time, discarding itself if a newer
-    /// attempt has since started.
-    pub wayland_generation: AtomicU64,
+    /// Generation counter plus the trigger description from the most recent
+    /// ShortcutsChanged signal — see `WaylandAttempt`'s doc comment for why these
+    /// share one lock. The trigger is None until the compositor first reports an
+    /// external rebind for the current attempt: a "has drift happened" signal, not
+    /// a mirror of the currently-bound trigger, so None does NOT mean no shortcut
+    /// is bound. The generation is bumped once per `spawn_wayland_bind_task` call
+    /// (fresh registration or retry) — `session_id` is documented as a *stable*
+    /// string callers are expected to reuse across re-registrations, so it cannot
+    /// identify which attempt a queued callback belongs to when a session is
+    /// replaced; this can. Not `pub` like the other fields: `WaylandAttempt` is a
+    /// private implementation type, and nothing outside this module reads any
+    /// `ShortcutState` field directly regardless (all access goes through
+    /// `DesktopIntegrationExt`'s trait methods).
+    wayland_attempt: Mutex<WaylandAttempt>,
 }
 
 impl Default for ShortcutState {
@@ -110,8 +137,7 @@ impl Default for ShortcutState {
             wayland_bind_on_activated: Mutex::new(None),
             wayland_session_id: Mutex::new(None),
             wayland_session_description: Mutex::new(None),
-            last_trigger_description: Mutex::new(None),
-            wayland_generation: AtomicU64::new(0),
+            wayland_attempt: Mutex::new(WaylandAttempt::default()),
         }
     }
 }
@@ -452,10 +478,10 @@ impl<R: Runtime> DesktopIntegrationExt<R> for AppHandle<R> {
 
     fn last_shortcut_trigger_description(&self) -> Option<String> {
         self.state::<ShortcutState>()
-            .last_trigger_description
+            .wayland_attempt
             .lock()
             .ok()
-            .and_then(|g| g.clone())
+            .and_then(|a| a.last_trigger_description.clone())
     }
 }
 
@@ -498,21 +524,33 @@ fn spawn_wayland_bind_task<R: Runtime>(
         *guard = Some(window_tx);
         state.window_provided.store(false, Ordering::SeqCst);
     }
-    // Clear any trigger description left over from a previous session (either a
-    // fresh register_shortcut call replacing an old one, or a retry after a failed
-    // bind) — it belongs to a session that's being superseded, not this one, and
-    // check_shortcut_trigger_description() must not hand it out as if it were current.
-    if let Ok(mut g) = state.last_trigger_description.lock() {
-        *g = None;
-    }
-    // Claim a fresh generation for this attempt — see wayland_generation's doc
-    // comment for why session_id can't be used for this instead.
-    let generation = state.wayland_generation.fetch_add(1, Ordering::SeqCst) + 1;
+    // Claim a fresh generation for this attempt and clear any trigger description
+    // left over from a previous one (either a fresh register_shortcut call
+    // replacing an old session, or a retry after a failed bind) as ONE step under
+    // one lock — see WaylandAttempt's doc comment for why splitting this into a
+    // separate atomic generation bump and a separate mutex reset would reopen the
+    // exact race this is meant to close.
+    let generation = state
+        .wayland_attempt
+        .lock()
+        .map(|mut a| {
+            a.generation += 1;
+            a.last_trigger_description = None;
+            a.generation
+        })
+        .unwrap_or(0);
 
     let app_for_result = app.clone();
     let on_binding_result = move |result: Result<(), String>| {
-        let success = result.is_ok();
         let state = app_for_result.state::<ShortcutState>();
+        // A stale attempt's bind outcome — success or failure — must not touch
+        // state that belongs to whatever attempt has since superseded it (e.g.
+        // overwriting a live wayland_handle, or retrying an attempt nothing wants
+        // any more). See is_current_wayland_generation's doc comment.
+        if !is_current_wayland_generation(&state, generation) {
+            return;
+        }
+        let success = result.is_ok();
         if success {
             state.binding_complete.store(true, Ordering::SeqCst);
             // Clear any previous failure message so shortcut_binding_error() reflects
@@ -543,16 +581,28 @@ fn spawn_wayland_bind_task<R: Runtime>(
         // the same logical shortcut, so both an old (superseded) and new closure can
         // capture the identical session_id and this check would never catch a stale
         // callback if it compared that instead. The generation counter is unique per
-        // spawn_wayland_bind_task call regardless of what session_id is passed, so a
-        // signal still in flight from a session being replaced is correctly
-        // discarded once a newer attempt has bumped the counter.
-        if state.wayland_generation.load(Ordering::SeqCst) != generation {
+        // spawn_wayland_bind_task call regardless of what session_id is passed.
+        //
+        // Checking and writing happen under the SAME lock acquisition (one
+        // `wayland_attempt.lock()` call, not a separate atomic load followed by a
+        // separate mutex lock) — otherwise a newer attempt's reset could land in the
+        // gap between this check passing and this write happening, letting a stale
+        // write through anyway.
+        let is_current = state
+            .wayland_attempt
+            .lock()
+            .map(|mut a| {
+                let current = a.generation == generation;
+                if current {
+                    a.last_trigger_description = Some(trigger_description.clone());
+                }
+                current
+            })
+            .unwrap_or(false);
+        if !is_current {
             return;
         }
 
-        if let Ok(mut g) = state.last_trigger_description.lock() {
-            *g = Some(trigger_description.clone());
-        }
         app_for_changed
             .emit(
                 "shortcut-changed",
@@ -577,16 +627,26 @@ fn spawn_wayland_bind_task<R: Runtime>(
         .await
         {
             Ok(handle) => {
-                // Keep the handle alive so the portal session and activation
-                // listener remain active.  Dropping it would cancel the shortcut.
-                if let Ok(mut guard) = app.state::<ShortcutState>().wayland_handle.lock() {
-                    *guard = Some(handle);
+                let state = app.state::<ShortcutState>();
+                if is_current_wayland_generation(&state, generation) {
+                    // Keep the handle alive so the portal session and activation
+                    // listener remain active. Dropping it would cancel the shortcut.
+                    if let Ok(mut guard) = state.wayland_handle.lock() {
+                        *guard = Some(handle);
+                    }
                 }
+                // else: a newer attempt has already superseded this one — let
+                // `handle` drop here instead, cancelling this attempt's now-unwanted
+                // portal session rather than overwriting the current one's handle.
             }
             Err(e) => {
+                let state = app.state::<ShortcutState>();
+                if !is_current_wayland_generation(&state, generation) {
+                    return;
+                }
                 log::error!("failed to create Wayland shortcut session: {e}");
                 let error_str = e.to_string();
-                if let Ok(mut g) = app.state::<ShortcutState>().binding_error.lock() {
+                if let Ok(mut g) = state.binding_error.lock() {
                     *g = Some(error_str.clone());
                 }
                 // Set up for retry before emitting so the race guard sees the error.
