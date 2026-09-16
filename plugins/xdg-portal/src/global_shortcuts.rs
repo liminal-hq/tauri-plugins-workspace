@@ -65,6 +65,16 @@ fn find_trigger_description<'a>(
 
 /// Creates a GlobalShortcuts portal session.
 ///
+/// `shortcut_id` must be unique among every `GlobalShortcuts` session alive on the
+/// session bus at once — not just within this process. Both the activation stream
+/// and `on_shortcuts_changed` (below) can only filter events by this id, because
+/// `ashpd::desktop::Session` exposes no public accessor for a session's own D-Bus
+/// object path to compare against the session handle these signals also carry
+/// (`Activated`/`ShortcutsChanged` both include one; there is no way from outside
+/// ashpd to check it against "is this actually my session"). A collision with
+/// another session's id — this app's or another app's — means this listener will
+/// react to that session's activations and trigger changes as if they were its own.
+///
 /// `window_rx` must deliver the `WindowIdentifier` for the parent window once
 /// it becomes available — the portal's `BindShortcuts` call is deferred until
 /// then.  Send `None` to bind without a parent window (portal dialog will be
@@ -75,10 +85,13 @@ fn find_trigger_description<'a>(
 /// `on_shortcuts_changed` is called with the new trigger description (e.g.
 /// `"Super+E"`) whenever the compositor's own settings UI reports the shortcut's
 /// trigger has changed independently of this app (the `ShortcutsChanged` portal
-/// signal) — e.g. GNOME Settings → Apps → <App> → Global Shortcuts. There is no
-/// confirmed behaviour here for a shortcut being removed entirely (as opposed to
-/// rebound) via that UI — not reproduced, deliberately left unhandled rather than
-/// guessed at.
+/// signal) — e.g. GNOME Settings → Apps → <App> → Global Shortcuts. Called inline
+/// from the listener loop, in signal-arrival order — not spawned onto a separate
+/// thread the way `on_activated` is, since it only does cheap, order-sensitive work
+/// (a state write, not window creation) and correctness here depends on later
+/// signals never being applied before earlier ones. There is no confirmed
+/// behaviour for a shortcut being removed entirely (as opposed to rebound) via that
+/// UI — not reproduced, deliberately left unhandled rather than guessed at.
 ///
 /// Returns a `ShortcutHandle`; dropping it cancels the listener and closes the
 /// portal session.
@@ -96,7 +109,9 @@ where
     // thread rather than blocking the Tokio worker during window creation.
     F: Fn() + Send + Sync + 'static,
     B: Fn(Result<(), String>) + Send + 'static,
-    C: Fn(String) + Send + Sync + 'static,
+    // Only Send, not Sync, like B — called inline from the select! loop, never
+    // cloned across threads (see the loop body for why that's safe here).
+    C: Fn(String) + Send + 'static,
 {
     use ashpd::desktop::global_shortcuts::{GlobalShortcuts, NewShortcut};
 
@@ -131,8 +146,9 @@ where
     let sid = shortcut_id.to_string();
     // Wrap in Arc so we can clone into each per-activation OS thread without
     // moving or blocking the Tokio worker during WebviewWindowBuilder::build().
+    // on_shortcuts_changed is NOT wrapped this way — it's called inline from the
+    // select! loop (see below), never cloned across threads.
     let on_activated = std::sync::Arc::new(on_activated);
-    let on_shortcuts_changed = std::sync::Arc::new(on_shortcuts_changed);
 
     tokio::spawn(async move {
         // Keep portal and session alive for the lifetime of this task.
@@ -220,9 +236,14 @@ where
                             let pairs = event.shortcuts().iter().map(|s| (s.id(), s.trigger_description()));
                             if let Some(desc) = find_trigger_description(pairs, &sid) {
                                 info!("global shortcut trigger changed externally: {} -> {}", sid, desc);
-                                let f = std::sync::Arc::clone(&on_shortcuts_changed);
-                                let desc = desc.to_string();
-                                std::thread::spawn(move || f(desc));
+                                // Called inline, not via std::thread::spawn like on_activated —
+                                // this callback only does a mutex write and an event emit (no
+                                // blocking window-creation work to justify the OS-thread hop),
+                                // and calling it inline guarantees in-order delivery: this select!
+                                // loop processes one branch at a time, so a later signal can never
+                                // be applied before an earlier one the way two independently
+                                // scheduled threads could race.
+                                on_shortcuts_changed(desc.to_string());
                             }
                         }
                         None => {
