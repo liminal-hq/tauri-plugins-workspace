@@ -12,11 +12,11 @@ keywords = ["tauri", "plugin", "android", "material-you", "dynamic-colours"]
 categories = ["api-bindings"]
 
 [package.metadata.platforms.support]
-windows = { level = "none", notes = "Android-only plugin" }
-linux = { level = "none", notes = "Android-only plugin" }
-macos = { level = "none", notes = "Android-only plugin" }
+windows = { level = "none", notes = "Resolves with supported: false" }
+linux = { level = "none", notes = "Resolves with supported: false" }
+macos = { level = "none", notes = "Resolves with supported: false" }
 android = { level = "full", notes = "Provides Material You palette data" }
-ios = { level = "none", notes = "Not applicable (Material You is Android-only)" }
+ios = { level = "none", notes = "Resolves with supported: false" }
 
 [lib]
 crate-type = ["staticlib", "cdylib", "rlib"]

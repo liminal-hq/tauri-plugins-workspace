@@ -60,13 +60,15 @@ This plugin exposes one command via the Tauri permissions system:
 
 ## Platform Support
 
-| Platform | Support Level | Notes                         |
-| -------- | ------------- | ----------------------------- |
-| Windows  | None          | Android-only plugin           |
-| Linux    | None          | Android-only plugin           |
-| macOS    | None          | Android-only plugin           |
-| Android  | Full          | Returns Material You palettes |
-| iOS      | None          | Not applicable (Android-only) |
+Material You itself is an Android-only concept. On every other platform the command resolves with `supported: false` and an empty `palettes` object.
+
+| Platform | Support Level | Notes                            |
+| -------- | ------------- | -------------------------------- |
+| Windows  | None          | Resolves with `supported: false` |
+| Linux    | None          | Resolves with `supported: false` |
+| macOS    | None          | Resolves with `supported: false` |
+| Android  | Full          | Returns Material You palettes    |
+| iOS      | None          | Resolves with `supported: false` |
 
 ## Licence
 
