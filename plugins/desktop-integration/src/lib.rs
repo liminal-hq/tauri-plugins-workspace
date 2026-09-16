@@ -634,19 +634,13 @@ fn spawn_wayland_bind_task<R: Runtime>(
         {
             Ok(handle) => {
                 let state = app.state::<ShortcutState>();
-                // Checking the generation and storing the handle happen under the
-                // same lock acquisition — seeing this generation as current and then
-                // storing the handle are not two separate steps a newer attempt's
-                // own generation-bump-and-store could interleave between. Whichever
-                // handle doesn't end up stored (this one, if stale, or — vanishingly
-                // unlikely, since both would need to resolve inside the same lock
-                // hold — a genuine simultaneous match) is simply dropped here,
-                // cancelling that attempt's portal session.
-                // `handle` is moved into this closure regardless of outcome; if this
-                // generation is stale, it's simply never assigned to `a.handle` and
-                // drops when the closure returns (still under the lock, cancelling
-                // that attempt's portal session) — a newer attempt has already
-                // superseded this one.
+                // Checking the generation and storing the handle happen under one
+                // lock acquisition, not two separate steps a newer attempt's own
+                // generation-bump-and-store could land between. `handle` is moved
+                // into the closure regardless of outcome: if this generation is
+                // stale, it's never assigned to `a.handle` and simply drops when the
+                // closure returns — still under the lock — cancelling this attempt's
+                // portal session rather than overwriting a newer, live one's handle.
                 let _ = state.wayland_attempt.lock().map(|mut a| {
                     if a.generation == generation {
                         a.handle = Some(handle);

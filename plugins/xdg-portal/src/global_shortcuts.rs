@@ -237,12 +237,11 @@ where
                             // create_session's doc comment for why: ashpd::desktop::Session
                             // exposes no public accessor for a session's own path to compare
                             // it against. A real fix would mean bypassing ashpd's ergonomic
-                            // API for raw zbus calls just to capture that handle ourselves; a
-                            // deliberate call not to do that here, since this exact gap already
-                            // existed in the activation branch above, unrelated to this PR. If
-                            // that fix is ever wanted, it needs a raw-zbus session-path capture
-                            // at create_session() and to apply here and to event.shortcut_id()
-                            // above alike, not just one of the two.
+                            // API for raw zbus calls just to capture that handle ourselves —
+                            // deliberately not done here, since the same gap already exists,
+                            // pre-existing, in the activation branch above. A real fix needs a
+                            // raw-zbus session-path capture at create_session() applied to both
+                            // this filter and event.shortcut_id() above alike, not just one.
                             let pairs = event.shortcuts().iter().map(|s| (s.id(), s.trigger_description()));
                             if let Some(desc) = find_trigger_description(pairs, &sid) {
                                 info!("global shortcut trigger changed externally: {} -> {}", sid, desc);
