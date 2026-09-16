@@ -127,6 +127,14 @@ pub trait DesktopIntegrationExt<R: Runtime> {
     /// session — `session_id` should be a stable, app-specific string, and
     /// `session_description` is shown to the user in the compositor's shortcut
     /// binding dialog. Both are ignored on X11.
+    ///
+    /// On Wayland, `session_id` must be unique across every `GlobalShortcuts`
+    /// session alive on the session bus at once, not just within this app — the
+    /// portal offers no way for this crate to disambiguate two sessions that
+    /// happen to pick the same id, so a collision means this app can end up
+    /// reacting to another session's activations and rebinds. A reverse-DNS-style
+    /// id (`"ca.example.myapp.toggle"`) makes a collision practically impossible;
+    /// a bare word like `"toggle"` does not.
     fn register_shortcut<F>(
         &self,
         session_id: &str,
@@ -480,6 +488,13 @@ fn spawn_wayland_bind_task<R: Runtime>(
     if let Ok(mut guard) = state.window_tx.lock() {
         *guard = Some(window_tx);
         state.window_provided.store(false, Ordering::SeqCst);
+    }
+    // Clear any trigger description left over from a previous session (either a
+    // fresh register_shortcut call replacing an old one, or a retry after a failed
+    // bind) — it belongs to a session that's being superseded, not this one, and
+    // check_shortcut_trigger_description() must not hand it out as if it were current.
+    if let Ok(mut g) = state.last_trigger_description.lock() {
+        *g = None;
     }
 
     let app_for_result = app.clone();
