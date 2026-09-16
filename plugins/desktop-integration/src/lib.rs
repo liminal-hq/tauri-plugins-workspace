@@ -5,7 +5,7 @@
 
 use log::info;
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicU64, Ordering},
     Arc, Mutex,
 };
 use tauri::{
@@ -87,6 +87,14 @@ pub struct ShortcutState {
     /// happened" signal, not a mirror of the currently-bound trigger, so a value of
     /// None does NOT mean no shortcut is bound.
     pub last_trigger_description: Mutex<Option<String>>,
+    /// Incremented once per `spawn_wayland_bind_task` call (fresh registration or
+    /// retry). `session_id` is documented as a *stable* string callers are expected
+    /// to reuse across re-registrations, so it cannot identify which registration
+    /// attempt a queued callback belongs to when a session is replaced — this can.
+    /// Each `on_shortcuts_changed` closure captures the generation current at spawn
+    /// time and compares against this at call time, discarding itself if a newer
+    /// attempt has since started.
+    pub wayland_generation: AtomicU64,
 }
 
 impl Default for ShortcutState {
@@ -103,6 +111,7 @@ impl Default for ShortcutState {
             wayland_session_id: Mutex::new(None),
             wayland_session_description: Mutex::new(None),
             last_trigger_description: Mutex::new(None),
+            wayland_generation: AtomicU64::new(0),
         }
     }
 }
@@ -496,6 +505,9 @@ fn spawn_wayland_bind_task<R: Runtime>(
     if let Ok(mut g) = state.last_trigger_description.lock() {
         *g = None;
     }
+    // Claim a fresh generation for this attempt — see wayland_generation's doc
+    // comment for why session_id can't be used for this instead.
+    let generation = state.wayland_generation.fetch_add(1, Ordering::SeqCst) + 1;
 
     let app_for_result = app.clone();
     let on_binding_result = move |result: Result<(), String>| {
@@ -526,18 +538,15 @@ fn spawn_wayland_bind_task<R: Runtime>(
     let event_session_id = session_id.clone();
     let on_shortcuts_changed = move |trigger_description: String| {
         let state = app_for_changed.state::<ShortcutState>();
-        // register_wayland_shortcut sets wayland_session_id to the NEW session's id
-        // synchronously, before spawning this task — so if a signal from a session
-        // being replaced is still in flight when the new one takes over, this will
-        // no longer match by the time it arrives, and it's discarded rather than
-        // repopulating the cache (or emitting an event) for a superseded session.
-        let is_current_session = state
-            .wayland_session_id
-            .lock()
-            .ok()
-            .and_then(|g| g.clone())
-            .is_some_and(|current| current == event_session_id);
-        if !is_current_session {
+        // Compares the generation claimed above, not session_id: session_id is
+        // documented as a *stable* string callers reuse across re-registrations of
+        // the same logical shortcut, so both an old (superseded) and new closure can
+        // capture the identical session_id and this check would never catch a stale
+        // callback if it compared that instead. The generation counter is unique per
+        // spawn_wayland_bind_task call regardless of what session_id is passed, so a
+        // signal still in flight from a session being replaced is correctly
+        // discarded once a newer attempt has bumped the counter.
+        if state.wayland_generation.load(Ordering::SeqCst) != generation {
             return;
         }
 
