@@ -91,6 +91,14 @@
 			"path": "./plugins/system-appearance",
 			"manager": "javascript"
 		},
+		"window-manager": {
+			"path": "./plugins/window-manager",
+			"manager": "rust"
+		},
+		"window-manager-js": {
+			"path": "./plugins/window-manager",
+			"manager": "javascript"
+		},
 		"api-example": {
 			"path": "./examples/api/src-tauri",
 			"manager": "rust",
