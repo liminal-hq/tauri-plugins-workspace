@@ -29,10 +29,11 @@ Examples:
 
 ## Markdown Formatting
 
-**REQUIREMENT:** Do not hard-wrap markdown prose. Write each paragraph or bullet as a single unwrapped line in the source, no matter how long — let the renderer (GitHub, a browser, an editor's soft-wrap) reflow it for display. This applies everywhere: commit bodies, PR descriptions, docs under `docs/`, README files, code comments written in Markdown.
+**REQUIREMENT:** Do not hard-wrap markdown prose. Write each paragraph or bullet as a single unwrapped line in the source, no matter how long — let the renderer (GitHub, a browser, an editor's soft-wrap) reflow it for display. This applies to Markdown-rendered content: docs under `docs/`, README files, PR descriptions, and PR and issue comments. Commit message bodies are the one exception — hard-wrap those (see [Commit Messages](#commit-messages)); `git log` and `git show` in a terminal don't reflow long lines the way GitHub's PR view does.
 
 - Manual line breaks mid-paragraph don't survive Markdown rendering as intended (they either collapse into the same line anyway or break formatting), and they create noisy diffs when a later edit only changes one word but reflows the whole wrapped block.
 - This does not apply to genuinely separate list items, headings, or intentional line breaks (e.g. two-space trailing breaks, blank lines between paragraphs) — only to breaking up one continuous sentence/paragraph across multiple lines.
+- Code comments are not Markdown-rendered and may wrap normally at a reasonable line length, like any other source line. That includes rustdoc and JSDoc paragraphs — this rule doesn't reach them.
 
 ## Commit Messages
 
@@ -45,6 +46,7 @@ Examples:
 **Body Requirements:**
 
 - Explain what changed and why.
+- Hard-wrap body paragraphs at roughly 72-100 characters. This is the one place Markdown prose is wrapped (see [Markdown Formatting](#markdown-formatting)).
 - Keep scope specific to the current commit.
 - Prefer this structure:
   - `**What changed**`
