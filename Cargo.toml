@@ -3,6 +3,7 @@ members = [
   "plugins/material-you",
   "plugins/xdg-portal",
   "plugins/desktop-integration",
+  "plugins/system-appearance",
   "examples/api/src-tauri",
 ]
 # plugins/hdmv depends on libhdmv which is not available in CI.
