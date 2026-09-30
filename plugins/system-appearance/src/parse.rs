@@ -82,9 +82,9 @@ pub fn gnome_button_layout(value: &str) -> ButtonLayout {
 /// Parses a GNOME-family titlebar action name such as `toggle-maximize`; unknown names mean none.
 pub fn gnome_action(value: &str) -> TitlebarAction {
     match value.trim() {
-        "toggle-maximize" | "toggle-maximize-horizontally" | "toggle-maximize-vertically" => {
-            TitlebarAction::ToggleMaximise
-        }
+        "toggle-maximize" => TitlebarAction::ToggleMaximise,
+        "toggle-maximize-horizontally" => TitlebarAction::ToggleMaximiseHorizontally,
+        "toggle-maximize-vertically" => TitlebarAction::ToggleMaximiseVertically,
         "toggle-shade" | "shade" => TitlebarAction::ToggleShade,
         "minimize" => TitlebarAction::Minimise,
         "lower" => TitlebarAction::Lower,
@@ -147,26 +147,35 @@ pub fn kde_button_layout(left: Option<&str>, right: Option<&str>) -> ButtonLayou
     layout
 }
 
+/// The KWin command names that mean the same thing for a double-click and for a titlebar button.
+fn kde_common_command(value: &str) -> Option<TitlebarAction> {
+    match value {
+        "Maximize" => Some(TitlebarAction::ToggleMaximise),
+        "Maximize (horizontal only)" => Some(TitlebarAction::ToggleMaximiseHorizontally),
+        "Maximize (vertical only)" => Some(TitlebarAction::ToggleMaximiseVertically),
+        "Minimize" => Some(TitlebarAction::Minimise),
+        "Shade" => Some(TitlebarAction::ToggleShade),
+        _ => None,
+    }
+}
+
 /// Parses KWin's `TitlebarDoubleClickCommand` value.
 pub fn kde_double_click(value: &str) -> TitlebarAction {
-    match value.trim() {
-        "Maximize" => TitlebarAction::ToggleMaximise,
-        "Shade" => TitlebarAction::ToggleShade,
+    let value = value.trim();
+    kde_common_command(value).unwrap_or(match value {
         "Lower" => TitlebarAction::Lower,
-        "Minimize" => TitlebarAction::Minimise,
         _ => TitlebarAction::None,
-    }
+    })
 }
 
 /// Parses KWin's `CommandActiveTitlebar2` / `CommandActiveTitlebar3` values.
 pub fn kde_titlebar_command(value: &str) -> TitlebarAction {
-    match value.trim() {
+    let value = value.trim();
+    kde_common_command(value).unwrap_or(match value {
         "Lower" | "Toggle raise and lower" => TitlebarAction::Lower,
-        "Minimize" => TitlebarAction::Minimise,
-        "Shade" => TitlebarAction::ToggleShade,
         "Operations menu" => TitlebarAction::Menu,
         _ => TitlebarAction::None,
-    }
+    })
 }
 
 /// Builds actions from the text of `kwinrc`, using the defaults for absent keys.
@@ -392,8 +401,11 @@ mod tests {
     fn gnome_action_table() {
         let cases = [
             ("toggle-maximize", A::ToggleMaximise),
-            ("toggle-maximize-horizontally", A::ToggleMaximise),
-            ("toggle-maximize-vertically", A::ToggleMaximise),
+            (
+                "toggle-maximize-horizontally",
+                A::ToggleMaximiseHorizontally,
+            ),
+            ("toggle-maximize-vertically", A::ToggleMaximiseVertically),
             ("toggle-shade", A::ToggleShade),
             ("shade", A::ToggleShade),
             ("minimize", A::Minimise),
@@ -490,6 +502,8 @@ mod tests {
     fn kde_double_click_table() {
         let cases = [
             ("Maximize", A::ToggleMaximise),
+            ("Maximize (horizontal only)", A::ToggleMaximiseHorizontally),
+            ("Maximize (vertical only)", A::ToggleMaximiseVertically),
             ("Shade", A::ToggleShade),
             ("Lower", A::Lower),
             ("Minimize", A::Minimise),
@@ -510,7 +524,10 @@ mod tests {
             ("Minimize", A::Minimise),
             ("Shade", A::ToggleShade),
             ("Operations menu", A::Menu),
-            ("Maximize", A::None),
+            ("Maximize", A::ToggleMaximise),
+            ("Maximize (horizontal only)", A::ToggleMaximiseHorizontally),
+            ("Maximize (vertical only)", A::ToggleMaximiseVertically),
+            ("Close", A::None),
             ("", A::None),
         ];
         for (input, expected) in cases {

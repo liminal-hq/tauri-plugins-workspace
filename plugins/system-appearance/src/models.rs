@@ -38,6 +38,8 @@ pub struct ButtonLayout {
 #[ts(export, export_to = "../guest-js/bindings/")]
 pub enum TitlebarAction {
     ToggleMaximise,
+    ToggleMaximiseHorizontally,
+    ToggleMaximiseVertically,
     ToggleShade,
     Minimise,
     Lower,
