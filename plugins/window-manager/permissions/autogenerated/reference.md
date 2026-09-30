@@ -7,6 +7,7 @@ Default permissions for the window-manager plugin
 - `allow-get-status`
 - `allow-get-capabilities`
 - `allow-show-system-window-menu`
+- `allow-get-always-on-top`
 
 ## Permission Table
 
@@ -16,6 +17,32 @@ Default permissions for the window-manager plugin
 <th>Description</th>
 </tr>
 
+
+<tr>
+<td>
+
+`window-manager:allow-get-always-on-top`
+
+</td>
+<td>
+
+Enables the get_always_on_top command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`window-manager:deny-get-always-on-top`
+
+</td>
+<td>
+
+Denies the get_always_on_top command without any pre-configured scope.
+
+</td>
+</tr>
 
 <tr>
 <td>
