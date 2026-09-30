@@ -83,6 +83,14 @@
 			"path": "./plugins/desktop-integration",
 			"manager": "javascript"
 		},
+		"system-appearance": {
+			"path": "./plugins/system-appearance",
+			"manager": "rust"
+		},
+		"system-appearance-js": {
+			"path": "./plugins/system-appearance",
+			"manager": "javascript"
+		},
 		"api-example": {
 			"path": "./examples/api/src-tauri",
 			"manager": "rust",
