@@ -13,6 +13,7 @@ A collection of Tauri v2 plugins for building privacy-focused, local-first appli
 | [`xdg-portal`](plugins/xdg-portal)                   | `xdg-desktop-portal` theming and global shortcuts           | Linux                 |
 | [`desktop-integration`](plugins/desktop-integration) | X11 window activation and unified global-shortcut binding   | Linux                 |
 | [`system-appearance`](plugins/system-appearance)     | Window titlebar button layout and actions, pushed on change | Linux, Windows, macOS |
+| [`window-manager`](plugins/window-manager)           | Compositor window menu and window manager features          | Linux                 |
 
 ## Installation
 
