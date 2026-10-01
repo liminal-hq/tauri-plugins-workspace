@@ -99,6 +99,14 @@
 			"path": "./plugins/window-manager",
 			"manager": "javascript"
 		},
+		"os-prefs": {
+			"path": "./plugins/os-prefs",
+			"manager": "rust"
+		},
+		"os-prefs-js": {
+			"path": "./plugins/os-prefs",
+			"manager": "javascript"
+		},
 		"api-example": {
 			"path": "./examples/api/src-tauri",
 			"manager": "rust",

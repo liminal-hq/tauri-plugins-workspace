@@ -4,6 +4,7 @@ members = [
   "plugins/xdg-portal",
   "plugins/desktop-integration",
   "plugins/system-appearance",
+  "plugins/os-prefs",
   "plugins/window-manager",
   "examples/api/src-tauri",
 ]
