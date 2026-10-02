@@ -46,7 +46,10 @@ struct LinuxState {
 #[derive(Default)]
 struct WindowsState {
     toasts: crate::win::toast::Shown,
-    hotkeys: std::sync::Mutex<Option<crate::win::hotkeys::HotkeyThread>>,
+    /// Held only to clone or swap the `Arc`, never across a call into the thread, so one slow
+    /// hotkey command cannot block the others.
+    hotkeys:
+        std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<crate::win::hotkeys::HotkeyThread>>>>,
 }
 
 pub struct DesktopServices<R: Runtime> {
@@ -375,27 +378,35 @@ impl<R: Runtime> DesktopServices<R> {
         {
             use tauri::Emitter;
 
-            let mut slot = self.windows.hotkeys.lock().map_err(|_| {
-                ServiceError::new(ServiceErrorKind::Failed, "hotkey state poisoned")
-            })?;
-            if slot.is_none() {
-                let app = self.app.clone();
-                let sink: crate::win::hotkeys::PressedSink = std::sync::Arc::new(move |id| {
-                    let _ = app.emit(
-                        crate::shortcuts::PRESSED_EVENT,
-                        crate::models::GlobalShortcutPressed { id },
-                    );
-                });
-                *slot = Some(crate::win::hotkeys::HotkeyThread::start(sink)?);
-            }
-            slot.as_ref()
-                .map(|thread| thread.register(&request.id, accelerator))
-                .unwrap_or_else(|| {
-                    Err(ServiceError::new(
-                        ServiceErrorKind::Failed,
-                        "no hotkey thread",
-                    ))
-                })
+            let slot = std::sync::Arc::clone(&self.windows.hotkeys);
+            let app = self.app.clone();
+            // Starting the thread and the round trip to it block, so they run off the async
+            // workers; the slot is released before the round trip.
+            tokio::task::spawn_blocking(move || {
+                let thread = {
+                    let mut slot = lock_hotkeys(&slot)?;
+                    match slot.as_ref() {
+                        Some(thread) => std::sync::Arc::clone(thread),
+                        None => {
+                            let sink: crate::win::hotkeys::PressedSink =
+                                std::sync::Arc::new(move |id| {
+                                    let _ = app.emit(
+                                        crate::shortcuts::PRESSED_EVENT,
+                                        crate::models::GlobalShortcutPressed { id },
+                                    );
+                                });
+                            let thread = std::sync::Arc::new(
+                                crate::win::hotkeys::HotkeyThread::start(sink)?,
+                            );
+                            *slot = Some(std::sync::Arc::clone(&thread));
+                            thread
+                        }
+                    }
+                };
+                thread.register(&request.id, accelerator)
+            })
+            .await
+            .map_err(|error| ServiceError::new(ServiceErrorKind::Failed, error.to_string()))?
         }
         #[cfg(not(target_os = "windows"))]
         {
@@ -408,11 +419,13 @@ impl<R: Runtime> DesktopServices<R> {
     pub async fn unregister_global_shortcut(&self, id: String) -> Result<(), ServiceError> {
         #[cfg(target_os = "windows")]
         {
-            let slot = self.windows.hotkeys.lock().map_err(|_| {
-                ServiceError::new(ServiceErrorKind::Failed, "hotkey state poisoned")
-            })?;
-            match slot.as_ref() {
-                Some(thread) => thread.unregister(&id),
+            let thread = lock_hotkeys(&self.windows.hotkeys)?.clone();
+            match thread {
+                Some(thread) => tokio::task::spawn_blocking(move || thread.unregister(&id))
+                    .await
+                    .map_err(|error| {
+                        ServiceError::new(ServiceErrorKind::Failed, error.to_string())
+                    })?,
                 None => Err(ServiceError::not_found(format!(
                     "no shortcut is registered as {id:?}"
                 ))),
@@ -450,9 +463,11 @@ impl<R: Runtime> DesktopServices<R> {
         }
         #[cfg(target_os = "windows")]
         {
-            if let Ok(mut slot) = self.windows.hotkeys.lock() {
-                slot.take();
-            }
+            // Dropping the thread joins it, so that happens off the async workers.
+            let thread = lock_hotkeys(&self.windows.hotkeys)
+                .ok()
+                .and_then(|mut slot| slot.take());
+            let _ = tokio::task::spawn_blocking(move || drop(thread)).await;
         }
     }
 
@@ -487,6 +502,18 @@ impl<R: Runtime> DesktopServices<R> {
         }
         Ok(())
     }
+}
+
+/// Locks the hotkey slot, which is only ever held to clone or replace its `Arc`.
+#[cfg(target_os = "windows")]
+fn lock_hotkeys(
+    slot: &std::sync::Mutex<Option<std::sync::Arc<crate::win::hotkeys::HotkeyThread>>>,
+) -> Result<
+    std::sync::MutexGuard<'_, Option<std::sync::Arc<crate::win::hotkeys::HotkeyThread>>>,
+    ServiceError,
+> {
+    slot.lock()
+        .map_err(|_| ServiceError::new(ServiceErrorKind::Failed, "hotkey state poisoned"))
 }
 
 #[cfg(test)]

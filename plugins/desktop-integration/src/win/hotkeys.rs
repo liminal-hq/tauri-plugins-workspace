@@ -67,7 +67,7 @@ pub struct HotkeyThread {
     queue: Arc<Mutex<VecDeque<Command>>>,
     join: Option<JoinHandle<()>>,
     /// Closed by the thread as it ends.
-    done: mpsc::Receiver<()>,
+    done: Mutex<mpsc::Receiver<()>>,
 }
 
 unsafe extern "system" fn window_proc(
@@ -95,7 +95,7 @@ impl HotkeyThread {
                 hwnd,
                 queue,
                 join: Some(join),
-                done,
+                done: Mutex::new(done),
             }),
             Ok(Err(error)) => {
                 let _ = join.join();
@@ -174,11 +174,15 @@ impl Drop for HotkeyThread {
         let Some(join) = self.join.take() else {
             return;
         };
+        let done = self
+            .done
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         match stop {
             // Without the stop message the thread never ends, so there is nothing to wait for.
             Err(error) => log::warn!("could not stop the hotkey thread: {}", error.message),
             // A hotkey callback that blocks would otherwise hold up the app's exit for good.
-            Ok(()) if !join_within(join, &self.done, STOP_TIMEOUT) => {
+            Ok(()) if !join_within(join, &done, STOP_TIMEOUT) => {
                 log::warn!("the hotkey thread did not stop in time; leaving it behind");
             }
             Ok(()) => {}
