@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-withdraw-notification"
+description = "Enables the withdraw_notification command without any pre-configured scope."
+commands.allow = ["withdraw_notification"]
+
+[[permission]]
+identifier = "deny-withdraw-notification"
+description = "Denies the withdraw_notification command without any pre-configured scope."
+commands.deny = ["withdraw_notification"]

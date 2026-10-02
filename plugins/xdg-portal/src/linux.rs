@@ -8,6 +8,12 @@ use crate::{
     models::{AccentColour, AvailabilityInfo, ColourScheme, DesktopEnvironment, ThemeInfo},
 };
 
+/// The bus name, object path and session bus every portal interface is reached on.
+#[cfg(target_os = "linux")]
+pub const DESKTOP_DESTINATION: &str = "org.freedesktop.portal.Desktop";
+#[cfg(target_os = "linux")]
+pub const DESKTOP_PATH: &str = "/org/freedesktop/portal/desktop";
+
 #[cfg(target_os = "linux")]
 pub async fn check_availability() -> Result<AvailabilityInfo, PortalError> {
     // Minimal Milestone-2 check: query over D-Bus via ashpd-backed call.
