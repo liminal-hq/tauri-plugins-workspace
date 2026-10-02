@@ -18,6 +18,55 @@ pub const OWNERSHIP_EVENT: &str = "desktop-integration://file-manager-ownership"
 pub const BUS_NAME: &str = "org.freedesktop.FileManager1";
 pub const OBJECT_PATH: &str = "/org/freedesktop/FileManager1";
 
+/// The held name, tagged with the generation that took it, so a message about an earlier
+/// ownership cannot release a later one.
+///
+/// The name-lost signal is handled on a task of its own, so by the time it runs the app may have
+/// given the name back and taken it again; the task releases only the generation that was lost.
+#[derive(Debug)]
+pub struct OwnerSlot<T> {
+    last_generation: u64,
+    current: Option<(u64, T)>,
+}
+
+impl<T> Default for OwnerSlot<T> {
+    fn default() -> Self {
+        Self {
+            last_generation: 0,
+            current: None,
+        }
+    }
+}
+
+impl<T> OwnerSlot<T> {
+    pub fn is_owned(&self) -> bool {
+        self.current.is_some()
+    }
+
+    /// A fresh generation to tag the next ownership with.
+    pub fn next_generation(&mut self) -> u64 {
+        self.last_generation += 1;
+        self.last_generation
+    }
+
+    pub fn set(&mut self, generation: u64, value: T) {
+        self.current = Some((generation, value));
+    }
+
+    /// Takes whatever is held, whichever generation it is.
+    pub fn take(&mut self) -> Option<T> {
+        self.current.take().map(|(_, value)| value)
+    }
+
+    /// Takes the held value only if it is the one `generation` took.
+    pub fn take_generation(&mut self, generation: u64) -> Option<T> {
+        match self.current {
+            Some((held, _)) if held == generation => self.take(),
+            _ => None,
+        }
+    }
+}
+
 /// Reads one URI. A `file:` URI for this machine also gives its decoded local path; any other
 /// scheme (`smb:`, `sftp:`, `trash:`) is kept as is for the app's own providers.
 pub fn target_from_uri(uri: &str) -> Result<FileManagerTarget, ServiceError> {
@@ -72,6 +121,31 @@ pub fn call_from(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_stale_name_lost_message_does_not_release_a_newer_ownership() {
+        let mut slot = OwnerSlot::default();
+        let first = slot.next_generation();
+        slot.set(first, "first");
+        // The name is lost, but before the handler runs the app disowns and owns again.
+        assert_eq!(slot.take(), Some("first"));
+        let second = slot.next_generation();
+        slot.set(second, "second");
+
+        assert_eq!(slot.take_generation(first), None);
+        assert!(slot.is_owned(), "the healthy ownership stays");
+        assert_eq!(slot.take_generation(second), Some("second"));
+        assert!(!slot.is_owned());
+    }
+
+    #[test]
+    fn the_lost_generation_is_released_once() {
+        let mut slot = OwnerSlot::default();
+        let generation = slot.next_generation();
+        slot.set(generation, "held");
+        assert_eq!(slot.take_generation(generation), Some("held"));
+        assert_eq!(slot.take_generation(generation), None);
+    }
     use crate::error::ServiceErrorKind;
 
     #[test]

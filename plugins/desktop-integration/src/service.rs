@@ -39,7 +39,7 @@ struct LinuxState {
     system: tokio::sync::OnceCell<zbus::Connection>,
     notifications: std::sync::Arc<std::sync::Mutex<notify::IdBook>>,
     listener: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
-    file_manager: Mutex<Option<crate::linux::file_manager::Owned>>,
+    file_manager: Mutex<crate::file_manager::OwnerSlot<crate::linux::file_manager::Owned>>,
 }
 
 #[cfg(target_os = "windows")]
@@ -118,7 +118,7 @@ impl<R: Runtime> DesktopServices<R> {
                     None
                 },
             };
-            let owned = self.linux.file_manager.lock().await.is_some();
+            let owned = self.linux.file_manager.lock().await.is_owned();
             status::linux_status(&probes, owned)
         }
         #[cfg(target_os = "windows")]
@@ -313,7 +313,7 @@ impl<R: Runtime> DesktopServices<R> {
             use tauri::Emitter;
 
             let mut slot = self.linux.file_manager.lock().await;
-            if slot.is_some() {
+            if slot.is_owned() {
                 return Ok(FileManagerOwnership {
                     owned: true,
                     reason: None,
@@ -325,25 +325,34 @@ impl<R: Runtime> DesktopServices<R> {
                     log::warn!("could not emit a FileManager1 call: {error}");
                 }
             });
+            let generation = slot.next_generation();
             let lost_app = self.app.clone();
             let on_lost: Arc<dyn Fn(String) + Send + Sync> = Arc::new(move |reason| {
                 let app = lost_app.clone();
                 tauri::async_runtime::spawn(async move {
                     let services = app.desktop_services();
-                    let owned = services.linux.file_manager.lock().await.take();
+                    // Only the ownership that lost the name: if the name was given back and taken
+                    // again since the signal, the new ownership is healthy and stays.
+                    let owned = services
+                        .linux
+                        .file_manager
+                        .lock()
+                        .await
+                        .take_generation(generation);
                     if let Some(owned) = owned {
                         owned.release().await;
+                        let _ = app.emit(
+                            crate::file_manager::OWNERSHIP_EVENT,
+                            FileManagerOwnership {
+                                owned: false,
+                                reason: Some(reason),
+                            },
+                        );
                     }
-                    let _ = app.emit(
-                        crate::file_manager::OWNERSHIP_EVENT,
-                        FileManagerOwnership {
-                            owned: false,
-                            reason: Some(reason),
-                        },
-                    );
                 });
             });
-            *slot = Some(crate::linux::file_manager::own(sink, on_lost).await?);
+            let owned = crate::linux::file_manager::own(sink, on_lost).await?;
+            slot.set(generation, owned);
             Ok(FileManagerOwnership {
                 owned: true,
                 reason: None,
