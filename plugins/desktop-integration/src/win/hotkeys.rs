@@ -4,9 +4,10 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::VecDeque,
     sync::{mpsc, Arc, Mutex},
     thread::JoinHandle,
+    time::Duration,
 };
 
 use windows::{
@@ -30,8 +31,12 @@ use windows::{
 use super::failed;
 use crate::{
     error::{ServiceError, ServiceErrorKind},
+    hotkey_book::{join_within, HotkeyApi, HotkeyBook, Ticket},
     shortcuts::Accelerator,
 };
+
+/// How long dropping the thread waits for it to end before leaving it behind.
+const STOP_TIMEOUT: Duration = Duration::from_secs(2);
 
 /// Posted to the window to make the thread drain its command queue.
 const WM_COMMANDS: u32 = WM_APP + 1;
@@ -41,10 +46,12 @@ enum Command {
         id: String,
         accelerator: Accelerator,
         reply: mpsc::Sender<Result<(), ServiceError>>,
+        ticket: Ticket,
     },
     Unregister {
         id: String,
         reply: mpsc::Sender<Result<(), ServiceError>>,
+        ticket: Ticket,
     },
     Stop,
 }
@@ -59,6 +66,8 @@ pub struct HotkeyThread {
     hwnd: isize,
     queue: Arc<Mutex<VecDeque<Command>>>,
     join: Option<JoinHandle<()>>,
+    /// Closed by the thread as it ends.
+    done: mpsc::Receiver<()>,
 }
 
 unsafe extern "system" fn window_proc(
@@ -76,21 +85,24 @@ impl HotkeyThread {
         let queue: Arc<Mutex<VecDeque<Command>>> = Arc::default();
         let thread_queue = Arc::clone(&queue);
         let (ready_tx, ready_rx) = mpsc::channel();
+        let (done_tx, done) = mpsc::channel();
         let join = std::thread::Builder::new()
             .name("desktop-integration-hotkeys".into())
-            .spawn(move || run(thread_queue, on_pressed, ready_tx))
+            .spawn(move || run(thread_queue, on_pressed, ready_tx, done_tx))
             .map_err(|error| failed("starting the hotkey thread", error))?;
-        match ready_rx.recv() {
+        match ready_rx.recv_timeout(crate::error::CALL_TIMEOUT) {
             Ok(Ok(hwnd)) => Ok(Self {
                 hwnd,
                 queue,
                 join: Some(join),
+                done,
             }),
             Ok(Err(error)) => {
                 let _ = join.join();
                 Err(error)
             }
-            Err(_) => Err(ServiceError::new(
+            Err(mpsc::RecvTimeoutError::Timeout) => Err(ServiceError::timeout("the hotkey thread")),
+            Err(mpsc::RecvTimeoutError::Disconnected) => Err(ServiceError::new(
                 ServiceErrorKind::Failed,
                 "the hotkey thread stopped while starting",
             )),
@@ -116,38 +128,60 @@ impl HotkeyThread {
         .map_err(|error| failed("PostMessageW", error))
     }
 
+    /// Queues a command and waits for its result. A command the thread has not started by the
+    /// time the wait ends is cancelled, so a call that reports a timeout never takes effect later
+    /// (and a retry never finds its own earlier registration).
     fn round_trip(
         &self,
-        build: impl FnOnce(mpsc::Sender<Result<(), ServiceError>>) -> Command,
+        build: impl FnOnce(mpsc::Sender<Result<(), ServiceError>>, Ticket) -> Command,
     ) -> Result<(), ServiceError> {
         let (reply_tx, reply_rx) = mpsc::channel();
-        self.send(build(reply_tx))?;
-        reply_rx
-            .recv_timeout(crate::error::CALL_TIMEOUT)
-            .map_err(|_| ServiceError::timeout("the hotkey thread"))?
+        let ticket = Ticket::default();
+        if let Err(error) = self.send(build(reply_tx, ticket.clone())) {
+            ticket.cancel();
+            return Err(error);
+        }
+        match reply_rx.recv_timeout(crate::error::CALL_TIMEOUT) {
+            Ok(result) => result,
+            Err(_) if ticket.cancel() => Err(ServiceError::timeout("the hotkey thread")),
+            // The thread is already running the command, so its outcome is the answer.
+            Err(_) => reply_rx
+                .recv_timeout(crate::error::CALL_TIMEOUT)
+                .map_err(|_| ServiceError::timeout("the hotkey thread"))?,
+        }
     }
 
     /// Registers `accelerator` under `id`, replacing an earlier registration of the same id.
     pub fn register(&self, id: &str, accelerator: Accelerator) -> Result<(), ServiceError> {
         let id = id.to_string();
-        self.round_trip(|reply| Command::Register {
+        self.round_trip(|reply, ticket| Command::Register {
             id,
             accelerator,
             reply,
+            ticket,
         })
     }
 
     pub fn unregister(&self, id: &str) -> Result<(), ServiceError> {
         let id = id.to_string();
-        self.round_trip(|reply| Command::Unregister { id, reply })
+        self.round_trip(|reply, ticket| Command::Unregister { id, reply, ticket })
     }
 }
 
 impl Drop for HotkeyThread {
     fn drop(&mut self) {
-        let _ = self.send(Command::Stop);
-        if let Some(join) = self.join.take() {
-            let _ = join.join();
+        let stop = self.send(Command::Stop);
+        let Some(join) = self.join.take() else {
+            return;
+        };
+        match stop {
+            // Without the stop message the thread never ends, so there is nothing to wait for.
+            Err(error) => log::warn!("could not stop the hotkey thread: {}", error.message),
+            // A hotkey callback that blocks would otherwise hold up the app's exit for good.
+            Ok(()) if !join_within(join, &self.done, STOP_TIMEOUT) => {
+                log::warn!("the hotkey thread did not stop in time; leaving it behind");
+            }
+            Ok(()) => {}
         }
     }
 }
@@ -156,6 +190,8 @@ fn run(
     queue: Arc<Mutex<VecDeque<Command>>>,
     on_pressed: PressedSink,
     ready: mpsc::Sender<Result<isize, ServiceError>>,
+    // Dropped as the thread ends, which is how `HotkeyThread` knows it can join.
+    _done: mpsc::Sender<()>,
 ) {
     let class = w!("DesktopIntegrationHotkeys");
     // SAFETY: plain window creation on this thread; every pointer passed outlives its call.
@@ -200,10 +236,8 @@ fn run(
     // SAFETY: valid on any thread.
     let _thread = unsafe { GetCurrentThreadId() };
 
-    // Hotkey ids are small numbers private to this window.
-    let mut next_id: i32 = 1;
-    let mut by_name: HashMap<String, i32> = HashMap::new();
-    let mut by_hotkey: HashMap<i32, String> = HashMap::new();
+    let mut api = Win32Hotkeys { hwnd };
+    let mut book = HotkeyBook::default();
 
     let mut message = MSG::default();
     loop {
@@ -214,8 +248,8 @@ fn run(
         }
         match message.message {
             WM_HOTKEY => {
-                if let Some(id) = by_hotkey.get(&(message.wParam.0 as i32)) {
-                    on_pressed(id.clone());
+                if let Some(id) = book.id_for(message.wParam.0 as i32) {
+                    on_pressed(id.to_string());
                 }
             }
             WM_COMMANDS => {
@@ -230,30 +264,16 @@ fn run(
                             id,
                             accelerator,
                             reply,
+                            ticket,
                         } => {
-                            let result = register(
-                                hwnd,
-                                &mut next_id,
-                                &mut by_name,
-                                &mut by_hotkey,
-                                &id,
-                                accelerator,
-                            );
-                            let _ = reply.send(result);
+                            if ticket.start() {
+                                let _ = reply.send(book.register(&mut api, &id, accelerator));
+                            }
                         }
-                        Command::Unregister { id, reply } => {
-                            let result = match by_name.remove(&id) {
-                                Some(hotkey) => {
-                                    by_hotkey.remove(&hotkey);
-                                    // SAFETY: the hotkey was registered on this window.
-                                    unsafe { UnregisterHotKey(Some(hwnd), hotkey) }
-                                        .map_err(|error| failed("UnregisterHotKey", error))
-                                }
-                                None => Err(ServiceError::not_found(format!(
-                                    "no shortcut is registered as {id:?}"
-                                ))),
-                            };
-                            let _ = reply.send(result);
+                        Command::Unregister { id, reply, ticket } => {
+                            if ticket.start() {
+                                let _ = reply.send(book.unregister(&mut api, &id));
+                            }
                         }
                         Command::Stop => stop = true,
                     }
@@ -271,50 +291,43 @@ fn run(
             }
         }
     }
-    for hotkey in by_hotkey.keys() {
-        // SAFETY: each hotkey was registered on this window.
-        let _ = unsafe { UnregisterHotKey(Some(hwnd), *hotkey) };
-    }
+    book.unregister_all(&mut api);
     // SAFETY: the window was created on this thread.
     let _ = unsafe { DestroyWindow(hwnd) };
 }
 
-fn register(
+/// `RegisterHotKey` and `UnregisterHotKey` on the hotkey window.
+struct Win32Hotkeys {
     hwnd: HWND,
-    next_id: &mut i32,
-    by_name: &mut HashMap<String, i32>,
-    by_hotkey: &mut HashMap<i32, String>,
-    id: &str,
-    accelerator: Accelerator,
-) -> Result<(), ServiceError> {
-    let hotkey = *next_id;
-    // SAFETY: the window belongs to this thread.
-    unsafe {
-        RegisterHotKey(
-            Some(hwnd),
-            hotkey,
-            HOT_KEY_MODIFIERS(accelerator.modifiers) | MOD_NOREPEAT,
-            accelerator.key,
-        )
-    }
-    .map_err(|error| {
-        // ERROR_HOTKEY_ALREADY_REGISTERED: another process holds the combination.
-        if error.code().0 as u32 == 0x8007_0581 {
-            ServiceError::new(
-                ServiceErrorKind::Conflict,
-                "another application already uses that shortcut",
+}
+
+impl HotkeyApi for Win32Hotkeys {
+    fn register(&mut self, hotkey: i32, accelerator: Accelerator) -> Result<(), ServiceError> {
+        // SAFETY: the window belongs to this thread.
+        unsafe {
+            RegisterHotKey(
+                Some(self.hwnd),
+                hotkey,
+                HOT_KEY_MODIFIERS(accelerator.modifiers) | MOD_NOREPEAT,
+                accelerator.key,
             )
-        } else {
-            failed("RegisterHotKey", error)
         }
-    })?;
-    *next_id += 1;
-    // A repeated id replaces the old binding, after the new one is safely registered.
-    if let Some(previous) = by_name.insert(id.to_string(), hotkey) {
-        by_hotkey.remove(&previous);
-        // SAFETY: the previous hotkey was registered on this window.
-        let _ = unsafe { UnregisterHotKey(Some(hwnd), previous) };
+        .map_err(|error| {
+            // ERROR_HOTKEY_ALREADY_REGISTERED: another process holds the combination.
+            if error.code().0 as u32 == 0x8007_0581 {
+                ServiceError::new(
+                    ServiceErrorKind::Conflict,
+                    "another application already uses that shortcut",
+                )
+            } else {
+                failed("RegisterHotKey", error)
+            }
+        })
     }
-    by_hotkey.insert(hotkey, id.to_string());
-    Ok(())
+
+    fn unregister(&mut self, hotkey: i32) -> Result<(), ServiceError> {
+        // SAFETY: the hotkey was registered on this window.
+        unsafe { UnregisterHotKey(Some(self.hwnd), hotkey) }
+            .map_err(|error| failed("UnregisterHotKey", error))
+    }
 }

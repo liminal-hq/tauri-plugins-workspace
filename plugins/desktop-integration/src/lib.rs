@@ -6,6 +6,8 @@
 mod commands;
 pub mod error;
 pub mod file_manager;
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+mod hotkey_book;
 pub mod launcher;
 #[cfg(target_os = "linux")]
 mod linux;
