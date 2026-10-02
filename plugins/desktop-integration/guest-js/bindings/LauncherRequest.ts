@@ -16,7 +16,7 @@ count: number | null,
  */
 desktopId: string | null, 
 /**
- * The window whose taskbar button shows the progress. Windows only; defaults to the first
- * window.
+ * The window whose taskbar button shows the progress. Windows only; defaults to the focused
+ * window, else the first window whose label starts with `main`, else the first label in alphabetical order.
  */
 windowLabel: string | null, };

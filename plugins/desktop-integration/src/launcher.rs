@@ -124,10 +124,52 @@ pub fn taskbar_plan(progress: &LauncherProgress) -> Result<TaskbarPlan, ServiceE
     })
 }
 
+/// Picks the window for a request that names none, from `(label, focused)` pairs: the focused
+/// window, else the first label starting with `main`, else the first label in alphabetical order. The windows
+/// arrive in no particular order, so this does not depend on it.
+pub fn default_window<'a>(windows: &[(&'a str, bool)]) -> Option<&'a str> {
+    let mut labels: Vec<&str> = windows.iter().map(|(label, _)| *label).collect();
+    labels.sort_unstable();
+    windows
+        .iter()
+        .filter(|(_, focused)| *focused)
+        .map(|(label, _)| *label)
+        .min()
+        .or_else(|| {
+            labels
+                .iter()
+                .copied()
+                .find(|label| label.starts_with("main"))
+        })
+        .or_else(|| labels.first().copied())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::error::ServiceErrorKind;
+
+    #[test]
+    fn the_default_window_does_not_depend_on_the_order_given() {
+        let windows = [("settings", false), ("main-2", false), ("main", false)];
+        let mut reversed = windows;
+        reversed.reverse();
+        assert_eq!(default_window(&windows), Some("main"));
+        assert_eq!(default_window(&reversed), Some("main"));
+    }
+
+    #[test]
+    fn the_focused_window_wins_and_the_first_label_is_the_last_resort() {
+        assert_eq!(
+            default_window(&[("main", false), ("shelf", true)]),
+            Some("shelf")
+        );
+        assert_eq!(
+            default_window(&[("zeta", false), ("beta", false)]),
+            Some("beta")
+        );
+        assert_eq!(default_window(&[]), None);
+    }
 
     fn request(progress: LauncherProgress, count: Option<i64>) -> LauncherRequest {
         LauncherRequest {

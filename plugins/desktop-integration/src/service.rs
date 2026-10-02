@@ -267,7 +267,17 @@ impl<R: Runtime> DesktopServices<R> {
             let plan = crate::launcher::taskbar_plan(&request.progress)?;
             let window = match &request.window_label {
                 Some(label) => self.app.get_webview_window(label),
-                None => self.app.webview_windows().into_values().next(),
+                None => {
+                    let windows = self.app.webview_windows();
+                    let candidates: Vec<(&str, bool)> = windows
+                        .iter()
+                        .map(|(label, window)| {
+                            (label.as_str(), window.is_focused().unwrap_or(false))
+                        })
+                        .collect();
+                    crate::launcher::default_window(&candidates)
+                        .and_then(|label| windows.get(label).cloned())
+                }
             }
             .ok_or_else(|| ServiceError::not_found("no such window"))?;
             let hwnd = window

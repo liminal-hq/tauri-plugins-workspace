@@ -212,8 +212,8 @@ pub struct LauncherRequest {
     /// The `.desktop` file id the dock matches the signal to; defaults to the bundle identifier.
     /// Linux only.
     pub desktop_id: Option<String>,
-    /// The window whose taskbar button shows the progress. Windows only; defaults to the first
-    /// window.
+    /// The window whose taskbar button shows the progress. Windows only; defaults to the focused
+    /// window, else the first window whose label starts with `main`, else the first label in alphabetical order.
     pub window_label: Option<String>,
 }
 
