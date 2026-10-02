@@ -139,20 +139,33 @@ impl<R: Runtime> Portal<R> {
 
     /// Ends an inhibitor. An unknown or already released handle is a `not-found` error.
     pub async fn release_inhibit(&self, handle: u32) -> Result<(), ServiceError> {
-        let inhibitor = self.inhibitors.lock().await.remove(handle);
-        let Some(inhibitor) = inhibitor else {
-            return Err(ServiceError::new(
+        let not_found = || {
+            ServiceError::new(
                 crate::error::ServiceErrorKind::NotFound,
                 format!("no inhibitor with handle {handle}"),
-            ));
+            )
         };
         #[cfg(target_os = "linux")]
         {
-            crate::inhibit::release(self.connection().await?, &inhibitor).await
+            // The inhibitor stays in the book if `Close` fails, so it can be released again.
+            crate::handles::release_with(&self.inhibitors, handle, |inhibitor| async move {
+                let connection = match self.connection().await {
+                    Ok(connection) => connection,
+                    Err(error) => return Err((inhibitor, error)),
+                };
+                crate::inhibit::release(connection, &inhibitor)
+                    .await
+                    .map_err(|error| (inhibitor, error))
+            })
+            .await
+            .unwrap_or_else(|| Err(not_found()))
         }
         #[cfg(not(target_os = "linux"))]
         {
-            match inhibitor {}
+            match self.inhibitors.lock().await.remove(handle) {
+                Some(inhibitor) => match inhibitor {},
+                None => Err(not_found()),
+            }
         }
     }
 

@@ -36,6 +36,12 @@ impl<T> HandleBook<T> {
         self.entries.remove(&handle)
     }
 
+    /// Puts a value back under the handle it was taken from, so a release that failed can be
+    /// tried again with the same handle.
+    pub fn restore(&mut self, handle: u32, value: T) {
+        self.entries.insert(handle, value);
+    }
+
     /// Takes every value out, oldest first.
     pub fn drain(&mut self) -> Vec<T> {
         std::mem::take(&mut self.entries).into_values().collect()
@@ -50,9 +56,52 @@ impl<T> HandleBook<T> {
     }
 }
 
+/// Releases the value behind `handle` with `close`, which gets the value and, if it fails, hands
+/// it back with the error. A failed release puts the value back in the book under the same
+/// handle, so the holder is not lost: a retry (or the release at exit) still finds it.
+///
+/// Returns `None` when the handle is unknown or already released.
+pub async fn release_with<T, E, Fut>(
+    book: &tokio::sync::Mutex<HandleBook<T>>,
+    handle: u32,
+    close: impl FnOnce(T) -> Fut,
+) -> Option<Result<(), E>>
+where
+    Fut: std::future::Future<Output = Result<(), (T, E)>>,
+{
+    let value = book.lock().await.remove(handle)?;
+    match close(value).await {
+        Ok(()) => Some(Ok(())),
+        Err((value, error)) => {
+            book.lock().await.restore(handle, value);
+            Some(Err(error))
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn a_failed_release_keeps_the_handle_for_a_retry() {
+        let book = tokio::sync::Mutex::new(HandleBook::default());
+        let handle = book.lock().await.insert("inhibitor");
+        let failed = release_with(&book, handle, |value| async move {
+            Err::<(), _>((value, "Close timed out"))
+        })
+        .await;
+        assert_eq!(failed, Some(Err("Close timed out")));
+        assert_eq!(book.lock().await.len(), 1);
+
+        let released = release_with(&book, handle, |_| async { Ok::<(), (&str, &str)>(()) }).await;
+        assert_eq!(released, Some(Ok(())));
+        assert!(book.lock().await.is_empty());
+
+        let again = release_with(&book, handle, |_| async { Ok::<(), (&str, &str)>(()) }).await;
+        assert_eq!(again, None, "released handles are gone");
+        assert_eq!(book.lock().await.insert("next"), handle + 1);
+    }
 
     #[test]
     fn hands_out_increasing_handles_and_never_reuses_one() {
