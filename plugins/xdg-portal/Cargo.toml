@@ -26,7 +26,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 tauri = { workspace = true }
 thiserror = { workspace = true }
-tokio = { version = "1", features = ["macros", "sync", "time"] }
+tokio = { version = "1", features = ["macros", "rt", "sync", "time"] }
 url = { workspace = true }
 log = { workspace = true }
 ts-rs = "12"
@@ -35,6 +35,7 @@ ts-rs = "12"
 [target.'cfg(target_os = "linux")'.dependencies]
 ashpd = { version = "0.13", default-features = false, features = ["tokio", "settings", "global_shortcuts", "wayland", "notification", "inhibit", "open_uri"] }
 futures-util = "0.3"
+libc = "0.2"
 
 [features]
 default = []

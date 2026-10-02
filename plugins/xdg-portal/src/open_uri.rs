@@ -46,14 +46,47 @@ mod linux {
         Connection, Proxy,
     };
 
+    use std::{fs::File, os::unix::fs::OpenOptionsExt, path::Path};
+
     use super::Target;
     use crate::{
         error::{ServiceError, ServiceErrorKind},
         linux::{DESKTOP_DESTINATION, DESKTOP_PATH},
-        timeout::with_timeout,
+        timeout::{with_timeout, CALL_TIMEOUT},
     };
 
     const INTERFACE: &str = "org.freedesktop.portal.OpenURI";
+
+    /// The extra `open(2)` flags for the descriptor handed to the portal. A file that is only
+    /// shown needs just an `O_PATH` descriptor, which names it without reading it, so it cannot
+    /// block (a FIFO) and needs no read permission. A writable request keeps an ordinary
+    /// read-only descriptor, as the portal checks the descriptor before it allows a write.
+    pub(super) fn open_flags(writable: bool) -> i32 {
+        if writable {
+            libc::O_CLOEXEC
+        } else {
+            libc::O_PATH | libc::O_CLOEXEC
+        }
+    }
+
+    /// Opens `path` for the portal and says whether it is a directory. Blocking.
+    pub(super) fn open_local(path: &Path, writable: bool) -> Result<(File, bool), ServiceError> {
+        let fail = |error: std::io::Error| {
+            let kind = if error.kind() == std::io::ErrorKind::NotFound {
+                ServiceErrorKind::NotFound
+            } else {
+                ServiceErrorKind::Failed
+            };
+            ServiceError::new(kind, format!("{}: {error}", path.display()))
+        };
+        let file = File::options()
+            .read(true)
+            .custom_flags(open_flags(writable))
+            .open(path)
+            .map_err(fail)?;
+        let is_dir = file.metadata().map(|m| m.is_dir()).unwrap_or(false);
+        Ok((file, is_dir))
+    }
 
     /// Asks the portal to open `target`. Resolves when the portal has accepted the call, not when
     /// the user has chosen an application, so an `ask` dialog does not hold the command open.
@@ -82,15 +115,16 @@ mod linux {
                 reply.map(drop)
             }
             Target::Local(path) => {
-                let file = std::fs::File::open(path).map_err(|error| {
-                    let kind = if error.kind() == std::io::ErrorKind::NotFound {
-                        ServiceErrorKind::NotFound
-                    } else {
-                        ServiceErrorKind::Failed
-                    };
-                    ServiceError::new(kind, format!("{}: {error}", path.display()))
-                })?;
-                let is_dir = file.metadata().map(|m| m.is_dir()).unwrap_or(false);
+                // Opening can block (a FIFO, a stalled mount), so it runs off the async workers
+                // and inside the same time limit as the portal calls.
+                let (file, is_dir) = {
+                    let (path, writable) = (path.clone(), writable.unwrap_or(false));
+                    let opening = tokio::task::spawn_blocking(move || open_local(&path, writable));
+                    tokio::time::timeout(CALL_TIMEOUT, opening)
+                        .await
+                        .map_err(|_| ServiceError::timeout("opening the file"))?
+                        .map_err(|error| ServiceError::from_message(error.to_string()))??
+                };
                 let fd = Fd::from(&file);
                 if is_dir {
                     let reply: Result<OwnedObjectPath, _> = with_timeout(
@@ -116,6 +150,40 @@ mod linux {
 mod tests {
     use super::*;
     use crate::error::ServiceErrorKind;
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_shown_file_is_opened_by_path_and_a_writable_one_is_not() {
+        use std::os::unix::fs::MetadataExt;
+
+        let dir = std::env::temp_dir().join(format!("xdg-portal-open-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("a.txt");
+        std::fs::write(&file, "x").unwrap();
+
+        let (opened, is_dir) = linux::open_local(&file, false).unwrap();
+        assert!(!is_dir);
+        assert_eq!(opened.metadata().unwrap().size(), 1);
+        let (_, is_dir) = linux::open_local(&dir, false).unwrap();
+        assert!(is_dir);
+        assert_ne!(linux::open_flags(false) & libc::O_PATH, 0);
+        assert_eq!(linux::open_flags(true) & libc::O_PATH, 0);
+        assert!(linux::open_local(&file, true).is_ok());
+        assert_eq!(
+            linux::open_local(&dir.join("missing"), false)
+                .unwrap_err()
+                .kind,
+            ServiceErrorKind::NotFound
+        );
+
+        // A FIFO with no writer would block an ordinary open for good.
+        let fifo = dir.join("pipe");
+        let c_path = std::ffi::CString::new(fifo.to_str().unwrap()).unwrap();
+        // SAFETY: a valid NUL-terminated path.
+        assert_eq!(unsafe { libc::mkfifo(c_path.as_ptr(), 0o600) }, 0);
+        assert!(linux::open_local(&fifo, false).is_ok());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn a_file_uri_becomes_a_decoded_path() {
