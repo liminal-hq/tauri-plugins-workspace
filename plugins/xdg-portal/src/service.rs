@@ -221,12 +221,11 @@ impl<R: Runtime> Portal<R> {
         &self,
         connection: &ashpd::zbus::Connection,
     ) -> Result<(), ServiceError> {
-        let mut listener = self.listener.lock().await;
-        if listener.is_none() {
-            *listener =
-                Some(notification::listen_for_actions(self.app.clone(), connection.clone()).await?);
-        }
-        Ok(())
+        // A listener whose stream ended is started again here by the next notification.
+        crate::task_slot::ensure_running(&self.listener, || {
+            notification::listen_for_actions(self.app.clone(), connection.clone())
+        })
+        .await
     }
 }
 

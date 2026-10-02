@@ -499,18 +499,15 @@ impl<R: Runtime> DesktopServices<R> {
 
     #[cfg(target_os = "linux")]
     async fn ensure_listener(&self, connection: &zbus::Connection) -> Result<(), ServiceError> {
-        let mut listener = self.linux.listener.lock().await;
-        if listener.is_none() {
-            *listener = Some(
-                crate::linux::notify::listen(
-                    self.app.clone(),
-                    connection.clone(),
-                    std::sync::Arc::clone(&self.linux.notifications),
-                )
-                .await?,
-            );
-        }
-        Ok(())
+        // A listener whose signal streams ended is started again here by the next notification.
+        tauri_plugin_xdg_portal::task_slot::ensure_running(&self.linux.listener, || {
+            crate::linux::notify::listen(
+                self.app.clone(),
+                connection.clone(),
+                std::sync::Arc::clone(&self.linux.notifications),
+            )
+        })
+        .await
     }
 }
 

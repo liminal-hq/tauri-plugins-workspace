@@ -18,6 +18,7 @@ pub mod notification;
 pub mod open_uri;
 mod service;
 pub mod status;
+pub mod task_slot;
 pub mod timeout;
 
 pub use service::{Portal, PortalExt};
