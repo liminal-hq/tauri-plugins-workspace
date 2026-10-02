@@ -6,6 +6,7 @@ Default permissions for the system-appearance plugin
 
 - `allow-get-status`
 - `allow-get-titlebar-preferences`
+- `allow-get-appearance`
 
 ## Permission Table
 
@@ -15,6 +16,32 @@ Default permissions for the system-appearance plugin
 <th>Description</th>
 </tr>
 
+
+<tr>
+<td>
+
+`system-appearance:allow-get-appearance`
+
+</td>
+<td>
+
+Enables the get_appearance command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`system-appearance:deny-get-appearance`
+
+</td>
+<td>
+
+Denies the get_appearance command without any pre-configured scope.
+
+</td>
+</tr>
 
 <tr>
 <td>

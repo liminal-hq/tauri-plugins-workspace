@@ -295,6 +295,18 @@
       "type": "string",
       "oneOf": [
         {
+          "description": "Enables the get_appearance command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-appearance",
+          "markdownDescription": "Enables the get_appearance command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_appearance command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-appearance",
+          "markdownDescription": "Denies the get_appearance command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_status command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-status",
@@ -319,10 +331,10 @@
           "markdownDescription": "Denies the get_titlebar_preferences command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the system-appearance plugin\n#### This default permission set includes:\n\n- `allow-get-status`\n- `allow-get-titlebar-preferences`",
+          "description": "Default permissions for the system-appearance plugin\n#### This default permission set includes:\n\n- `allow-get-status`\n- `allow-get-titlebar-preferences`\n- `allow-get-appearance`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the system-appearance plugin\n#### This default permission set includes:\n\n- `allow-get-status`\n- `allow-get-titlebar-preferences`"
+          "markdownDescription": "Default permissions for the system-appearance plugin\n#### This default permission set includes:\n\n- `allow-get-status`\n- `allow-get-titlebar-preferences`\n- `allow-get-appearance`"
         }
       ]
     }
