@@ -23,7 +23,7 @@ pub async fn check_availability() -> Result<AvailabilityInfo, PortalError> {
 
     Ok(AvailabilityInfo {
         is_linux: true,
-        sandboxed: ashpd::is_sandboxed().await,
+        sandboxed: ashpd::is_sandboxed(),
         portal_available: true,
     })
 }
