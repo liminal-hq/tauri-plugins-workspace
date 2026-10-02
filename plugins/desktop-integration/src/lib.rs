@@ -3,6 +3,25 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+mod commands;
+pub mod error;
+pub mod file_manager;
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+mod hotkey_book;
+pub mod launcher;
+#[cfg(target_os = "linux")]
+mod linux;
+pub mod models;
+pub mod notify;
+mod service;
+pub mod shortcuts;
+pub mod sleep;
+pub mod status;
+#[cfg(target_os = "windows")]
+mod win;
+
+pub use service::{DesktopServices, DesktopServicesExt};
+
 use log::info;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -10,7 +29,7 @@ use std::sync::{
 };
 use tauri::{
     plugin::{Builder, TauriPlugin},
-    AppHandle, Emitter, Manager, Runtime, WebviewWindow,
+    AppHandle, Emitter, Manager, RunEvent, Runtime, WebviewWindow,
 };
 use ts_rs::TS;
 
@@ -89,7 +108,13 @@ fn is_current_wayland_generation(state: &ShortcutState, generation: u64) -> bool
 pub struct ShortcutState {
     /// Sender to deliver the window identifier to the deferred BindShortcuts call.
     /// Consumed on the first `set_shortcut_window` call.
-    pub window_tx: Mutex<Option<tokio::sync::oneshot::Sender<Option<ashpd::WindowIdentifier>>>>,
+    pub window_tx: Mutex<
+        Option<
+            tokio::sync::oneshot::Sender<
+                Option<tauri_plugin_xdg_portal::global_shortcuts::WindowIdentifier>,
+            >,
+        >,
+    >,
     /// Set true once `set_shortcut_window` has been called, preventing re-entry.
     pub window_provided: AtomicBool,
     /// Set true once the portal BindShortcuts call reports success.
@@ -271,10 +296,34 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             check_shortcut_binding_complete,
             check_shortcut_binding_error,
             check_shortcut_trigger_description,
+            commands::get_status,
+            commands::notify,
+            commands::withdraw_notification,
+            commands::inhibit_sleep,
+            commands::release_sleep_inhibit,
+            commands::set_launcher_progress,
+            commands::own_file_manager,
+            commands::disown_file_manager,
+            commands::register_global_shortcut,
+            commands::unregister_global_shortcut,
+            commands::set_app_user_model_id,
         ])
         .setup(|app, _api| {
             app.manage(ShortcutState::default());
+            app.manage(DesktopServices::new(app.clone()));
             Ok(())
+        })
+        .on_event(|app, event| {
+            if let RunEvent::Exit = event {
+                let services = app.state::<DesktopServices<R>>();
+                tauri::async_runtime::block_on(async {
+                    let _ = tokio::time::timeout(
+                        std::time::Duration::from_secs(1),
+                        services.shutdown(),
+                    )
+                    .await;
+                });
+            }
         })
         .build()
 }

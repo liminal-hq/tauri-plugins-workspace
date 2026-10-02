@@ -4,7 +4,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use crate::error::PortalError;
-use ashpd::WindowIdentifier;
+/// The portal's window identifier, handed to `create_session` once a window exists.
+pub use ashpd::WindowIdentifier;
 use futures_util::StreamExt;
 use log::{error, info, warn};
 

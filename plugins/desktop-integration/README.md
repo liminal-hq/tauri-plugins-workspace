@@ -114,6 +114,34 @@ await listen<ShortcutChangedPayload>('shortcut-changed', ({ payload }) => {
 const lastKnownTrigger = await desktopIntegration.checkShortcutTriggerDescription();
 ```
 
+### Services
+
+Besides window activation and shortcuts, the plugin offers desktop services that are not behind a portal. Use [`@liminal-hq/plugin-xdg-portal`](../xdg-portal) first where the portal exists, and these where it does not (or on Windows). Every service rejects with a `ServiceError`, `{ kind, message }`, where `kind` is one of `unsupported-platform`, `unavailable`, `needs-app-id`, `invalid-argument`, `not-found`, `conflict`, `timeout` or `failed`. D-Bus work runs off the main thread and every call is bounded by a 5 second timeout.
+
+`getStatus()` reports, per feature (`notify`, `inhibitSleep`, `launcherProgress`, `fileManager`, `globalShortcuts`), whether it works here and, if not, a typed `reason` (`platform-unsupported`, `no-session-bus`, `no-notification-server`, `no-logind`, `needs-app-id`, `no-display-server`) with the `detail` behind it. Hide options whose feature is unavailable.
+
+- **Notifications:** `notify({ id, title, body, defaultAction, urgency })` shows a notification and replaces the one with the same `id`; `withdrawNotification(id)` closes it; `onNotificationAction` reports a click on it as `{ id, action }`. On Linux it calls `org.freedesktop.Notifications` and sets the `desktop-entry` hint from `desktopId` (default: the bundle identifier). On Windows it shows a WinRT toast, which needs an AppUserModelID: set one with `setAppUserModelId(id)` (or `SetCurrentProcessExplicitAppUserModelID` yourself) and until then `notify` rejects with `needs-app-id`.
+- **Sleep inhibit:** `inhibitSleep({ reason, kinds })` returns a `handle` for `releaseSleepInhibit`. On Linux it takes a blocking `sleep` (and, with the `idle` kind, `idle`) inhibitor from systemd-logind and holds its file descriptor; on Windows it holds a `PowerCreateRequest` for `PowerRequestSystemRequired`. Inhibitors end when released or when the app exits.
+- **Launcher progress:** `setLauncherProgress({ progress, count, desktopId, windowLabel })` shows `{ state: 'value', value }` (0 to 1), `{ state: 'indeterminate' }` or `{ state: 'cleared' }`. On Linux it emits the `com.canonical.Unity.LauncherEntry` `Update` signal (`progress`, `progress-visible`, `count`, `count-visible`) for `application://<desktopId>.desktop`; docks have no indeterminate state, so it shows an empty bar, and the signal is a broadcast that succeeds whether or not a dock listens. On Windows it sets `ITaskbarList3` progress on the button of `windowLabel` (default: the focused window, else the first label starting with `main`, else the first label in alphabetical order).
+- **File manager (Linux):** `ownFileManager()` takes `org.freedesktop.FileManager1` and serves `ShowFolders`, `ShowItems` and `ShowItemProperties`; each call arrives through `onFileManagerCall` as `{ method, targets, startupId }`, where each target has the URI and, for `file:` URIs on this machine, the decoded local `path`. A call with no usable URI is refused. Another process can take the name over (the app allows replacement); `onFileManagerOwnership` then reports `owned: false` (only for the ownership that lost the name, so giving the name back and taking it again is not undone by a late loss). `ownFileManager` rejects with `conflict` when another process holds the name and will not give it up, and `disownFileManager()` gives it back. Ship a D-Bus activation file for the name if the app should be started by other applications' calls.
+- **Windows global shortcuts:** `registerGlobalShortcut({ id, accelerator })` registers `RegisterHotKey` on a message-only window thread (an accelerator such as `Ctrl+Alt+K` with at least one modifier) and `onShortcutPressed` reports `{ id }`; `unregisterGlobalShortcut(id)` removes it. Registering an id again replaces its accelerator (the same accelerator included); a combination another application holds rejects with `conflict`, and the earlier binding of that id then stays. A call that rejects with `timeout` did not take effect and can be retried. On Linux use `registerShortcut`.
+
+```typescript
+import { desktopIntegration, isFeatureAvailable } from '@liminal-hq/plugin-desktop-integration';
+
+const status = await desktopIntegration.getStatus();
+if (isFeatureAvailable(status, 'launcherProgress')) {
+	await desktopIntegration.setLauncherProgress({
+		progress: { state: 'value', value: 0.4 },
+		count: 2,
+		desktopId: null,
+		windowLabel: null,
+	});
+}
+```
+
+From Rust, `app.desktop_services()` (the `DesktopServicesExt` trait) offers the same calls as async methods: `status`, `notify`, `withdraw_notification`, `inhibit_sleep`, `release_sleep_inhibit`, `set_launcher_progress`, `own_file_manager`, `disown_file_manager`, `register_global_shortcut`, `unregister_global_shortcut` and `set_app_user_model_id`. Events are emitted to every window, and Rust code can `listen` to them too.
+
 ### Generated types
 
 `ShortcutBindingResult`, `ShortcutActivatedPayload`, and `ShortcutChangedPayload` (the
@@ -142,16 +170,33 @@ This plugin requires these permissions:
 - `allow-check-shortcut-binding-complete`: Grants access to `check_shortcut_binding_complete`
 - `allow-check-shortcut-binding-error`: Grants access to `check_shortcut_binding_error`
 - `allow-check-shortcut-trigger-description`: Grants access to `check_shortcut_trigger_description`
+- `allow-get-status`: Grants access to `get_status`
+- `allow-notify`: Grants access to `notify`
+- `allow-withdraw-notification`: Grants access to `withdraw_notification`
+- `allow-set-app-user-model-id`: Grants access to `set_app_user_model_id`
+- `allow-inhibit-sleep`: Grants access to `inhibit_sleep`
+- `allow-release-sleep-inhibit`: Grants access to `release_sleep_inhibit`
+- `allow-set-launcher-progress`: Grants access to `set_launcher_progress`
+- `allow-own-file-manager`: Grants access to `own_file_manager`
+- `allow-disown-file-manager`: Grants access to `disown_file_manager`
+- `allow-register-global-shortcut`: Grants access to `register_global_shortcut`
+- `allow-unregister-global-shortcut`: Grants access to `unregister_global_shortcut`
+
+The `default` set grants the four shortcut commands and the read-only `get_status`; grant the rest explicitly.
 
 ## Platform Support
 
-| Platform | Support Level | Notes                                                         |
-| -------- | ------------- | ------------------------------------------------------------- |
-| Windows  | None          | X11/Wayland activation helpers only                           |
-| Linux    | Full          | X11 activation via `gdkx11`, Wayland shortcuts via the portal |
-| macOS    | None          | X11/Wayland activation helpers only                           |
-| Android  | None          | X11/Wayland activation helpers only                           |
-| iOS      | None          | X11/Wayland activation helpers only                           |
+| Platform | Support Level | Notes                                                                                                                                                              |
+| -------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Windows  | Partial       | Toasts (with an AppUserModelID), sleep inhibit, taskbar progress and `RegisterHotKey` shortcuts; type-checked for `x86_64-pc-windows-msvc`, not yet run on Windows |
+| Linux    | Full          | X11 activation via `gdkx11`, Wayland shortcuts via the portal, notifications, logind sleep inhibit, launcher progress and `FileManager1` over zbus                 |
+| macOS    | None          | Every service reports `platform-unsupported`                                                                                                                       |
+| Android  | None          | Every service reports `platform-unsupported`                                                                                                                       |
+| iOS      | None          | Every service reports `platform-unsupported`                                                                                                                       |
+
+## Testing
+
+`cargo test -p tauri-plugin-desktop-integration` runs the headless tests (message and payload construction, id and handle bookkeeping, `FileManager1` URI parsing, accelerator parsing, status mapping). The `#[ignore]`d `live_*` tests touch the real session and are run by hand on a Linux desktop: `live_status` (read-only), `live_inhibit` (holds a logind inhibitor for 8 seconds; `systemd-inhibit --list` shows it), `live_launcher_entry` (emits three `Update` signals that `dbus-monitor "interface=com.canonical.Unity.LauncherEntry"` shows), `live_file_manager` and `live_file_manager_name_lost_and_taken` (briefly own `org.freedesktop.FileManager1`; run with `--test-threads=1`) and `live_notify` (shows one real notification).
 
 ## Licence
 

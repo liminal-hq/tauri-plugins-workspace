@@ -3,10 +3,18 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+#[cfg(target_os = "linux")]
+use crate::models::AccentColour;
 use crate::{
     error::PortalError,
-    models::{AccentColour, AvailabilityInfo, ColourScheme, DesktopEnvironment, ThemeInfo},
+    models::{AvailabilityInfo, ColourScheme, DesktopEnvironment, ThemeInfo},
 };
+
+/// The bus name, object path and session bus every portal interface is reached on.
+#[cfg(target_os = "linux")]
+pub const DESKTOP_DESTINATION: &str = "org.freedesktop.portal.Desktop";
+#[cfg(target_os = "linux")]
+pub const DESKTOP_PATH: &str = "/org/freedesktop/portal/desktop";
 
 #[cfg(target_os = "linux")]
 pub async fn check_availability() -> Result<AvailabilityInfo, PortalError> {
@@ -38,6 +46,7 @@ pub async fn check_availability() -> Result<AvailabilityInfo, PortalError> {
 }
 
 /// Detect the desktop environment from `XDG_CURRENT_DESKTOP`.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 pub fn detect_desktop_environment() -> DesktopEnvironment {
     let desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
     // XDG_CURRENT_DESKTOP can be colon-separated (e.g. "ubuntu:GNOME")

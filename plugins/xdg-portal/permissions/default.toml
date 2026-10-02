@@ -1,6 +1,7 @@
 [default]
-description = "Default permissions for the xdg-portal plugin"
+description = "Default permissions for the xdg-portal plugin: the read-only queries. The notification, inhibit and open-URI commands are granted one by one."
 permissions = [
   "allow-check-availability",
   "allow-get-theme-info",
+  "allow-get-status",
 ]

@@ -12,7 +12,7 @@ links = "tauri-plugin-xdg-portal"
 
 [package.metadata.platforms.support]
 windows = { level = "none", notes = "xdg-desktop-portal is Linux-only" }
-linux = { level = "full", notes = "Bridges xdg-desktop-portal Settings and GlobalShortcuts interfaces" }
+linux = { level = "full", notes = "Bridges the xdg-desktop-portal Settings, GlobalShortcuts, Notification, Inhibit and OpenURI interfaces" }
 macos = { level = "none", notes = "xdg-desktop-portal is Linux-only" }
 android = { level = "none", notes = "xdg-desktop-portal is Linux-only" }
 ios = { level = "none", notes = "xdg-desktop-portal is Linux-only" }
@@ -22,15 +22,20 @@ name = "tauri_plugin_xdg_portal"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [dependencies]
-ashpd = { version = "0.13", default-features = false, features = ["tokio", "settings", "global_shortcuts", "wayland"] }
-futures-util = "0.3"
 serde = { workspace = true }
 serde_json = { workspace = true }
 tauri = { workspace = true }
 thiserror = { workspace = true }
-tokio = { version = "1", features = ["macros", "sync"] }
+tokio = { version = "1", features = ["macros", "rt", "sync", "time"] }
+url = { workspace = true }
 log = { workspace = true }
 ts-rs = "12"
+
+# xdg-desktop-portal exists on Linux only; other platforms get the same API reporting it unsupported.
+[target.'cfg(target_os = "linux")'.dependencies]
+ashpd = { version = "0.13", default-features = false, features = ["tokio", "settings", "global_shortcuts", "wayland", "notification", "inhibit", "open_uri"] }
+futures-util = "0.3"
+libc = "0.2"
 
 [features]
 default = []
@@ -39,3 +44,7 @@ remote-desktop = []
 
 [build-dependencies]
 tauri-plugin = { workspace = true, features = ["build"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt", "sync", "time", "test-util"] }
+tauri = { workspace = true, features = ["test"] }

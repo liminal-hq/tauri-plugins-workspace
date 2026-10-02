@@ -307,6 +307,18 @@
           "markdownDescription": "Denies the check_availability command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-status",
+          "markdownDescription": "Enables the get_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-status",
+          "markdownDescription": "Denies the get_status command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_theme_info command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-theme-info",
@@ -319,10 +331,70 @@
           "markdownDescription": "Denies the get_theme_info command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the xdg-portal plugin\n#### This default permission set includes:\n\n- `allow-check-availability`\n- `allow-get-theme-info`",
+          "description": "Enables the inhibit command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-inhibit",
+          "markdownDescription": "Enables the inhibit command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the inhibit command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-inhibit",
+          "markdownDescription": "Denies the inhibit command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the open_uri command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-open-uri",
+          "markdownDescription": "Enables the open_uri command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the open_uri command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-open-uri",
+          "markdownDescription": "Denies the open_uri command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the release_inhibit command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-release-inhibit",
+          "markdownDescription": "Enables the release_inhibit command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the release_inhibit command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-release-inhibit",
+          "markdownDescription": "Denies the release_inhibit command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the send_notification command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-send-notification",
+          "markdownDescription": "Enables the send_notification command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the send_notification command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-send-notification",
+          "markdownDescription": "Denies the send_notification command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the withdraw_notification command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-withdraw-notification",
+          "markdownDescription": "Enables the withdraw_notification command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the withdraw_notification command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-withdraw-notification",
+          "markdownDescription": "Denies the withdraw_notification command without any pre-configured scope."
+        },
+        {
+          "description": "Default permissions for the xdg-portal plugin: the read-only queries. The notification, inhibit and open-URI commands are granted one by one.\n#### This default permission set includes:\n\n- `allow-check-availability`\n- `allow-get-theme-info`\n- `allow-get-status`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the xdg-portal plugin\n#### This default permission set includes:\n\n- `allow-check-availability`\n- `allow-get-theme-info`"
+          "markdownDescription": "Default permissions for the xdg-portal plugin: the read-only queries. The notification, inhibit and open-URI commands are granted one by one.\n#### This default permission set includes:\n\n- `allow-check-availability`\n- `allow-get-theme-info`\n- `allow-get-status`"
         }
       ]
     }

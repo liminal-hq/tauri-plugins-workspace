@@ -59,3 +59,195 @@ pub struct ThemeInfo {
     pub high_contrast: bool,
     pub desktop_environment: DesktopEnvironment,
 }
+
+/// A feature the plugin can offer, as reported by `get_status`.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub enum PortalFeature {
+    /// `org.freedesktop.portal.Notification`.
+    Notification,
+    /// `org.freedesktop.portal.Inhibit`.
+    Inhibit,
+    /// `org.freedesktop.portal.OpenURI`.
+    OpenUri,
+}
+
+/// Why a feature is not available.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "kebab-case")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub enum UnavailableReason {
+    /// The operating system has no xdg-desktop-portal.
+    PlatformUnsupported,
+    /// The session bus is unreachable or no portal is running on it.
+    NoPortal,
+    /// A portal runs, but its backend does not offer this interface.
+    InterfaceMissing,
+    /// The portal did not answer within the time allowed.
+    NoResponse,
+    /// The portal answers only callers it can identify, and this process is not in a sandbox.
+    NotSandboxed,
+}
+
+/// Whether one portal interface works on this session.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub struct FeatureStatus {
+    pub feature: PortalFeature,
+    pub available: bool,
+    /// Why the feature is unavailable; absent when it works.
+    pub reason: Option<UnavailableReason>,
+    /// The error text behind the reason, for logs and the Services panel.
+    pub detail: Option<String>,
+    /// The version of the portal interface, when it was read.
+    pub version: Option<u32>,
+}
+
+impl FeatureStatus {
+    pub fn available(feature: PortalFeature, version: Option<u32>) -> Self {
+        Self {
+            feature,
+            available: true,
+            reason: None,
+            detail: None,
+            version,
+        }
+    }
+
+    pub fn unavailable(
+        feature: PortalFeature,
+        reason: UnavailableReason,
+        detail: Option<String>,
+    ) -> Self {
+        Self {
+            feature,
+            available: false,
+            reason: Some(reason),
+            detail,
+            version: None,
+        }
+    }
+}
+
+/// What the plugin's portal features can do on the running session.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub struct PortalStatus {
+    /// True when at least one feature is available.
+    pub available: bool,
+    /// Why nothing is available; absent otherwise.
+    pub reason: Option<UnavailableReason>,
+    /// Whether this process runs inside a Flatpak or Snap sandbox.
+    pub sandboxed: bool,
+    pub features: Vec<FeatureStatus>,
+}
+
+impl PortalStatus {
+    pub fn new(sandboxed: bool, features: Vec<FeatureStatus>) -> Self {
+        let available = features.iter().any(|f| f.available);
+        // When nothing works, the first feature's reason is the one to show: a missing portal
+        // takes every interface with it.
+        let reason = if available {
+            None
+        } else {
+            features.first().and_then(|f| f.reason)
+        };
+        Self {
+            available,
+            reason,
+            sandboxed,
+            features,
+        }
+    }
+
+    pub fn feature(&self, feature: PortalFeature) -> Option<&FeatureStatus> {
+        self.features.iter().find(|f| f.feature == feature)
+    }
+}
+
+/// How urgent a notification is; the portal maps it to the shell's own priority levels.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "kebab-case")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub enum Urgency {
+    Low,
+    #[default]
+    Normal,
+    High,
+    Urgent,
+}
+
+/// A desktop notification to show or replace.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub struct NotificationRequest {
+    /// The caller's id for this notification. Sending the same id again replaces the shown one;
+    /// withdrawing takes it off screen.
+    pub id: String,
+    pub title: String,
+    pub body: Option<String>,
+    /// The action id to report through the `action` event when the user clicks the notification
+    /// itself. An id that starts with `app.` is instead activated through the
+    /// `org.freedesktop.Application` interface and never reaches the event.
+    pub default_action: Option<String>,
+    pub urgency: Option<Urgency>,
+}
+
+/// Payload of the `xdg-portal://notification-action` event.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub struct NotificationAction {
+    /// The id of the notification the user acted on.
+    pub id: String,
+    /// The action id: the request's `defaultAction`.
+    pub action: String,
+}
+
+/// What to keep the session from doing.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "kebab-case")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub enum InhibitKind {
+    /// Idling: screen blanking and locking.
+    Idle,
+    /// Suspending the machine.
+    Suspend,
+}
+
+/// A request to keep the session from idling or suspending.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub struct InhibitRequest {
+    /// What the user is told the app is doing, such as "Copying 3 files".
+    pub reason: String,
+    /// What to inhibit; empty means both.
+    #[serde(default)]
+    pub kinds: Vec<InhibitKind>,
+}
+
+/// The handle of a live inhibitor, to give back to `release_inhibit`.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub struct InhibitHandle {
+    pub handle: u32,
+}
+
+/// A request to open a URI or a local file or folder with the user's chosen application.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub struct OpenUriRequest {
+    /// A URI with a scheme. `file:` URIs open a file or, when the target is a folder, show it.
+    pub uri: String,
+    /// Always ask which application to use.
+    pub ask: Option<bool>,
+    /// Open the file for writing. Applies to `file:` URIs.
+    pub writable: Option<bool>,
+}
