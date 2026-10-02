@@ -69,7 +69,7 @@ if (isFeatureAvailable(status, 'notification')) {
 
 ### Inhibit
 
-`inhibit({ reason, kinds })` asks the session not to go idle and not to suspend (`kinds` of `idle` and `suspend`; empty means both) and returns a `handle` for `releaseInhibit`. The inhibitor ends when it is released or the app exits.
+`inhibit({ reason, kinds })` asks the session not to go idle and not to suspend (`kinds` of `idle` and `suspend`; empty means both) and returns a `handle` for `releaseInhibit`. The inhibitor ends when it is released or the app exits. If the portal does not answer within the timeout, the request is closed on a best-effort basis; a portal that creates the request only after that can leave an inhibitor the plugin does not track, which lasts until the app exits. `releaseInhibit` keeps the handle when the portal fails to close the request, so it can be retried.
 
 ### Open a URI
 
