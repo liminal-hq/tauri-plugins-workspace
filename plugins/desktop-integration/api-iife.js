@@ -80,7 +80,10 @@ var __TAURI_PLUGIN_DESKTOP_INTEGRATION__ = (function (exports, core, event) {
         disownFileManager: () => cmd('disown_file_manager'),
         /**
          * Registers a global shortcut with `RegisterHotKey`; {@link desktopIntegration.onShortcutPressed}
-         * reports presses. Windows only; Linux uses {@link desktopIntegration.registerShortcut}.
+         * reports presses. Registering an id again replaces its accelerator, the same one included; if
+         * the new accelerator is refused, the earlier binding stays. A call that rejects with
+         * `timeout` did not take effect. Windows only; Linux uses
+         * {@link desktopIntegration.registerShortcut}.
          */
         registerGlobalShortcut: (request) => cmd('register_global_shortcut', { request }),
         /** Removes a shortcut registered with {@link desktopIntegration.registerGlobalShortcut}. */

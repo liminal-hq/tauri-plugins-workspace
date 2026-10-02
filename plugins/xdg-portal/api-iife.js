@@ -29,7 +29,10 @@ var __TAURI_PLUGIN_XDG_PORTAL__ = (function (exports, core, event) {
          * {@link portal.releaseInhibit} is called with the returned handle or the app exits.
          */
         inhibit: (request) => cmd('inhibit', { request }),
-        /** Ends an inhibitor taken with {@link portal.inhibit}. */
+        /**
+         * Ends an inhibitor taken with {@link portal.inhibit}. If the portal fails to close it, the
+         * call rejects and the handle stays valid, so it can be released again.
+         */
         releaseInhibit: (handle) => cmd('release_inhibit', { handle }),
         /**
          * Opens a URI, a local file (`file:` URI) or a folder with the user's chosen application.
