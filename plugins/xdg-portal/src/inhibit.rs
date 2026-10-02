@@ -106,7 +106,7 @@ mod linux {
 
 /// Non-Linux builds never hold an inhibitor; the type only keeps the shared code compiling.
 #[cfg(not(target_os = "linux"))]
-pub type Inhibitor = ();
+pub type Inhibitor = std::convert::Infallible;
 
 #[cfg(test)]
 mod tests {

@@ -5,6 +5,10 @@
 
 mod commands;
 pub mod error;
+#[cfg(target_os = "linux")]
+pub mod global_shortcuts;
+#[cfg(not(target_os = "linux"))]
+#[path = "global_shortcuts_unsupported.rs"]
 pub mod global_shortcuts;
 pub mod handles;
 pub mod inhibit;

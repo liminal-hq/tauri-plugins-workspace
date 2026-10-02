@@ -152,8 +152,7 @@ impl<R: Runtime> Portal<R> {
         }
         #[cfg(not(target_os = "linux"))]
         {
-            let _ = inhibitor;
-            Err(ServiceError::unsupported())
+            match inhibitor {}
         }
     }
 
