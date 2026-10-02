@@ -196,13 +196,46 @@ fn xml_escape(text: &str) -> String {
     out
 }
 
+/// Percent-encodes everything but ASCII letters, digits and `-_.~`, so the result is safe in an
+/// XML attribute and never contains the `launch` separator, whatever the text holds.
+fn launch_encode(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for byte in text.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~') {
+            out.push(char::from(byte));
+        } else {
+            out.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    out
+}
+
+/// Reverses [`launch_encode`]; `None` for malformed input.
+fn launch_decode(text: &str) -> Option<String> {
+    let bytes = text.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' {
+            let hex = text.get(i + 1..i + 3)?;
+            out.push(u8::from_str_radix(hex, 16).ok()?);
+            i += 3;
+        } else {
+            out.push(bytes[i]);
+            i += 1;
+        }
+    }
+    String::from_utf8(out).ok()
+}
+
 /// The toast XML for a request. The `launch` attribute carries the id and default action so the
-/// activation handler can report them.
+/// activation handler can report them; both are percent-encoded so that any id, control
+/// characters and quotes included, comes back exactly as the app sent it.
 pub fn toast_xml(request: &NotifyRequest) -> String {
     let launch = format!(
         "{}\u{1f}{}",
-        xml_escape(&request.id),
-        xml_escape(request.default_action.as_deref().unwrap_or(""))
+        launch_encode(&request.id),
+        launch_encode(request.default_action.as_deref().unwrap_or(""))
     );
     let body = request
         .body
@@ -223,8 +256,8 @@ pub fn parse_toast_launch(launch: &str) -> Option<NotificationAction> {
         return None;
     }
     Some(NotificationAction {
-        id: id.to_string(),
-        action: action.to_string(),
+        id: launch_decode(id)?,
+        action: launch_decode(action)?,
     })
 }
 
@@ -358,6 +391,43 @@ mod tests {
                 action: "show-job".into()
             })
         );
+    }
+
+    #[test]
+    fn the_launch_string_round_trips_any_id_and_action() {
+        for (id, action) in [
+            ("line\nbreak\ttab\r", "ok"),
+            ("bell\u{7}\u{1f}unit-separator", "\u{1b}esc"),
+            ("quote\" apostrophe' <&> %41", "100% \"done\""),
+            ("café — 通知 🔔", "ouvrir/открыть"),
+        ] {
+            let mut r = request();
+            r.id = id.into();
+            r.default_action = Some(action.into());
+            let xml = toast_xml(&r);
+            let launch = xml
+                .split("launch=\"")
+                .nth(1)
+                .unwrap()
+                .split('"')
+                .next()
+                .unwrap();
+            assert_eq!(
+                parse_toast_launch(launch),
+                Some(NotificationAction {
+                    id: id.into(),
+                    action: action.into()
+                }),
+                "{id:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_malformed_launch_string_is_ignored() {
+        assert_eq!(parse_toast_launch("a%ZZ\u{1f}b"), None);
+        assert_eq!(parse_toast_launch("a%4\u{1f}b"), None);
+        assert_eq!(parse_toast_launch("a%FF\u{1f}b"), None);
     }
 
     #[test]
