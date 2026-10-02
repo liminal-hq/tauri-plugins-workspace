@@ -331,6 +331,78 @@
           "markdownDescription": "Denies the check_shortcut_trigger_description command without any pre-configured scope."
         },
         {
+          "description": "Enables the disown_file_manager command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-disown-file-manager",
+          "markdownDescription": "Enables the disown_file_manager command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the disown_file_manager command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-disown-file-manager",
+          "markdownDescription": "Denies the disown_file_manager command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-status",
+          "markdownDescription": "Enables the get_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-status",
+          "markdownDescription": "Denies the get_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the inhibit_sleep command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-inhibit-sleep",
+          "markdownDescription": "Enables the inhibit_sleep command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the inhibit_sleep command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-inhibit-sleep",
+          "markdownDescription": "Denies the inhibit_sleep command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the notify command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-notify",
+          "markdownDescription": "Enables the notify command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the notify command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-notify",
+          "markdownDescription": "Denies the notify command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the own_file_manager command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-own-file-manager",
+          "markdownDescription": "Enables the own_file_manager command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the own_file_manager command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-own-file-manager",
+          "markdownDescription": "Denies the own_file_manager command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the register_global_shortcut command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-register-global-shortcut",
+          "markdownDescription": "Enables the register_global_shortcut command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the register_global_shortcut command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-register-global-shortcut",
+          "markdownDescription": "Denies the register_global_shortcut command without any pre-configured scope."
+        },
+        {
           "description": "Enables the register_shortcut command without any pre-configured scope.",
           "type": "string",
           "const": "allow-register-shortcut",
@@ -343,10 +415,70 @@
           "markdownDescription": "Denies the register_shortcut command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the desktop-integration plugin\n#### This default permission set includes:\n\n- `allow-register-shortcut`\n- `allow-check-shortcut-binding-complete`\n- `allow-check-shortcut-binding-error`\n- `allow-check-shortcut-trigger-description`",
+          "description": "Enables the release_sleep_inhibit command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-release-sleep-inhibit",
+          "markdownDescription": "Enables the release_sleep_inhibit command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the release_sleep_inhibit command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-release-sleep-inhibit",
+          "markdownDescription": "Denies the release_sleep_inhibit command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_app_user_model_id command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-app-user-model-id",
+          "markdownDescription": "Enables the set_app_user_model_id command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_app_user_model_id command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-app-user-model-id",
+          "markdownDescription": "Denies the set_app_user_model_id command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_launcher_progress command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-launcher-progress",
+          "markdownDescription": "Enables the set_launcher_progress command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_launcher_progress command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-launcher-progress",
+          "markdownDescription": "Denies the set_launcher_progress command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the unregister_global_shortcut command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-unregister-global-shortcut",
+          "markdownDescription": "Enables the unregister_global_shortcut command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the unregister_global_shortcut command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-unregister-global-shortcut",
+          "markdownDescription": "Denies the unregister_global_shortcut command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the withdraw_notification command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-withdraw-notification",
+          "markdownDescription": "Enables the withdraw_notification command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the withdraw_notification command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-withdraw-notification",
+          "markdownDescription": "Denies the withdraw_notification command without any pre-configured scope."
+        },
+        {
+          "description": "Default permissions for the desktop-integration plugin: the shortcut commands and the read-only status. The notification, sleep inhibit, launcher progress, file manager and Windows shortcut commands are granted one by one.\n#### This default permission set includes:\n\n- `allow-register-shortcut`\n- `allow-check-shortcut-binding-complete`\n- `allow-check-shortcut-binding-error`\n- `allow-check-shortcut-trigger-description`\n- `allow-get-status`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the desktop-integration plugin\n#### This default permission set includes:\n\n- `allow-register-shortcut`\n- `allow-check-shortcut-binding-complete`\n- `allow-check-shortcut-binding-error`\n- `allow-check-shortcut-trigger-description`"
+          "markdownDescription": "Default permissions for the desktop-integration plugin: the shortcut commands and the read-only status. The notification, sleep inhibit, launcher progress, file manager and Windows shortcut commands are granted one by one.\n#### This default permission set includes:\n\n- `allow-register-shortcut`\n- `allow-check-shortcut-binding-complete`\n- `allow-check-shortcut-binding-error`\n- `allow-check-shortcut-trigger-description`\n- `allow-get-status`"
         }
       ]
     }
