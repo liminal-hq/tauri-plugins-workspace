@@ -1,8 +1,9 @@
 [default]
-description = "Default permissions for the desktop-integration plugin"
+description = "Default permissions for the desktop-integration plugin: the shortcut commands and the read-only status. The notification, sleep inhibit, launcher progress, file manager and Windows shortcut commands are granted one by one."
 permissions = [
   "allow-register-shortcut",
   "allow-check-shortcut-binding-complete",
   "allow-check-shortcut-binding-error",
   "allow-check-shortcut-trigger-description",
+  "allow-get-status",
 ]
