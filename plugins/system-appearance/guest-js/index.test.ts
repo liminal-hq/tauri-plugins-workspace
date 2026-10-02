@@ -56,7 +56,8 @@ describe('system-appearance guest bindings', () => {
 		const status = {
 			available: true,
 			reason: null,
-			features: ['portal', 'colourScheme'],
+			features: ['portal'],
+			appearanceAvailable: true,
 			appearance: [
 				{
 					feature: 'reducedTransparency',
