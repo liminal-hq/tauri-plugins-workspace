@@ -55,7 +55,10 @@ export const portal = {
 	 */
 	inhibit: (request: InhibitRequest) => cmd<InhibitHandle>('inhibit', { request }),
 
-	/** Ends an inhibitor taken with {@link portal.inhibit}. */
+	/**
+	 * Ends an inhibitor taken with {@link portal.inhibit}. If the portal fails to close it, the
+	 * call rejects and the handle stays valid, so it can be released again.
+	 */
 	releaseInhibit: (handle: number) => cmd<void>('release_inhibit', { handle }),
 
 	/**

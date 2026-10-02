@@ -150,7 +150,10 @@ export const desktopIntegration = {
 
 	/**
 	 * Registers a global shortcut with `RegisterHotKey`; {@link desktopIntegration.onShortcutPressed}
-	 * reports presses. Windows only; Linux uses {@link desktopIntegration.registerShortcut}.
+	 * reports presses. Registering an id again replaces its accelerator, the same one included; if
+	 * the new accelerator is refused, the earlier binding stays. A call that rejects with
+	 * `timeout` did not take effect. Windows only; Linux uses
+	 * {@link desktopIntegration.registerShortcut}.
 	 */
 	registerGlobalShortcut: (request: GlobalShortcutRequest) =>
 		cmd<void>('register_global_shortcut', { request }),
