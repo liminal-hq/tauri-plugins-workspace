@@ -119,9 +119,12 @@ where
         PortalError::Internal(format!("failed to connect to GlobalShortcuts portal: {e}"))
     })?;
 
-    let session = portal.create_session().await.map_err(|e| {
-        PortalError::Internal(format!("failed to create GlobalShortcuts session: {e}"))
-    })?;
+    let session = portal
+        .create_session(Default::default())
+        .await
+        .map_err(|e| {
+            PortalError::Internal(format!("failed to create GlobalShortcuts session: {e}"))
+        })?;
 
     let trigger_xdg = preferred_trigger.map(to_xdg_trigger);
     let shortcut = {
@@ -158,7 +161,7 @@ where
         // Wait for the window identifier before binding.
         let window_id = tokio::select! {
             result = window_rx => match result {
-                Ok(id) => id.unwrap_or_default(),
+                Ok(id) => id,
                 // Sender dropped without a send (e.g. plugin teardown before first window).
                 Err(_) => {
                     warn!("shortcut window sender dropped; aborting portal binding");
@@ -169,7 +172,12 @@ where
         };
 
         let bind_result = _portal
-            .bind_shortcuts(&_session, &[shortcut], &window_id)
+            .bind_shortcuts(
+                &_session,
+                &[shortcut],
+                window_id.as_ref(),
+                Default::default(),
+            )
             .await;
 
         match bind_result {
