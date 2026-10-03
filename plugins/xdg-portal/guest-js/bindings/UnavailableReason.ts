@@ -3,4 +3,4 @@
 /**
  * Why a feature is not available.
  */
-export type UnavailableReason = "platform-unsupported" | "no-portal" | "interface-missing" | "no-response" | "not-sandboxed";
+export type UnavailableReason = "platform-unsupported" | "no-portal" | "interface-missing" | "no-response" | "not-sandboxed" | "actions-unsupported";

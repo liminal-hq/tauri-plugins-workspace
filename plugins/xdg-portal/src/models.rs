@@ -67,6 +67,9 @@ pub struct ThemeInfo {
 pub enum PortalFeature {
     /// `org.freedesktop.portal.Notification`.
     Notification,
+    /// Action buttons on notifications: the Notification portal's `buttons`, from interface
+    /// version 1.
+    NotificationActions,
     /// `org.freedesktop.portal.Inhibit`.
     Inhibit,
     /// `org.freedesktop.portal.OpenURI`.
@@ -88,6 +91,8 @@ pub enum UnavailableReason {
     NoResponse,
     /// The portal answers only callers it can identify, and this process is not in a sandbox.
     NotSandboxed,
+    /// The portal works, but this feature is not offered by it; `detail` says why.
+    ActionsUnsupported,
 }
 
 /// Whether one portal interface works on this session.
@@ -195,6 +200,25 @@ pub struct NotificationRequest {
     /// `org.freedesktop.Application` interface and never reaches the event.
     pub default_action: Option<String>,
     pub urgency: Option<Urgency>,
+    /// Buttons to show on the notification, in order. At most 3 are shown; extras are dropped.
+    /// A press is reported through the `action` event with the button's `id`. Desktops that do
+    /// not draw buttons (see the `notificationActions` feature) show only the default click.
+    #[serde(default)]
+    #[ts(optional)]
+    pub actions: Option<Vec<ActionButton>>,
+}
+
+/// One action button on a notification.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub struct ActionButton {
+    /// Reported as the event's `action` when the button is pressed. An id that starts with
+    /// `app.` is instead activated through `org.freedesktop.Application` and never reaches the
+    /// event.
+    pub id: String,
+    /// The text on the button.
+    pub label: String,
 }
 
 /// Payload of the `xdg-portal://notification-action` event.
@@ -204,7 +228,8 @@ pub struct NotificationRequest {
 pub struct NotificationAction {
     /// The id of the notification the user acted on.
     pub id: String,
-    /// The action id: the request's `defaultAction`.
+    /// The action id: the request's `defaultAction` for a click on the notification, or the `id`
+    /// of the button that was pressed.
     pub action: String,
 }
 

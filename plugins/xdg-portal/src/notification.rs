@@ -5,8 +5,17 @@
 
 use crate::{
     error::ServiceError,
-    models::{NotificationAction, NotificationRequest, Urgency},
+    models::{ActionButton, NotificationAction, NotificationRequest, Urgency},
 };
+
+/// The most action buttons a notification shows; further ones are dropped.
+pub const MAX_ACTIONS: usize = 3;
+
+/// The longest action id, in bytes.
+pub const MAX_ACTION_ID_LEN: usize = 256;
+
+/// The longest button label, in characters.
+pub const MAX_ACTION_LABEL_CHARS: usize = 100;
 
 /// The longest notification id the plugin accepts.
 pub const MAX_ID_LEN: usize = 256;
@@ -28,8 +37,58 @@ impl NotificationRequest {
                 ));
             }
         }
+        validate_actions(self.actions())?;
         Ok(())
     }
+
+    /// The buttons that are shown: the first [`MAX_ACTIONS`], in order.
+    pub fn actions(&self) -> &[ActionButton] {
+        limit_actions(&self.id, self.actions.as_deref().unwrap_or_default())
+    }
+}
+
+/// Keeps the first [`MAX_ACTIONS`] buttons and logs the ones dropped.
+pub fn limit_actions<'a>(id: &str, actions: &'a [ActionButton]) -> &'a [ActionButton] {
+    if actions.len() > MAX_ACTIONS {
+        log::info!(
+            "notification {id:?} has {} actions; showing the first {MAX_ACTIONS}",
+            actions.len()
+        );
+    }
+    &actions[..actions.len().min(MAX_ACTIONS)]
+}
+
+/// Checks the buttons: ids and labels are non-empty and bounded, and ids are unique so a press
+/// is unambiguous.
+pub fn validate_actions(actions: &[ActionButton]) -> Result<(), ServiceError> {
+    for (index, action) in actions.iter().enumerate() {
+        if action.id.is_empty() || action.id.len() > MAX_ACTION_ID_LEN {
+            return Err(ServiceError::invalid(format!(
+                "an action id is 1 to {MAX_ACTION_ID_LEN} bytes"
+            )));
+        }
+        if action.label.trim().is_empty() || action.label.chars().count() > MAX_ACTION_LABEL_CHARS {
+            return Err(ServiceError::invalid(format!(
+                "an action label is 1 to {MAX_ACTION_LABEL_CHARS} characters"
+            )));
+        }
+        if actions[..index].iter().any(|other| other.id == action.id) {
+            return Err(ServiceError::invalid(format!(
+                "the action id {:?} is used twice",
+                action.id
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// The portal's `buttons` as `(label, action)` pairs, in display order.
+pub fn button_pairs(request: &NotificationRequest) -> Vec<(&str, &str)> {
+    request
+        .actions()
+        .iter()
+        .map(|action| (action.label.as_str(), action.id.as_str()))
+        .collect()
 }
 
 /// Checks a notification id: the portal accepts any string, but an empty or huge one is a bug.
@@ -68,11 +127,11 @@ pub use linux::{build_notification, listen_for_actions};
 
 #[cfg(target_os = "linux")]
 mod linux {
-    use ashpd::desktop::notification::{Notification, NotificationProxy, Priority};
+    use ashpd::desktop::notification::{Button, Notification, NotificationProxy, Priority};
     use futures_util::StreamExt;
     use tauri::{AppHandle, Emitter, Runtime};
 
-    use super::{action_event, ACTION_EVENT};
+    use super::{action_event, button_pairs, ACTION_EVENT};
     use crate::{
         error::ServiceError,
         models::{NotificationRequest, Urgency},
@@ -87,10 +146,15 @@ mod linux {
             Urgency::High => Priority::High,
             Urgency::Urgent => Priority::Urgent,
         };
-        Notification::new(&request.title)
+        let notification = Notification::new(&request.title)
             .body(request.body.as_deref())
             .priority(priority)
-            .default_action(request.default_action.as_deref())
+            .default_action(request.default_action.as_deref());
+        button_pairs(request)
+            .into_iter()
+            .fold(notification, |notification, (label, action)| {
+                notification.button(Button::new(label, action))
+            })
     }
 
     /// Starts forwarding `ActionInvoked` signals to the `action` event; resolves once the signal
@@ -152,6 +216,14 @@ mod tests {
             body: Some("3 files".into()),
             default_action: Some("show-job".into()),
             urgency: None,
+            actions: None,
+        }
+    }
+
+    fn button(id: &str, label: &str) -> ActionButton {
+        ActionButton {
+            id: id.into(),
+            label: label.into(),
         }
     }
 
@@ -219,5 +291,117 @@ mod tests {
         for needle in ["Copy finished", "3 files", "show-job", "high"] {
             assert!(text.contains(needle), "{needle} missing from {text:?}");
         }
+    }
+
+    #[test]
+    fn keeps_the_first_three_actions() {
+        let mut r = request();
+        r.actions = Some(
+            ["a", "b", "c", "d", "e"]
+                .iter()
+                .map(|id| button(id, id))
+                .collect(),
+        );
+        assert_eq!(r.validate(), Ok(()));
+        let ids: Vec<_> = r.actions().iter().map(|a| a.id.as_str()).collect();
+        assert_eq!(ids, ["a", "b", "c"]);
+        assert_eq!(
+            button_pairs(&r),
+            [("a", "a"), ("b", "b"), ("c", "c")],
+            "label first, then the action id"
+        );
+        assert!(request().actions().is_empty());
+    }
+
+    #[test]
+    fn rejects_bad_actions() {
+        let bad = [
+            button("", "Label"),
+            button("id", ""),
+            button("id", "  "),
+            button(&"x".repeat(MAX_ACTION_ID_LEN + 1), "Label"),
+            button("id", &"x".repeat(MAX_ACTION_LABEL_CHARS + 1)),
+        ];
+        for action in bad {
+            let mut r = request();
+            r.actions = Some(vec![action.clone()]);
+            assert_eq!(
+                r.validate().unwrap_err().kind,
+                ServiceErrorKind::InvalidArgument,
+                "{action:?}"
+            );
+        }
+        let mut r = request();
+        r.actions = Some(vec![button("same", "One"), button("same", "Two")]);
+        assert_eq!(
+            r.validate().unwrap_err().kind,
+            ServiceErrorKind::InvalidArgument
+        );
+
+        // The longest label and id are fine, counted in characters for the label.
+        let mut r = request();
+        r.actions = Some(vec![button(
+            &"i".repeat(MAX_ACTION_ID_LEN),
+            &"é".repeat(MAX_ACTION_LABEL_CHARS),
+        )]);
+        assert_eq!(r.validate(), Ok(()));
+    }
+
+    #[test]
+    fn a_dropped_extra_action_is_not_validated() {
+        let mut r = request();
+        r.actions = Some(vec![
+            button("a", "A"),
+            button("b", "B"),
+            button("c", "C"),
+            button("", ""),
+        ]);
+        assert_eq!(r.validate(), Ok(()));
+    }
+
+    #[test]
+    fn a_pressed_button_reports_the_notifications_own_id() {
+        let payload = action_event("copy-1", "undo");
+        let json = serde_json::to_value(&payload).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({ "id": "copy-1", "action": "undo" })
+        );
+    }
+
+    #[test]
+    fn the_request_accepts_actions_from_json() {
+        let r: NotificationRequest = serde_json::from_value(serde_json::json!({
+            "id": "n", "title": "t", "body": null, "defaultAction": null, "urgency": null,
+            "actions": [{ "id": "undo", "label": "Undo" }]
+        }))
+        .unwrap();
+        assert_eq!(r.actions.unwrap(), vec![button("undo", "Undo")]);
+        let r: NotificationRequest = serde_json::from_value(serde_json::json!({
+            "id": "n", "title": "t"
+        }))
+        .unwrap();
+        assert_eq!(r.actions, None);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn the_portal_message_carries_the_buttons() {
+        use ashpd::zvariant::{serialized::Context, to_bytes, LE};
+
+        let mut r = request();
+        r.actions = Some(vec![button("undo", "Undo"), button("show", "Show")]);
+        let bytes = to_bytes(Context::new_dbus(LE, 0), &build_notification(&r)).unwrap();
+        let text = String::from_utf8_lossy(&bytes);
+        for needle in ["buttons", "Undo", "undo", "Show", "show", "label", "action"] {
+            assert!(text.contains(needle), "{needle} missing from {text:?}");
+        }
+        assert!(
+            text.find("Undo").unwrap() < text.find("Show").unwrap(),
+            "buttons keep their order"
+        );
+
+        let without = to_bytes(Context::new_dbus(LE, 0), &build_notification(&request())).unwrap();
+        assert!(!String::from_utf8_lossy(&without).contains("buttons"));
     }
 }

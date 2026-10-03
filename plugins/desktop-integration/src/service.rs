@@ -95,6 +95,12 @@ impl<R: Runtime> DesktopServices<R> {
                     .map_err(|error| error.message),
                 Err(error) => Err(error.message.clone()),
             };
+            let notify_capabilities = match &session {
+                Ok(connection) => crate::linux::notify::capabilities(connection)
+                    .await
+                    .map_err(|error| error.message),
+                Err(error) => Err(error.message.clone()),
+            };
             let logind = match self.system().await {
                 Ok(connection) => {
                     match crate::linux::has_owner(connection, crate::linux::logind::BUS_NAME).await
@@ -109,6 +115,7 @@ impl<R: Runtime> DesktopServices<R> {
             let probes = status::LinuxProbes {
                 session_bus: session.map(|_| ()).map_err(|error| error.message),
                 notify_server,
+                notify_capabilities,
                 logind,
                 shortcut_path: if std::env::var_os("WAYLAND_DISPLAY").is_some() {
                     Some("wayland-portal")
@@ -153,7 +160,12 @@ impl<R: Runtime> DesktopServices<R> {
             );
             let server_id = crate::linux::notify::notify(&connection, &call).await?;
             if let Ok(mut book) = self.linux.notifications.lock() {
-                book.record(&request.id, server_id, request.default_action.as_deref());
+                book.record(
+                    &request.id,
+                    server_id,
+                    request.default_action.as_deref(),
+                    request.actions(),
+                );
             }
             Ok(())
         }
@@ -582,6 +594,7 @@ mod tests {
                     urgency: None,
                     app_name: None,
                     desktop_id: None,
+                    actions: None,
                 })
                 .await
                 .unwrap_err()
@@ -638,7 +651,11 @@ mod tests {
         let (_app, services) = services();
         let status = services.status().await;
         println!("{status:#?}");
-        assert_eq!(status.features.len(), 5);
+        assert_eq!(status.features.len(), 6);
+        println!(
+            "{:?}",
+            status.feature(crate::models::Feature::NotificationActions)
+        );
     }
 
     /// Takes a sleep inhibitor from logind and holds it for 8 seconds so
@@ -806,12 +823,60 @@ mod tests {
                 urgency: None,
                 app_name: Some("Desktop integration test".into()),
                 desktop_id: None,
+                actions: None,
             })
             .await
             .expect("notify");
         tokio::time::sleep(Duration::from_secs(4)).await;
         services
             .withdraw_notification("live-notify".into())
+            .await
+            .expect("withdraw");
+    }
+
+    /// Shows one notification with two buttons, prints whether the server lists the `actions`
+    /// capability, and closes it after 20 seconds. Sends a real notification; `dbus-monitor
+    /// interface=org.freedesktop.Notifications` shows the `Notify` call and, when a button is
+    /// pressed, the `ActionInvoked` signal.
+    #[cfg(target_os = "linux")]
+    #[tokio::test(flavor = "multi_thread")]
+    #[ignore = "shows a real notification with buttons"]
+    async fn live_notify_with_actions() {
+        use crate::models::{ActionButton, Feature};
+
+        let (_app, services) = services();
+        println!(
+            "{:?}",
+            services
+                .status()
+                .await
+                .feature(Feature::NotificationActions)
+        );
+        services
+            .notify(NotifyRequest {
+                id: "live-notify-actions".into(),
+                title: "tauri-plugin-desktop-integration test".into(),
+                body: Some("Two buttons from the live_notify_with_actions test.".into()),
+                default_action: Some("open".into()),
+                urgency: None,
+                app_name: Some("Desktop integration test".into()),
+                desktop_id: None,
+                actions: Some(vec![
+                    ActionButton {
+                        id: "undo".into(),
+                        label: "Undo".into(),
+                    },
+                    ActionButton {
+                        id: "show".into(),
+                        label: "Show".into(),
+                    },
+                ]),
+            })
+            .await
+            .expect("notify");
+        tokio::time::sleep(Duration::from_secs(20)).await;
+        services
+            .withdraw_notification("live-notify-actions".into())
             .await
             .expect("withdraw");
     }

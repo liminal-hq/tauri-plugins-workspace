@@ -3,4 +3,4 @@
 /**
  * A feature the plugin can offer, as reported by `get_status`.
  */
-export type PortalFeature = "notification" | "inhibit" | "openUri";
+export type PortalFeature = "notification" | "notificationActions" | "inhibit" | "openUri";

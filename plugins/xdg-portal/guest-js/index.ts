@@ -5,6 +5,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import type { ActionButton } from './bindings/ActionButton';
 import type { AccentColour } from './bindings/AccentColour';
 import type { AvailabilityInfo } from './bindings/AvailabilityInfo';
 import type { ColourScheme } from './bindings/ColourScheme';
@@ -26,7 +27,10 @@ import type { Urgency } from './bindings/Urgency';
 
 const PREFIX = 'plugin:xdg-portal|';
 
-/** Event emitted to every window when the user clicks a notification's default action. */
+/**
+ * Event emitted to every window when the user clicks a notification or presses one of its action
+ * buttons; the payload is `{ id, action }`.
+ */
 export const NOTIFICATION_ACTION_EVENT = 'xdg-portal://notification-action';
 
 function cmd<T>(name: string, args?: Record<string, unknown>): Promise<T> {
@@ -37,7 +41,7 @@ export const portal = {
 	checkAvailability: () => cmd<AvailabilityInfo>('check_availability'),
 	getThemeInfo: () => cmd<ThemeInfo>('get_theme_info'),
 
-	/** Which of the notification, inhibit and open-URI portals work here, with a reason for each that does not. */
+	/** Which of the notification, notification-actions, inhibit and open-URI portals work here, with a reason for each that does not. */
 	getStatus: () => cmd<PortalStatus>('get_status'),
 
 	/**
@@ -67,7 +71,7 @@ export const portal = {
 	 */
 	openUri: (request: OpenUriRequest) => cmd<void>('open_uri', { request }),
 
-	/** Subscribes to notification clicks; resolves to a function that unsubscribes. */
+	/** Subscribes to notification clicks and button presses; resolves to a function that unsubscribes. */
 	onNotificationAction: (callback: (_action: NotificationAction) => void): Promise<() => void> =>
 		listen<NotificationAction>(NOTIFICATION_ACTION_EVENT, (event) => callback(event.payload)),
 };
@@ -96,6 +100,7 @@ export function isFeatureAvailable(status: PortalStatus, feature: PortalFeature)
 }
 
 export type {
+	ActionButton,
 	ThemeInfo,
 	ColourScheme,
 	DesktopEnvironment,

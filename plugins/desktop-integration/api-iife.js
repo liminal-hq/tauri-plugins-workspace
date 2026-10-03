@@ -6,7 +6,10 @@ var __TAURI_PLUGIN_DESKTOP_INTEGRATION__ = (function (exports, core, event) {
     //
     // (c) Copyright 2026 Liminal HQ, Scott Morris
     // SPDX-License-Identifier: Apache-2.0 OR MIT
-    /** Event emitted when the user clicks a notification shown through `notify`. */
+    /**
+     * Event emitted when the user clicks a notification shown through `notify` or presses one of its
+     * action buttons; the payload is `{ id, action }`.
+     */
     const NOTIFICATION_ACTION_EVENT = 'desktop-integration://notification-action';
     /** Event emitted for each `org.freedesktop.FileManager1` call another application makes. */
     const FILE_MANAGER_CALL_EVENT = 'desktop-integration://file-manager';
@@ -88,7 +91,7 @@ var __TAURI_PLUGIN_DESKTOP_INTEGRATION__ = (function (exports, core, event) {
         registerGlobalShortcut: (request) => cmd('register_global_shortcut', { request }),
         /** Removes a shortcut registered with {@link desktopIntegration.registerGlobalShortcut}. */
         unregisterGlobalShortcut: (id) => cmd('unregister_global_shortcut', { id }),
-        /** Subscribes to notification clicks; resolves to a function that unsubscribes. */
+        /** Subscribes to notification clicks and button presses; resolves to a function that unsubscribes. */
         onNotificationAction: (callback) => on(NOTIFICATION_ACTION_EVENT, callback),
         /** Subscribes to `FileManager1` calls from other applications. */
         onFileManagerCall: (callback) => on(FILE_MANAGER_CALL_EVENT, callback),

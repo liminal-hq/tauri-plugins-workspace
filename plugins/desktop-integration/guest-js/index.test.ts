@@ -160,6 +160,25 @@ describe('desktopIntegration services', () => {
 		expect(invokeMock).toHaveBeenCalledWith('plugin:desktop-integration|get_status', undefined);
 	});
 
+	it('shows a notification with action buttons', async () => {
+		const desktopIntegration = await freshDesktopIntegration();
+		const request = {
+			id: 'job-2',
+			title: 'Deleted',
+			body: null,
+			defaultAction: 'show-trash',
+			urgency: null,
+			appName: null,
+			desktopId: null,
+			actions: [
+				{ id: 'undo', label: 'Undo' },
+				{ id: 'show', label: 'Show' },
+			],
+		};
+		await desktopIntegration.notify(request);
+		expect(invokeMock).toHaveBeenCalledWith('plugin:desktop-integration|notify', { request });
+	});
+
 	it('shows and withdraws notifications', async () => {
 		const desktopIntegration = await freshDesktopIntegration();
 		const request = {

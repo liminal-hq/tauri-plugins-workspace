@@ -6,8 +6,9 @@
 use crate::models::{Feature, FeatureStatus, PluginStatus, UnavailableReason};
 
 /// Every feature, in the order the status lists them.
-pub const FEATURES: [Feature; 5] = [
+pub const FEATURES: [Feature; 6] = [
     Feature::Notify,
+    Feature::NotificationActions,
     Feature::InhibitSleep,
     Feature::LauncherProgress,
     Feature::FileManager,
@@ -20,6 +21,8 @@ pub struct LinuxProbes {
     pub session_bus: Result<(), String>,
     /// The name of the notification server.
     pub notify_server: Result<String, String>,
+    /// The capabilities the notification server lists.
+    pub notify_capabilities: Result<Vec<String>, String>,
     /// Whether logind answers on the system bus.
     pub logind: Result<(), String>,
     /// How global shortcuts would be bound: `wayland-portal` or `x11-grab`; `None` without a
@@ -35,6 +38,42 @@ fn from_result<T>(
     match result {
         Ok(_) => FeatureStatus::available(feature),
         Err(detail) => FeatureStatus::unavailable(feature, reason, Some(detail.clone())),
+    }
+}
+
+/// The server capability that means it draws action buttons.
+pub const ACTIONS_CAPABILITY: &str = "actions";
+
+/// The `notificationActions` status on Linux: available when the notification server lists the
+/// `actions` capability.
+pub fn linux_actions_status(
+    notify: &FeatureStatus,
+    capabilities: &Result<Vec<String>, String>,
+) -> FeatureStatus {
+    let feature = Feature::NotificationActions;
+    if !notify.available {
+        return FeatureStatus {
+            feature,
+            ..notify.clone()
+        };
+    }
+    match capabilities {
+        Ok(list) if list.iter().any(|name| name == ACTIONS_CAPABILITY) => {
+            FeatureStatus::available(feature)
+        }
+        Ok(_) => FeatureStatus::unavailable(
+            feature,
+            UnavailableReason::ActionsUnsupported,
+            Some(
+                "the notification server does not list the actions capability, so only the default click may be offered"
+                    .to_string(),
+            ),
+        ),
+        Err(detail) => FeatureStatus::unavailable(
+            feature,
+            UnavailableReason::ActionsUnsupported,
+            Some(format!("the server's capabilities could not be read: {detail}")),
+        ),
     }
 }
 
@@ -59,6 +98,7 @@ pub fn linux_status(probes: &LinuxProbes, file_manager_owned: bool) -> PluginSta
             UnavailableReason::NoNotificationServer,
         ),
     };
+    let notify_actions = linux_actions_status(&notify, &probes.notify_capabilities);
     let shortcuts = match probes.shortcut_path {
         Some(path) => FeatureStatus {
             detail: Some(path.to_string()),
@@ -73,6 +113,7 @@ pub fn linux_status(probes: &LinuxProbes, file_manager_owned: bool) -> PluginSta
     PluginStatus::new(
         vec![
             notify,
+            notify_actions,
             from_result(
                 Feature::InhibitSleep,
                 &probes.logind,
@@ -99,6 +140,11 @@ pub fn windows_status(app_user_model_id: Option<&str>) -> PluginStatus {
     PluginStatus::new(
         vec![
             notify,
+            FeatureStatus::unavailable(
+                Feature::NotificationActions,
+                UnavailableReason::ActionsUnsupported,
+                Some("toast buttons are not implemented yet".to_string()),
+            ),
             FeatureStatus::available(Feature::InhibitSleep),
             FeatureStatus::available(Feature::LauncherProgress),
             FeatureStatus::unavailable(
@@ -133,6 +179,7 @@ mod tests {
         LinuxProbes {
             session_bus: Ok(()),
             notify_server: Ok("GNOME Shell".into()),
+            notify_capabilities: Ok(vec!["body".into(), "actions".into()]),
             logind: Ok(()),
             shortcut_path: Some("wayland-portal"),
         }
@@ -177,12 +224,43 @@ mod tests {
     }
 
     #[test]
+    fn actions_need_the_actions_capability() {
+        let mut probes = working();
+        probes.notify_capabilities = Ok(vec!["body".into(), "persistence".into()]);
+        let status = linux_status(&probes, false);
+        let actions = status.feature(Feature::NotificationActions).unwrap();
+        assert!(!actions.available);
+        assert_eq!(actions.reason, Some(UnavailableReason::ActionsUnsupported));
+        assert!(actions.detail.as_deref().unwrap().contains("default click"));
+        assert!(status.feature(Feature::Notify).unwrap().available);
+
+        probes.notify_capabilities = Err("timed out".into());
+        let actions = linux_status(&probes, false)
+            .feature(Feature::NotificationActions)
+            .unwrap()
+            .clone();
+        assert!(!actions.available);
+        assert!(actions.detail.unwrap().contains("timed out"));
+
+        probes.notify_server = Err("no server".into());
+        let actions = linux_status(&probes, false)
+            .feature(Feature::NotificationActions)
+            .unwrap()
+            .clone();
+        assert_eq!(
+            actions.reason,
+            Some(UnavailableReason::NoNotificationServer)
+        );
+    }
+
+    #[test]
     fn no_session_bus_takes_the_bus_features_with_it() {
         let mut probes = working();
         probes.session_bus = Err("no bus".into());
         let status = linux_status(&probes, false);
         for feature in [
             Feature::Notify,
+            Feature::NotificationActions,
             Feature::LauncherProgress,
             Feature::FileManager,
         ] {
