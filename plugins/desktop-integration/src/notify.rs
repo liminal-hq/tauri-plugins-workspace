@@ -40,6 +40,13 @@ impl NotifyRequest {
                 "the default action id must not be empty",
             ));
         }
+        let dropped = self.dropped_actions();
+        if dropped > 0 {
+            log::info!(
+                "notification {:?} has {dropped} more actions than the {MAX_ACTIONS} shown; dropping them",
+                self.id
+            );
+        }
         validate_actions(self.actions())?;
         if let Some(default) = self.default_action.as_deref() {
             if self.actions().iter().any(|action| action.id == default) {
@@ -51,20 +58,20 @@ impl NotifyRequest {
         Ok(())
     }
 
+    /// How many buttons beyond [`MAX_ACTIONS`] the request has; they are not shown.
+    pub fn dropped_actions(&self) -> usize {
+        let all = self.actions.as_deref().unwrap_or_default();
+        all.len() - limit_actions(all).len()
+    }
+
     /// The buttons that are shown: the first [`MAX_ACTIONS`], in order.
     pub fn actions(&self) -> &[ActionButton] {
-        limit_actions(&self.id, self.actions.as_deref().unwrap_or_default())
+        limit_actions(self.actions.as_deref().unwrap_or_default())
     }
 }
 
-/// Keeps the first [`MAX_ACTIONS`] buttons and logs the ones dropped.
-pub fn limit_actions<'a>(id: &str, actions: &'a [ActionButton]) -> &'a [ActionButton] {
-    if actions.len() > MAX_ACTIONS {
-        log::info!(
-            "notification {id:?} has {} actions; showing the first {MAX_ACTIONS}",
-            actions.len()
-        );
-    }
+/// Keeps the first [`MAX_ACTIONS`] buttons.
+pub fn limit_actions(actions: &[ActionButton]) -> &[ActionButton] {
     &actions[..actions.len().min(MAX_ACTIONS)]
 }
 
@@ -559,6 +566,8 @@ mod tests {
         assert_eq!(ids, ["a", "b", "c"]);
         assert_eq!(build_call(&r, "x", "x", 0).actions.len(), 2 + 3 * 2);
         assert!(request().actions().is_empty());
+        assert_eq!(r.dropped_actions(), 2);
+        assert_eq!(request().dropped_actions(), 0);
     }
 
     #[test]
