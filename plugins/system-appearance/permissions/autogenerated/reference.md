@@ -7,6 +7,7 @@ Default permissions for the system-appearance plugin
 - `allow-get-status`
 - `allow-get-titlebar-preferences`
 - `allow-get-appearance`
+- `allow-get-palette`
 
 ## Permission Table
 
@@ -39,6 +40,32 @@ Enables the get_appearance command without any pre-configured scope.
 <td>
 
 Denies the get_appearance command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`system-appearance:allow-get-palette`
+
+</td>
+<td>
+
+Enables the get_palette command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`system-appearance:deny-get-palette`
+
+</td>
+<td>
+
+Denies the get_palette command without any pre-configured scope.
 
 </td>
 </tr>
