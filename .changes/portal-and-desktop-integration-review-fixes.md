@@ -1,6 +1,0 @@
----
-'desktop-integration': patch
-'xdg-portal': patch
----
-
-Fixes found in review of the new desktop services and portal features. On Windows, `registerGlobalShortcut` replaces an id's binding even when the accelerator is unchanged (the old hotkey is released first and restored if the new one is refused), a call that reports `timeout` no longer takes effect afterwards, stopping the hotkey thread waits at most two seconds, hotkey commands no longer block an async worker or each other, the taskbar window without a `windowLabel` is the focused window, else the first label starting with `main`, else the first label alphabetically, and a toast's notification id round-trips exactly (control characters, quotes and non-ASCII included). On Linux, the notification listener starts again after its signal streams close, and a late name-lost signal no longer releases a newer `org.freedesktop.FileManager1` ownership. In `xdg-portal`, `releaseInhibit` keeps the handle when `Close` fails so it can be retried, an `Inhibit` call that times out closes its request on a best-effort basis, and `openUri` opens a local file off the async worker with an `O_PATH` descriptor (an ordinary read-only one for `writable` requests).
