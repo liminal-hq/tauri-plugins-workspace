@@ -21,6 +21,11 @@ pub const FEATURES: [(PortalFeature, &str); 3] = [
 /// The first Notification portal interface version with `buttons`.
 pub const BUTTONS_MIN_VERSION: u32 = 1;
 
+/// The `detail` of an available `notificationActions`: the portal accepts the request, which is
+/// all it reports.
+pub const BUTTONS_UNVERIFIED: &str =
+    "the portal accepts buttons; whether the desktop shows them is not reported";
+
 /// The `notificationActions` status, derived from what the Notification portal reported.
 pub fn actions_status(notification: &FeatureStatus) -> FeatureStatus {
     let feature = PortalFeature::NotificationActions;
@@ -41,7 +46,12 @@ pub fn actions_status(notification: &FeatureStatus) -> FeatureStatus {
                 "the Notification portal is version {version}; buttons need version {BUTTONS_MIN_VERSION}, so only the default click is offered"
             )),
         ),
-        version => FeatureStatus::available(feature, version),
+        // The portal reports its interface version and, from version 2, the button purposes it
+        // supports, but never whether the desktop's shell draws buttons.
+        version => FeatureStatus {
+            detail: Some(BUTTONS_UNVERIFIED.to_string()),
+            ..FeatureStatus::available(feature, version)
+        },
     }
 }
 
@@ -194,6 +204,7 @@ mod tests {
         for version in [Some(1), Some(2), None] {
             let status = with(version);
             assert!(status.available, "{version:?}");
+            assert_eq!(status.detail.as_deref(), Some(BUTTONS_UNVERIFIED));
             assert_eq!(status.feature, PortalFeature::NotificationActions);
         }
         let old = with(Some(0));
