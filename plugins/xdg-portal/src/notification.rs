@@ -38,6 +38,13 @@ impl NotificationRequest {
             }
         }
         validate_actions(self.actions())?;
+        if let Some(default) = self.default_action.as_deref() {
+            if self.actions().iter().any(|action| action.id == default) {
+                return Err(ServiceError::invalid(
+                    "an action id must differ from the default action id",
+                ));
+            }
+        }
         Ok(())
     }
 
@@ -403,5 +410,19 @@ mod tests {
 
         let without = to_bytes(Context::new_dbus(LE, 0), &build_notification(&request())).unwrap();
         assert!(!String::from_utf8_lossy(&without).contains("buttons"));
+    }
+
+    #[test]
+    fn a_button_id_must_differ_from_the_default_action() {
+        let mut r = request();
+        r.actions = Some(vec![button("show-job", "Show")]);
+        assert_eq!(
+            r.validate().unwrap_err().kind,
+            ServiceErrorKind::InvalidArgument
+        );
+        r.default_action = None;
+        assert_eq!(r.validate(), Ok(()));
+        r.default_action = Some("other".into());
+        assert_eq!(r.validate(), Ok(()));
     }
 }

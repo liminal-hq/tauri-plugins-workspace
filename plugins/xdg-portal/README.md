@@ -67,7 +67,7 @@ if (isFeatureAvailable(status, 'notification')) {
 
 `sendNotification` shows a notification through `org.freedesktop.portal.Notification`; sending the same `id` again replaces it and `withdrawNotification` takes it off screen. When the user clicks the notification, the `xdg-portal://notification-action` event delivers `{ id, action }` with the request's `defaultAction`; `portal.onNotificationAction` subscribes. An action id that starts with `app.` is activated through `org.freedesktop.Application` instead and never reaches the event. The portal never reports whether a notification was actually presented.
 
-Add up to three buttons with `actions: [{ id, label }]`. Ids are 1 to 256 bytes and unique, labels are 1 to 100 characters, and any further buttons are dropped with a log line. Each maps to a portal button; a press arrives through the same event with the button's `id` as `action` and the notification's own `id`, so `defaultAction` keeps meaning the click on the body.
+Add up to three buttons with `actions: [{ id, label }]`. Ids are 1 to 256 bytes, unique and different from `defaultAction` (the request is rejected with `invalid-argument` otherwise), labels are 1 to 100 characters, and any further buttons are dropped with a log line. Each maps to a portal button; a press arrives through the same event with the button's `id` as `action` and the notification's own `id`, so `defaultAction` keeps meaning the click on the body.
 
 ```typescript
 await portal.sendNotification({

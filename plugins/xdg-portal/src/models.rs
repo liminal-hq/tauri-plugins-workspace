@@ -202,7 +202,8 @@ pub struct NotificationRequest {
     pub urgency: Option<Urgency>,
     /// Buttons to show on the notification, in order. At most 3 are shown; extras are dropped.
     /// A press is reported through the `action` event with the button's `id`. Desktops that do
-    /// not draw buttons (see the `notificationActions` feature) show only the default click.
+    /// not draw buttons (see the `notificationActions` feature) show only the default click. A
+    /// button id must differ from `defaultAction`, so the two can be told apart in the event.
     #[serde(default)]
     #[ts(optional)]
     pub actions: Option<Vec<ActionButton>>,

@@ -151,7 +151,8 @@ pub struct NotifyRequest {
     pub desktop_id: Option<String>,
     /// Buttons to show on the notification, in order. At most 3 are shown; extras are dropped.
     /// A press is reported through the `notification-action` event with the button's `id`
-    /// (`default` is reserved for the click on the notification). Servers that do not draw
+    /// (`default` is reserved for the click on the notification, and an id must differ from
+    /// `defaultAction` so the two can be told apart). Servers that do not draw
     /// buttons (see the `notificationActions` feature) show only the default click.
     #[serde(default)]
     #[ts(optional)]
