@@ -7,7 +7,10 @@ var __TAURI_PLUGIN_XDG_PORTAL__ = (function (exports, core, event) {
     // (c) Copyright 2026 Liminal HQ, Scott Morris
     // SPDX-License-Identifier: Apache-2.0 OR MIT
     const PREFIX = 'plugin:xdg-portal|';
-    /** Event emitted to every window when the user clicks a notification's default action. */
+    /**
+     * Event emitted to every window when the user clicks a notification or presses one of its action
+     * buttons; the payload is `{ id, action }`.
+     */
     const NOTIFICATION_ACTION_EVENT = 'xdg-portal://notification-action';
     function cmd(name, args) {
         return core.invoke(`${PREFIX}${name}`, args);
@@ -15,7 +18,7 @@ var __TAURI_PLUGIN_XDG_PORTAL__ = (function (exports, core, event) {
     const portal = {
         checkAvailability: () => cmd('check_availability'),
         getThemeInfo: () => cmd('get_theme_info'),
-        /** Which of the notification, inhibit and open-URI portals work here, with a reason for each that does not. */
+        /** Which of the notification, notification-actions, inhibit and open-URI portals work here, with a reason for each that does not. */
         getStatus: () => cmd('get_status'),
         /**
          * Shows a notification, or replaces the one with the same `id`. Rejects with a
@@ -39,7 +42,7 @@ var __TAURI_PLUGIN_XDG_PORTAL__ = (function (exports, core, event) {
          * Resolves once the portal accepts the request, not when the user has picked an application.
          */
         openUri: (request) => cmd('open_uri', { request }),
-        /** Subscribes to notification clicks; resolves to a function that unsubscribes. */
+        /** Subscribes to notification clicks and button presses; resolves to a function that unsubscribes. */
         onNotificationAction: (callback) => event.listen(NOTIFICATION_ACTION_EVENT, (event) => callback(event.payload)),
     };
     /** Whether a rejection from a notification, inhibit or open-URI command is a {@link ServiceError}. */

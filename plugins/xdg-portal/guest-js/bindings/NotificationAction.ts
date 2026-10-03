@@ -9,6 +9,7 @@ export type NotificationAction = {
  */
 id: string, 
 /**
- * The action id: the request's `defaultAction`.
+ * The action id: the request's `defaultAction` for a click on the notification, or the `id`
+ * of the button that was pressed.
  */
 action: string, };

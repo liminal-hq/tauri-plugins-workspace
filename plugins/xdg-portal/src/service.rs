@@ -255,6 +255,7 @@ mod tests {
             body: None,
             default_action: None,
             urgency: None,
+            actions: None,
         };
         assert_eq!(
             portal
@@ -339,12 +340,52 @@ mod tests {
                 body: Some("A single test notification from the live_notification test.".into()),
                 default_action: Some("open".into()),
                 urgency: None,
+                actions: None,
             })
             .await
             .expect("send");
         tokio::time::sleep(std::time::Duration::from_secs(4)).await;
         portal
             .withdraw_notification("live-notification".into())
+            .await
+            .expect("withdraw");
+    }
+
+    /// Shows one notification with two buttons, prints what the portal reports, and withdraws it
+    /// after 20 seconds. Sends a real notification; `dbus-monitor` shows the `AddNotification`
+    /// call and, when a button is pressed, the `ActionInvoked` signal.
+    #[tokio::test(flavor = "multi_thread")]
+    #[ignore = "shows a real notification with buttons"]
+    async fn live_notification_with_actions() {
+        use crate::models::{ActionButton, PortalFeature};
+
+        let portal = portal();
+        let status = portal.status().await;
+        let actions = status.feature(PortalFeature::NotificationActions);
+        println!("notificationActions: {actions:?}");
+        portal
+            .send_notification(NotificationRequest {
+                id: "live-notification-actions".into(),
+                title: "tauri-plugin-xdg-portal test".into(),
+                body: Some("Two buttons from the live_notification_with_actions test.".into()),
+                default_action: Some("open".into()),
+                urgency: None,
+                actions: Some(vec![
+                    ActionButton {
+                        id: "undo".into(),
+                        label: "Undo".into(),
+                    },
+                    ActionButton {
+                        id: "show".into(),
+                        label: "Show".into(),
+                    },
+                ]),
+            })
+            .await
+            .expect("send");
+        tokio::time::sleep(std::time::Duration::from_secs(20)).await;
+        portal
+            .withdraw_notification("live-notification-actions".into())
             .await
             .expect("withdraw");
     }

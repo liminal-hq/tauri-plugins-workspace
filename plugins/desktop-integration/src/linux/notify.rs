@@ -40,6 +40,12 @@ pub async fn server_name(connection: &Connection) -> Result<String, ServiceError
     Ok(name)
 }
 
+/// The capabilities the server lists, such as `actions` and `body`.
+pub async fn capabilities(connection: &Connection) -> Result<Vec<String>, ServiceError> {
+    let proxy = proxy(connection).await?;
+    with_timeout("GetCapabilities", proxy.call("GetCapabilities", &())).await
+}
+
 /// Shows the notification and returns the server's id for it.
 pub async fn notify(connection: &Connection, call: &NotifyCall) -> Result<u32, ServiceError> {
     let proxy = proxy(connection).await?;

@@ -5,6 +5,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import type { ActionButton } from './bindings/ActionButton';
 import type { Feature } from './bindings/Feature';
 import type { FeatureStatus } from './bindings/FeatureStatus';
 import type { FileManagerCall } from './bindings/FileManagerCall';
@@ -30,6 +31,7 @@ import type { UnavailableReason } from './bindings/UnavailableReason';
 import type { Urgency } from './bindings/Urgency';
 
 export type {
+	ActionButton,
 	Feature,
 	FeatureStatus,
 	FileManagerCall,
@@ -55,7 +57,10 @@ export type {
 	Urgency,
 };
 
-/** Event emitted when the user clicks a notification shown through `notify`. */
+/**
+ * Event emitted when the user clicks a notification shown through `notify` or presses one of its
+ * action buttons; the payload is `{ id, action }`.
+ */
 export const NOTIFICATION_ACTION_EVENT = 'desktop-integration://notification-action';
 /** Event emitted for each `org.freedesktop.FileManager1` call another application makes. */
 export const FILE_MANAGER_CALL_EVENT = 'desktop-integration://file-manager';
@@ -161,7 +166,7 @@ export const desktopIntegration = {
 	/** Removes a shortcut registered with {@link desktopIntegration.registerGlobalShortcut}. */
 	unregisterGlobalShortcut: (id: string) => cmd<void>('unregister_global_shortcut', { id }),
 
-	/** Subscribes to notification clicks; resolves to a function that unsubscribes. */
+	/** Subscribes to notification clicks and button presses; resolves to a function that unsubscribes. */
 	onNotificationAction: (callback: (_action: NotificationAction) => void) =>
 		on<NotificationAction>(NOTIFICATION_ACTION_EVENT, callback),
 

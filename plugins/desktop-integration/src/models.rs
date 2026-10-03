@@ -13,6 +13,9 @@ use ts_rs::TS;
 pub enum Feature {
     /// Desktop notifications outside the portal.
     Notify,
+    /// Action buttons on notifications. On Linux the notification server must list `actions` in
+    /// its capabilities.
+    NotificationActions,
     /// Keeping the machine awake.
     InhibitSleep,
     /// Progress and count on the dock or taskbar icon.
@@ -40,6 +43,8 @@ pub enum UnavailableReason {
     NeedsAppId,
     /// A display server is needed and none is running.
     NoDisplayServer,
+    /// The system works, but this feature is not offered by it; `detail` says why.
+    ActionsUnsupported,
 }
 
 /// Whether one feature works on this system.
@@ -144,6 +149,25 @@ pub struct NotifyRequest {
     /// The `.desktop` file id of the app, so the shell can group and style the notification;
     /// defaults to the bundle identifier.
     pub desktop_id: Option<String>,
+    /// Buttons to show on the notification, in order. At most 3 are shown; extras are dropped.
+    /// A press is reported through the `notification-action` event with the button's `id`
+    /// (`default` is reserved for the click on the notification, and an id must differ from
+    /// `defaultAction` so the two can be told apart). Servers that do not draw
+    /// buttons (see the `notificationActions` feature) show only the default click.
+    #[serde(default)]
+    #[ts(optional)]
+    pub actions: Option<Vec<ActionButton>>,
+}
+
+/// One action button on a notification.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export, export_to = "../guest-js/bindings/")]
+pub struct ActionButton {
+    /// Reported as the event's `action` when the button is pressed.
+    pub id: String,
+    /// The text on the button.
+    pub label: String,
 }
 
 /// Payload of the `desktop-integration://notification-action` event.
@@ -151,7 +175,10 @@ pub struct NotifyRequest {
 #[serde(rename_all = "camelCase")]
 #[ts(export, export_to = "../guest-js/bindings/")]
 pub struct NotificationAction {
+    /// The id of the notification the user acted on.
     pub id: String,
+    /// The request's `defaultAction` for a click on the notification, or the `id` of the button
+    /// that was pressed.
     pub action: String,
 }
 

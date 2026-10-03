@@ -46,7 +46,7 @@ const theme = await portal.getThemeInfo();
 
 ### Status
 
-`getStatus()` probes the notification, inhibit and open-URI portals and reports, per feature, whether it works and, when it does not, a typed `reason`: `platform-unsupported`, `no-portal`, `interface-missing`, `no-response` or `not-sandboxed`. Hide the options whose feature is unavailable and show the `reason` and `detail` on a status panel.
+`getStatus()` probes the notification, inhibit and open-URI portals and reports, per feature, whether it works and, when it does not, a typed `reason`: `platform-unsupported`, `no-portal`, `interface-missing`, `no-response`, `not-sandboxed` or `actions-unsupported`. The `notificationActions` feature says whether the Notification portal accepts action buttons (interface version 1 or later). Available means the portal accepts them: the portal does not report whether the desktop's shell draws them, and `detail` says so. When the portal is too old, `detail` says that only the default click works. Hide the options whose feature is unavailable and show the `reason` and `detail` on a status panel.
 
 ```typescript
 import { portal, isFeatureAvailable } from '@liminal-hq/plugin-xdg-portal';
@@ -66,6 +66,22 @@ if (isFeatureAvailable(status, 'notification')) {
 ### Notifications
 
 `sendNotification` shows a notification through `org.freedesktop.portal.Notification`; sending the same `id` again replaces it and `withdrawNotification` takes it off screen. When the user clicks the notification, the `xdg-portal://notification-action` event delivers `{ id, action }` with the request's `defaultAction`; `portal.onNotificationAction` subscribes. An action id that starts with `app.` is activated through `org.freedesktop.Application` instead and never reaches the event. The portal never reports whether a notification was actually presented.
+
+Add up to three buttons with `actions: [{ id, label }]`. Ids are 1 to 256 bytes, unique and different from `defaultAction` (the request is rejected with `invalid-argument` otherwise), labels are 1 to 100 characters, and any further buttons are dropped with a log line. Each maps to a portal button; a press arrives through the same event with the button's `id` as `action` and the notification's own `id`, so `defaultAction` keeps meaning the click on the body.
+
+```typescript
+await portal.sendNotification({
+	id: 'trash-4',
+	title: '3 files moved to the Trash',
+	defaultAction: 'show-trash',
+	actions: [{ id: 'undo', label: 'Undo' }],
+});
+await portal.onNotificationAction(({ id, action }) => {
+	// { id: 'trash-4', action: 'undo' } for the button, 'show-trash' for the body
+});
+```
+
+A button id that starts with `app.` is activated through `org.freedesktop.Application` and never reaches the event, as with `defaultAction`. `isFeatureAvailable(status, 'notificationActions')` only rules out portals that cannot take buttons; a shell may still show just the default click, so do not make a button the only way to do something.
 
 ### Inhibit
 

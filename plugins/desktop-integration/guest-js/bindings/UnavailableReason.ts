@@ -3,4 +3,4 @@
 /**
  * Why a feature is not available.
  */
-export type UnavailableReason = "platform-unsupported" | "no-session-bus" | "no-notification-server" | "no-logind" | "needs-app-id" | "no-display-server";
+export type UnavailableReason = "platform-unsupported" | "no-session-bus" | "no-notification-server" | "no-logind" | "needs-app-id" | "no-display-server" | "actions-unsupported";

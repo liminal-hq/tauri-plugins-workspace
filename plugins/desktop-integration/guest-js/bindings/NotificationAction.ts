@@ -3,4 +3,13 @@
 /**
  * Payload of the `desktop-integration://notification-action` event.
  */
-export type NotificationAction = { id: string, action: string, };
+export type NotificationAction = { 
+/**
+ * The id of the notification the user acted on.
+ */
+id: string, 
+/**
+ * The request's `defaultAction` for a click on the notification, or the `id` of the button
+ * that was pressed.
+ */
+action: string, };

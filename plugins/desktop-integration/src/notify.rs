@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::{
     error::ServiceError,
-    models::{NotificationAction, NotifyRequest, Urgency},
+    models::{ActionButton, NotificationAction, NotifyRequest, Urgency},
 };
 
 /// The event emitted when the user clicks a notification.
@@ -15,6 +15,15 @@ pub const ACTION_EVENT: &str = "desktop-integration://notification-action";
 
 /// The longest notification id the plugin accepts.
 pub const MAX_ID_LEN: usize = 256;
+
+/// The most action buttons a notification shows; further ones are dropped.
+pub const MAX_ACTIONS: usize = 3;
+
+/// The longest action id, in bytes.
+pub const MAX_ACTION_ID_LEN: usize = 256;
+
+/// The longest button label, in characters.
+pub const MAX_ACTION_LABEL_CHARS: usize = 100;
 
 /// The action key a notification server reports when the notification itself is clicked.
 pub const DEFAULT_ACTION_KEY: &str = "default";
@@ -31,8 +40,68 @@ impl NotifyRequest {
                 "the default action id must not be empty",
             ));
         }
+        let dropped = self.dropped_actions();
+        if dropped > 0 {
+            log::info!(
+                "notification {:?} has {dropped} more actions than the {MAX_ACTIONS} shown; dropping them",
+                self.id
+            );
+        }
+        validate_actions(self.actions())?;
+        if let Some(default) = self.default_action.as_deref() {
+            if self.actions().iter().any(|action| action.id == default) {
+                return Err(ServiceError::invalid(
+                    "an action id must differ from the default action id",
+                ));
+            }
+        }
         Ok(())
     }
+
+    /// How many buttons beyond [`MAX_ACTIONS`] the request has; they are not shown.
+    pub fn dropped_actions(&self) -> usize {
+        let all = self.actions.as_deref().unwrap_or_default();
+        all.len() - limit_actions(all).len()
+    }
+
+    /// The buttons that are shown: the first [`MAX_ACTIONS`], in order.
+    pub fn actions(&self) -> &[ActionButton] {
+        limit_actions(self.actions.as_deref().unwrap_or_default())
+    }
+}
+
+/// Keeps the first [`MAX_ACTIONS`] buttons.
+pub fn limit_actions(actions: &[ActionButton]) -> &[ActionButton] {
+    &actions[..actions.len().min(MAX_ACTIONS)]
+}
+
+/// Checks the buttons: ids and labels are non-empty and bounded, ids are unique and none is the
+/// reserved `default` key, so a press is unambiguous.
+pub fn validate_actions(actions: &[ActionButton]) -> Result<(), ServiceError> {
+    for (index, action) in actions.iter().enumerate() {
+        if action.id.is_empty() || action.id.len() > MAX_ACTION_ID_LEN {
+            return Err(ServiceError::invalid(format!(
+                "an action id is 1 to {MAX_ACTION_ID_LEN} bytes"
+            )));
+        }
+        if action.id == DEFAULT_ACTION_KEY {
+            return Err(ServiceError::invalid(format!(
+                "the action id {DEFAULT_ACTION_KEY:?} is reserved for the default action"
+            )));
+        }
+        if action.label.trim().is_empty() || action.label.chars().count() > MAX_ACTION_LABEL_CHARS {
+            return Err(ServiceError::invalid(format!(
+                "an action label is 1 to {MAX_ACTION_LABEL_CHARS} characters"
+            )));
+        }
+        if actions[..index].iter().any(|other| other.id == action.id) {
+            return Err(ServiceError::invalid(format!(
+                "the action id {:?} is used twice",
+                action.id
+            )));
+        }
+    }
+    Ok(())
 }
 
 pub fn validate_id(id: &str) -> Result<(), ServiceError> {
@@ -55,7 +124,8 @@ pub struct NotifyCall {
     pub replaces_id: u32,
     pub summary: String,
     pub body: String,
-    /// Alternating action keys and labels.
+    /// Alternating action keys and labels: the `default` key first when the request has a default
+    /// action, then the buttons in order.
     pub actions: Vec<String>,
     /// The `urgency` hint: 0 low, 1 normal, 2 critical.
     pub urgency: u8,
@@ -72,10 +142,14 @@ pub fn build_call(
     desktop_id: &str,
     replaces_id: u32,
 ) -> NotifyCall {
-    let actions = match request.default_action {
+    let mut actions = match request.default_action {
         Some(_) => vec![DEFAULT_ACTION_KEY.to_string(), "Open".to_string()],
         None => Vec::new(),
     };
+    for button in request.actions() {
+        actions.push(button.id.clone());
+        actions.push(button.label.clone());
+    }
     NotifyCall {
         app_name: request
             .app_name
@@ -101,6 +175,8 @@ pub fn build_call(
 struct Shown {
     id: String,
     default_action: Option<String>,
+    /// The ids of the buttons the notification was shown with.
+    buttons: Vec<String>,
 }
 
 /// Pairs the caller's string ids with the numeric ids a notification server hands out, so a
@@ -117,8 +193,15 @@ impl IdBook {
         self.by_id.get(id).copied()
     }
 
-    /// Records that the server shows `id` as `server_id`.
-    pub fn record(&mut self, id: &str, server_id: u32, default_action: Option<&str>) {
+    /// Records that the server shows `id` as `server_id`, with the default action and the button
+    /// ids it was sent with.
+    pub fn record(
+        &mut self,
+        id: &str,
+        server_id: u32,
+        default_action: Option<&str>,
+        buttons: &[ActionButton],
+    ) {
         if let Some(previous) = self.by_id.insert(id.to_string(), server_id) {
             if previous != server_id {
                 self.by_server.remove(&previous);
@@ -129,6 +212,7 @@ impl IdBook {
             Shown {
                 id: id.to_string(),
                 default_action: default_action.map(str::to_string),
+                buttons: buttons.iter().map(|button| button.id.clone()).collect(),
             },
         );
     }
@@ -148,13 +232,16 @@ impl IdBook {
     }
 
     /// The event for an `ActionInvoked(server_id, key)` signal; `None` for an unknown
-    /// notification or for the default action of a notification that did not ask for one.
+    /// notification, for the default action of a notification that did not ask for one and for a
+    /// key the notification was not sent with.
     pub fn action_for(&self, server_id: u32, key: &str) -> Option<NotificationAction> {
         let shown = self.by_server.get(&server_id)?;
         let action = if key == DEFAULT_ACTION_KEY {
             shown.default_action.clone()?
-        } else {
+        } else if shown.buttons.iter().any(|button| button == key) {
             key.to_string()
+        } else {
+            return None;
         };
         Some(NotificationAction {
             id: shown.id.clone(),
@@ -275,6 +362,14 @@ mod tests {
             urgency: None,
             app_name: None,
             desktop_id: None,
+            actions: None,
+        }
+    }
+
+    fn button(id: &str, label: &str) -> ActionButton {
+        ActionButton {
+            id: id.into(),
+            label: label.into(),
         }
     }
 
@@ -321,9 +416,9 @@ mod tests {
     fn a_repeated_id_replaces_the_server_notification() {
         let mut book = IdBook::default();
         assert_eq!(book.server_id("a"), None);
-        book.record("a", 10, Some("open"));
+        book.record("a", 10, Some("open"), &[]);
         assert_eq!(book.server_id("a"), Some(10));
-        book.record("a", 11, Some("open"));
+        book.record("a", 11, Some("open"), &[]);
         assert_eq!(book.action_for(10, "default"), None);
         assert_eq!(
             book.action_for(11, "default"),
@@ -337,8 +432,8 @@ mod tests {
     #[test]
     fn routes_server_actions_back_to_the_callers_id() {
         let mut book = IdBook::default();
-        book.record("a", 10, None);
-        book.record("b", 11, Some("show"));
+        book.record("a", 10, None, &[button("snooze", "Snooze")]);
+        book.record("b", 11, Some("show"), &[]);
         assert_eq!(
             book.action_for(10, "default"),
             None,
@@ -438,5 +533,133 @@ mod tests {
         let xml = toast_xml(&r);
         assert_eq!(xml.matches("<text>").count(), 1);
         assert_eq!(parse_toast_launch("copy-1\u{1f}"), None);
+    }
+
+    #[test]
+    fn buttons_follow_the_default_action_in_the_notify_arguments() {
+        let mut r = request();
+        r.actions = Some(vec![button("undo", "Undo"), button("show", "Show")]);
+        let call = build_call(&r, "Waypoint", "x", 0);
+        assert_eq!(
+            call.actions,
+            ["default", "Open", "undo", "Undo", "show", "Show"]
+        );
+
+        r.default_action = None;
+        assert_eq!(
+            build_call(&r, "Waypoint", "x", 0).actions,
+            ["undo", "Undo", "show", "Show"]
+        );
+    }
+
+    #[test]
+    fn keeps_the_first_three_actions() {
+        let mut r = request();
+        r.actions = Some(
+            ["a", "b", "c", "d", "e"]
+                .iter()
+                .map(|id| button(id, id))
+                .collect(),
+        );
+        assert_eq!(r.validate(), Ok(()));
+        let ids: Vec<_> = r.actions().iter().map(|a| a.id.as_str()).collect();
+        assert_eq!(ids, ["a", "b", "c"]);
+        assert_eq!(build_call(&r, "x", "x", 0).actions.len(), 2 + 3 * 2);
+        assert!(request().actions().is_empty());
+        assert_eq!(r.dropped_actions(), 2);
+        assert_eq!(request().dropped_actions(), 0);
+    }
+
+    #[test]
+    fn rejects_bad_actions() {
+        let bad = [
+            button("", "Label"),
+            button("id", ""),
+            button("id", "  "),
+            button("default", "Open"),
+            button(&"x".repeat(MAX_ACTION_ID_LEN + 1), "Label"),
+            button("id", &"x".repeat(MAX_ACTION_LABEL_CHARS + 1)),
+        ];
+        for action in bad {
+            let mut r = request();
+            r.actions = Some(vec![action.clone()]);
+            assert_eq!(
+                r.validate().unwrap_err().kind,
+                ServiceErrorKind::InvalidArgument,
+                "{action:?}"
+            );
+        }
+        let mut r = request();
+        r.actions = Some(vec![button("same", "One"), button("same", "Two")]);
+        assert_eq!(
+            r.validate().unwrap_err().kind,
+            ServiceErrorKind::InvalidArgument
+        );
+
+        let mut r = request();
+        r.actions = Some(vec![button(
+            &"i".repeat(MAX_ACTION_ID_LEN),
+            &"é".repeat(MAX_ACTION_LABEL_CHARS),
+        )]);
+        assert_eq!(r.validate(), Ok(()));
+
+        // A dropped extra is not validated.
+        let mut r = request();
+        r.actions = Some(vec![
+            button("a", "A"),
+            button("b", "B"),
+            button("c", "C"),
+            button("", ""),
+        ]);
+        assert_eq!(r.validate(), Ok(()));
+    }
+
+    #[test]
+    fn a_pressed_button_maps_to_the_event_and_foreign_signals_are_ignored() {
+        let mut book = IdBook::default();
+        book.record(
+            "copy-1",
+            10,
+            Some("show-job"),
+            &[button("undo", "Undo"), button("show", "Show")],
+        );
+        let pressed = book.action_for(10, "undo").unwrap();
+        assert_eq!(
+            serde_json::to_value(&pressed).unwrap(),
+            serde_json::json!({ "id": "copy-1", "action": "undo" })
+        );
+        assert_eq!(book.action_for(10, "default").unwrap().action, "show-job");
+        // A notification another app sent, and a key this one was not sent with.
+        assert_eq!(book.action_for(77, "undo"), None);
+        assert_eq!(book.action_for(10, "unknown"), None);
+        // A replaced notification forgets its old buttons.
+        book.record("copy-1", 11, None, &[button("retry", "Retry")]);
+        assert_eq!(book.action_for(10, "undo"), None);
+        assert_eq!(book.action_for(11, "undo"), None);
+        assert_eq!(book.action_for(11, "retry").unwrap().action, "retry");
+    }
+
+    #[test]
+    fn the_request_accepts_actions_from_json() {
+        let r: NotifyRequest = serde_json::from_value(serde_json::json!({
+            "id": "n", "title": "t",
+            "actions": [{ "id": "undo", "label": "Undo" }]
+        }))
+        .unwrap();
+        assert_eq!(r.actions.unwrap(), vec![button("undo", "Undo")]);
+    }
+
+    #[test]
+    fn a_button_id_must_differ_from_the_default_action() {
+        let mut r = request();
+        r.actions = Some(vec![button("show-job", "Show")]);
+        assert_eq!(
+            r.validate().unwrap_err().kind,
+            ServiceErrorKind::InvalidArgument
+        );
+        r.default_action = None;
+        assert_eq!(r.validate(), Ok(()));
+        r.default_action = Some("other".into());
+        assert_eq!(r.validate(), Ok(()));
     }
 }

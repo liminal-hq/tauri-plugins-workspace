@@ -50,6 +50,22 @@ describe('portal', () => {
 		expect(invokeMock).toHaveBeenCalledWith('plugin:xdg-portal|get_status', undefined);
 	});
 
+	it('sends a notification with action buttons', async () => {
+		const request = {
+			id: 'job-2',
+			title: 'Deleted',
+			body: null,
+			defaultAction: 'show-trash',
+			urgency: null,
+			actions: [
+				{ id: 'undo', label: 'Undo' },
+				{ id: 'show', label: 'Show' },
+			],
+		};
+		await portal.sendNotification(request);
+		expect(invokeMock).toHaveBeenCalledWith('plugin:xdg-portal|send_notification', { request });
+	});
+
 	it('sends and withdraws notifications', async () => {
 		const request = {
 			id: 'job-1',

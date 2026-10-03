@@ -3,4 +3,4 @@
 /**
  * A feature the plugin can offer, as reported by `get_status`.
  */
-export type Feature = "notify" | "inhibitSleep" | "launcherProgress" | "fileManager" | "globalShortcuts";
+export type Feature = "notify" | "notificationActions" | "inhibitSleep" | "launcherProgress" | "fileManager" | "globalShortcuts";
