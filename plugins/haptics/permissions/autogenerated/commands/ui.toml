@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-ui"
+description = "Enables the ui command without any pre-configured scope."
+commands.allow = ["ui"]
+
+[[permission]]
+identifier = "deny-ui"
+description = "Denies the ui command without any pre-configured scope."
+commands.deny = ["ui"]
