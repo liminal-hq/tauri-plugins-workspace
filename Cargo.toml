@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "plugins/material-you",
+  "plugins/haptics",
   "plugins/xdg-portal",
   "plugins/desktop-integration",
   "plugins/system-appearance",
