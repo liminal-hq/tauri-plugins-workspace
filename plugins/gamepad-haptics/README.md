@@ -11,7 +11,11 @@ Rumble for gamepads from one pattern language. It plays on the pad and never rea
 
 ```toml
 [dependencies]
-tauri-plugin-gamepad-haptics = { path = "../../plugins/gamepad-haptics" }
+tauri-plugin-gamepad-haptics = "0.1"
+```
+
+```sh
+pnpm add @liminal-hq/plugin-gamepad-haptics
 ```
 
 ```rust
