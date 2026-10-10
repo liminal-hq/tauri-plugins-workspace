@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Tauri v2 plugin monorepo (pnpm workspace + Cargo workspace) for privacy-first, local-first plugins. Currently contains the `material-you` plugin (Android Material You dynamic colours). See `PLUGIN_TEMPLATE.md` for the canonical new-plugin structure.
+Tauri v2 plugin monorepo (pnpm workspace + Cargo workspace) for privacy-first, local-first plugins. Contains plugins under `plugins/` such as `material-you` (Android Material You dynamic colours) and `haptics` (Android haptic patterns, whose pure-TypeScript `guest-js/pattern/` must not import `@tauri-apps/*`). See `PLUGIN_TEMPLATE.md` for the canonical new-plugin structure.
 
 **`AGENTS.md` is the canonical source of repository rules** — spelling, commit conventions, PR format, code organisation, plugin development patterns, and release process. Always consult it for authoritative guidance.
 

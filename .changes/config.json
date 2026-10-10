@@ -67,6 +67,14 @@
 			"path": "./plugins/material-you",
 			"manager": "javascript"
 		},
+		"haptics": {
+			"path": "./plugins/haptics",
+			"manager": "rust"
+		},
+		"haptics-js": {
+			"path": "./plugins/haptics",
+			"manager": "javascript"
+		},
 		"xdg-portal": {
 			"path": "./plugins/xdg-portal",
 			"manager": "rust"

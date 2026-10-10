@@ -1,0 +1,38 @@
+[package]
+name = "tauri-plugin-haptics"
+version = "0.0.0"
+description = "Tauri plugin for authoring and replaying haptic patterns, with capability reporting and graceful downgrades"
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+rust-version = { workspace = true }
+repository = { workspace = true }
+build = "build.rs"
+links = "tauri-plugin-haptics"
+keywords = ["tauri", "plugin", "android", "haptics", "vibration"]
+categories = ["api-bindings"]
+
+[package.metadata.platforms.support]
+windows = { level = "none", notes = "Commands resolve with a downgraded result because there is no vibrator" }
+linux = { level = "none", notes = "Commands resolve with a downgraded result because there is no vibrator" }
+macos = { level = "none", notes = "Commands resolve with a downgraded result because there is no vibrator" }
+android = { level = "full", notes = "One-shot, waveform, predefined, composition and envelope (API 36+) effects with capability reporting; envelope playback falls back where the vibrator hardware has no support" }
+ios = { level = "none", notes = "Not implemented; commands resolve with a downgraded result" }
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { workspace = true }
+thiserror = { workspace = true }
+
+[build-dependencies]
+tauri-plugin = { workspace = true, features = ["build"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+tauri-plugin = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }

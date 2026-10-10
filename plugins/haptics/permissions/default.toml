@@ -1,0 +1,3 @@
+[default]
+description = "Default permissions for the haptics plugin"
+permissions = ["allow-capabilities", "allow-play", "allow-play-steps", "allow-stop", "allow-ui"]
