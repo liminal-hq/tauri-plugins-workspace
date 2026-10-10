@@ -161,7 +161,7 @@ pub fn plan_play(
     validate_frames(&args.frames, limits)?;
     validate_scale(args.scale)?;
 
-    let scale = args.scale.unwrap_or(default_scale);
+    let scale = default_scale * args.scale.unwrap_or(1.0);
     if scale == 0.0 {
         return Ok(Plan::Silent("Master scale is 0".to_string()));
     }

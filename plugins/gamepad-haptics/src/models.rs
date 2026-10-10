@@ -62,7 +62,7 @@ pub struct Frame {
 pub struct PlayFramesArgs {
     pub pad_id: String,
     pub frames: Vec<Frame>,
-    /// Master scale for this call, 0 to 1. The configured scale applies when absent.
+    /// Scale for this call, 0 to 1. It multiplies with the configured master scale.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scale: Option<f64>,
 }
