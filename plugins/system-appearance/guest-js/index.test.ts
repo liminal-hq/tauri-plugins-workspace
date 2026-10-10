@@ -5,6 +5,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppearancePreferences } from './bindings/AppearancePreferences';
+import type { Palette } from './bindings/Palette';
+import type { PaletteEntry } from './bindings/PaletteEntry';
 
 const invokeMock = vi.fn();
 const listenMock = vi.fn();
@@ -35,6 +37,32 @@ const preferences: AppearancePreferences = {
 		textScale: 'portal',
 		iconTheme: 'portal',
 	},
+};
+
+function entry(colour: string): PaletteEntry {
+	return { colour, source: 'gtkTheme', reason: null, detail: null };
+}
+
+const palette: Palette = {
+	revision: 2,
+	status: { available: true, source: 'gtkTheme', reason: null, detail: null },
+	windowBackground: entry('#242424'),
+	windowForeground: entry('#ffffff'),
+	viewBackground: entry('#1e1e1e'),
+	viewForeground: entry('#ffffff'),
+	surfaceBackground: {
+		colour: null,
+		source: null,
+		reason: 'sourceMissing',
+		detail: 'the theme has no popover_bg_color or card_bg_color',
+	},
+	selectionBackground: entry('#3584e4'),
+	selectionForeground: entry('#ffffff'),
+	border: entry('#1b1b1b'),
+	focus: entry('#3584e4'),
+	warning: entry('#cd9309'),
+	error: entry('#c01c28'),
+	success: entry('#26a269'),
 };
 
 describe('system-appearance guest bindings', () => {
@@ -87,6 +115,30 @@ describe('system-appearance guest bindings', () => {
 		const handler = listenMock.mock.calls[0][1] as (_event: { payload: unknown }) => void;
 		handler({ payload: preferences });
 		expect(callback).toHaveBeenCalledWith(preferences);
+		expect(stop).toBe(unlisten);
+	});
+
+	it('reads the palette through the plugin command', async () => {
+		const { getPalette } = await import('./index');
+		invokeMock.mockResolvedValue(palette);
+
+		await expect(getPalette()).resolves.toEqual(palette);
+		expect(invokeMock).toHaveBeenCalledWith('plugin:system-appearance|get_palette', undefined);
+	});
+
+	it('listens for the palette event and hands the payload to the callback', async () => {
+		const { onPaletteChanged, PALETTE_CHANGED_EVENT } = await import('./index');
+		const unlisten = vi.fn();
+		listenMock.mockResolvedValue(unlisten);
+		const callback = vi.fn();
+
+		const stop = await onPaletteChanged(callback);
+
+		expect(PALETTE_CHANGED_EVENT).toBe('system-appearance://palette-changed');
+		expect(listenMock).toHaveBeenCalledWith(PALETTE_CHANGED_EVENT, expect.any(Function));
+		const handler = listenMock.mock.calls[0][1] as (_event: { payload: unknown }) => void;
+		handler({ payload: palette });
+		expect(callback).toHaveBeenCalledWith(palette);
 		expect(stop).toBe(unlisten);
 	});
 });
