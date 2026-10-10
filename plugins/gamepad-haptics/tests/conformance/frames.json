@@ -121,6 +121,26 @@
 			}
 		},
 		{
+			"name": "short-light-tap-on-a-binary-light-motor-becomes-a-full-pulse",
+			"pad": { "topTier": 2, "lightBinary": true },
+			"args": {
+				"padId": "gamepad:0",
+				"frames": [
+					{ "durationMs": 40, "heavy": 0, "light": 1 },
+					{ "durationMs": 160, "heavy": 0, "light": 0 }
+				]
+			},
+			"expect": {
+				"ok": {
+					"tier": 1,
+					"frames": [
+						{ "durationMs": 100, "heavy": 0, "light": 1 },
+						{ "durationMs": 100, "heavy": 0, "light": 0 }
+					]
+				}
+			}
+		},
+		{
 			"name": "dead-pad-is-silent-with-its-reason",
 			"pad": { "topTier": 0, "reason": "No write access to /dev/input/event3" },
 			"args": { "padId": "gamepad:0", "frames": [{ "durationMs": 10, "heavy": 1, "light": 1 }] },

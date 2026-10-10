@@ -18,6 +18,7 @@ const pad = (over: Partial<PadInfo>): PadInfo => ({
 	guid: '030000004c0500006802000011810000',
 	motors: 2,
 	triggers: false,
+	lightBinary: false,
 	topTier: 2,
 	backend: 'evdev',
 	...over,

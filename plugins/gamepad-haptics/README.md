@@ -109,7 +109,11 @@ The plugin never opens a pad for input and never grabs it, so the webview reads 
 
 The plugin opens `/dev/input/event*` for writing. On most desktops the logged-in user already has access to gamepads through a udev `uaccess` rule. A pad that cannot be opened is listed at tier 0 with `No write access to /dev/input/eventN`. In Flatpak, grant `--device=input` (Flatpak 1.15.6 or later); in Snap, connect the `joystick` interface.
 
-DualShock 3 pads use the `hid-sony` driver, whose light motor only switches on and off, so the plugin drives it at full strength or not at all.
+DualShock 3 pads use the `hid-sony` driver, whose light motor only switches on and off, and which needs about 100 ms to spin up. For a pad like that (`lightBinary: true` in `PadInfo`) the plugin shapes the light motor: a short strong tap becomes one full 100 ms pulse, an in-between level becomes pulses of at least 100 ms in proportion to the level, and a level too faint to fill a pulse is dropped. A pulse that runs past the end of a pattern extends it, within `maxDurationMs`. The heavy motor and all other timing are unchanged, and a result that was shaped says so in its `reason`.
+
+A pad that appears is sent a stop first, because some pads keep the last rumble they were given after a cable is pulled.
+
+Hints saved from a pad's name or GUID do not survive a switch between USB and Bluetooth (the name and GUID differ); the serial (the pad's Bluetooth address) is the same on both, so prefer `{ vendorId, productId, serial }`. WebKitGTK reports a pad's Web `id` without vendor and product ids, so `resolvePad` matches it by name there.
 
 ### Checking a pad
 

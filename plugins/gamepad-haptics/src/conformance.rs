@@ -42,6 +42,8 @@ struct Defaults {
 struct PadSpec {
     top_tier: u8,
     reason: Option<String>,
+    #[serde(default)]
+    light_binary: bool,
 }
 
 #[derive(Deserialize)]
@@ -79,6 +81,7 @@ fn the_corpus_agrees_with_the_rust_rules() {
             .unwrap_or_else(|| corpus.defaults.pad.clone());
         let mut pad = test_pad(spec.top_tier);
         pad.reason = spec.reason;
+        pad.light_binary = spec.light_binary;
         let result = plan_play(
             &case.args,
             &pad,

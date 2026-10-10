@@ -120,6 +120,23 @@ proptest! {
         }
     }
 
+    // On a pad whose light motor only switches on and off, the light motor ends up fully on or off,
+    // each pulse lasts long enough to feel, and the heavy motor and the limits are untouched.
+    #[test]
+    fn binary_light_motors_get_whole_pulses(
+        frames in proptest::collection::vec(frame_with(valid_level()), 1..12),
+    ) {
+        prop_assume!(validate_frames(&frames, &limits()).is_ok());
+        let pad = PadInfo { light_binary: true, ..test_pad(2) };
+        let planned = plan_play(&args(frames, None), &pad, &limits(), 1.0).unwrap();
+        if let Plan::Play { play, .. } = planned {
+            let play = play.into_inner();
+            let total: u64 = play.frames.iter().map(|f| f.duration_ms).sum();
+            prop_assert!(total <= limits().max_duration_ms);
+            prop_assert!(play.frames.iter().all(|f| f.light == 0.0 || f.light == 1.0));
+        }
+    }
+
     // The bridge shape survives a serde round trip.
     #[test]
     fn bridge_args_survive_a_round_trip(

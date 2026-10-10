@@ -34,6 +34,7 @@ const ds4 = (over: Partial<PadInfo> = {}): PadInfo => ({
 	guid: 'g',
 	motors: 2,
 	triggers: false,
+	lightBinary: false,
 	topTier: 2,
 	backend: 'evdev',
 	...over,

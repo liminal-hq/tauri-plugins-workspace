@@ -19,6 +19,8 @@ export interface PadInfo {
 	guid: string;
 	motors: 0 | 1 | 2;
 	triggers: boolean;
+	/** The light motor only switches on and off, so the plugin pulses it to approximate strengths. */
+	lightBinary: boolean;
 	topTier: Tier;
 	reason?: string;
 	backend: string;

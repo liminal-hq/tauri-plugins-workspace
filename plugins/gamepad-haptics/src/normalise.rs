@@ -153,6 +153,103 @@ fn downgrade(frames: &mut [Frame], top_tier: u8, reasons: &mut Vec<String>) {
     }
 }
 
+/// How long a light motor that only switches on and off must run for a person to feel it. A
+/// DualShock 3 does not spin up in 40 ms; 100 ms is felt.
+pub const MIN_LIGHT_PULSE_MS: u64 = 100;
+
+/// The time step shaping works in.
+const CELL_MS: u64 = 10;
+
+/// Shapes the light motor for a pad whose light motor only switches on and off. Levels in between
+/// become pulses of at least `min_pulse_ms` whose share of the time matches the level, a short
+/// strong onset becomes one full pulse, and a level too faint to ever fill a pulse is dropped.
+/// A pulse that runs past the end of the frames extends them, up to `max_total_ms`. The other
+/// motors and the timing of everything else are unchanged.
+pub fn shape_binary_light(frames: &[Frame], min_pulse_ms: u64, max_total_ms: u64) -> Vec<Frame> {
+    let mut out: Vec<Frame> = Vec::new();
+    let mut push = |template: &Frame, duration_ms: u64, light: f64| {
+        let next = Frame {
+            duration_ms,
+            light,
+            ..template.clone()
+        };
+        match out.last_mut() {
+            Some(last) if same_levels(last, &next) => last.duration_ms += duration_ms,
+            _ => out.push(next),
+        }
+    };
+
+    let min = min_pulse_ms as f64;
+    let mut credit = 0.0_f64;
+    let mut on_left: u64 = 0;
+    let mut previous_light = 0.0_f64;
+    let mut elapsed: u64 = 0;
+    let mut last_template = None;
+
+    for frame in frames {
+        let mut left = frame.duration_ms;
+        while left > 0 {
+            let step = left.min(CELL_MS);
+            left -= step;
+            elapsed += step;
+            let want = frame.light;
+
+            if on_left == 0 {
+                if want == 0.0 {
+                    credit = 0.0;
+                } else {
+                    // A strong onset starts a pulse at once; weaker levels build up to one.
+                    if want >= 0.5 && previous_light < 0.5 {
+                        credit = credit.max(min);
+                    }
+                    credit += want * step as f64;
+                    if credit >= min {
+                        credit -= min;
+                        on_left = min_pulse_ms;
+                    }
+                }
+            } else {
+                credit += want * step as f64;
+            }
+
+            let light = if on_left > 0 {
+                on_left = on_left.saturating_sub(step);
+                1.0
+            } else {
+                0.0
+            };
+            push(frame, step, light);
+            previous_light = want;
+        }
+        last_template = Some(frame);
+    }
+
+    // A pulse still running at the end carries on past the last frame.
+    if on_left > 0 {
+        if let Some(template) = last_template {
+            let room = max_total_ms.saturating_sub(elapsed);
+            let extra = on_left.min(room);
+            if extra > 0 {
+                let silent = Frame {
+                    heavy: 0.0,
+                    left_trigger: template.left_trigger.map(|_| 0.0),
+                    right_trigger: template.right_trigger.map(|_| 0.0),
+                    ..template.clone()
+                };
+                push(&silent, extra, 1.0);
+            }
+        }
+    }
+    out
+}
+
+fn same_levels(a: &Frame, b: &Frame) -> bool {
+    a.heavy == b.heavy
+        && a.light == b.light
+        && a.left_trigger == b.left_trigger
+        && a.right_trigger == b.right_trigger
+}
+
 /// Validates `args`, then decides what `pad` plays. Validation comes first, so a scale of 0 or a
 /// pad that cannot play never lets an invalid request through.
 pub fn plan_play(
@@ -180,6 +277,16 @@ pub fn plan_play(
     let mut frames = args.frames.clone();
     apply_scale(&mut frames, scale);
     downgrade(&mut frames, pad.top_tier, &mut reasons);
+    if pad.light_binary && pad.top_tier >= 2 {
+        let shaped = shape_binary_light(&frames, MIN_LIGHT_PULSE_MS, limits.max_duration_ms);
+        if shaped != frames {
+            reasons.push(
+                "Light motor only switches on and off, so it was pulsed to approximate the strength"
+                    .to_string(),
+            );
+            frames = shaped;
+        }
+    }
     let (frames, cut) = cap_continuous(frames, limits.max_continuous_ms);
     if cut {
         reasons.push(format!(
@@ -230,6 +337,7 @@ pub(crate) fn test_pad(top_tier: u8) -> PadInfo {
         guid: "030000004c050000c405000000000000".into(),
         motors: if top_tier >= 2 { 2 } else { 1 },
         triggers: top_tier >= 3,
+        light_binary: false,
         top_tier,
         reason: None,
         backend: "mock".into(),
@@ -390,6 +498,139 @@ mod tests {
             .unwrap(),
         );
         assert_eq!(play.frames[0].heavy, 0.25);
+    }
+
+    fn binary_pad() -> PadInfo {
+        PadInfo {
+            light_binary: true,
+            ..test_pad(2)
+        }
+    }
+
+    fn light_runs(frames: &[Frame]) -> Vec<u64> {
+        let mut runs = Vec::new();
+        let mut run = 0;
+        for f in frames {
+            if f.light > 0.0 {
+                run += f.duration_ms;
+            } else if run > 0 {
+                runs.push(run);
+                run = 0;
+            }
+        }
+        if run > 0 {
+            runs.push(run);
+        }
+        runs
+    }
+
+    #[test]
+    fn a_short_sharp_tap_on_a_binary_light_motor_becomes_one_full_pulse() {
+        let frames = vec![frame(40, 0.0, 1.0), frame(160, 0.0, 0.0)];
+        let (play, reasons) =
+            played(plan_play(&args(frames, None), &binary_pad(), &limits(), 1.0).unwrap());
+        assert_eq!(
+            play.frames,
+            vec![frame(100, 0.0, 1.0), frame(100, 0.0, 0.0)]
+        );
+        assert_eq!(reasons.len(), 1);
+    }
+
+    #[test]
+    fn a_pulse_at_the_end_extends_the_pattern_within_the_limit() {
+        let wide = Limits {
+            max_duration_ms: 3_000,
+            max_continuous_ms: 2_000,
+        };
+        let (play, _) = played(
+            plan_play(
+                &args(vec![frame(40, 0.0, 1.0)], None),
+                &binary_pad(),
+                &wide,
+                1.0,
+            )
+            .unwrap(),
+        );
+        assert_eq!(play.frames, vec![frame(100, 0.0, 1.0)]);
+
+        let tight = Limits {
+            max_duration_ms: 60,
+            max_continuous_ms: 60,
+        };
+        let (play, _) = played(
+            plan_play(
+                &args(vec![frame(40, 0.0, 1.0)], None),
+                &binary_pad(),
+                &tight,
+                1.0,
+            )
+            .unwrap(),
+        );
+        assert_eq!(play.frames, vec![frame(60, 0.0, 1.0)]);
+    }
+
+    #[test]
+    fn full_and_off_light_levels_pass_through_without_a_reason() {
+        let frames = vec![frame(300, 0.0, 1.0), frame(100, 0.0, 0.0)];
+        let wide = Limits {
+            max_duration_ms: 3_000,
+            max_continuous_ms: 2_000,
+        };
+        let (play, reasons) =
+            played(plan_play(&args(frames.clone(), None), &binary_pad(), &wide, 1.0).unwrap());
+        assert_eq!(play.frames, frames);
+        assert!(reasons.is_empty());
+    }
+
+    #[test]
+    fn in_between_light_levels_are_pulsed_in_proportion() {
+        let wide = Limits {
+            max_duration_ms: 3_000,
+            max_continuous_ms: 2_000,
+        };
+        let (play, _) = played(
+            plan_play(
+                &args(vec![frame(1_000, 0.0, 0.3)], None),
+                &binary_pad(),
+                &wide,
+                1.0,
+            )
+            .unwrap(),
+        );
+        let on: u64 = light_runs(&play.frames).iter().sum();
+        assert!((250..=400).contains(&on), "on for {on} ms");
+        assert!(play.frames.iter().all(|f| f.light == 0.0 || f.light == 1.0));
+        assert!(light_runs(&play.frames)
+            .iter()
+            .all(|r| *r >= MIN_LIGHT_PULSE_MS));
+    }
+
+    #[test]
+    fn heavy_motor_and_timing_are_untouched_by_shaping() {
+        let wide = Limits {
+            max_duration_ms: 3_000,
+            max_continuous_ms: 2_000,
+        };
+        let frames: Vec<Frame> = (0..20)
+            .map(|i| frame(50, 1.0 - f64::from(i) / 20.0, f64::from(i) / 20.0))
+            .collect();
+        let (play, _) =
+            played(plan_play(&args(frames.clone(), None), &binary_pad(), &wide, 1.0).unwrap());
+        let total: u64 = play.frames.iter().map(|f| f.duration_ms).sum();
+        assert!((1_000..=1_000 + MIN_LIGHT_PULSE_MS).contains(&total));
+        let mut at = 0;
+        for f in &frames {
+            let mid = at + 25;
+            let shaped = {
+                let mut t = 0;
+                play.frames.iter().find(|p| {
+                    t += p.duration_ms;
+                    t > mid
+                })
+            };
+            assert_eq!(shaped.unwrap().heavy, f.heavy);
+            at += 50;
+        }
     }
 
     #[test]

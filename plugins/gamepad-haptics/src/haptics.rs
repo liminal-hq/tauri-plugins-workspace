@@ -29,15 +29,18 @@ struct Inner {
 impl Inner {
     /// Rescans the pads, silences any that left, and emits what changed.
     fn refresh(&self) {
-        let (events, departed) = match self.registry.lock() {
+        let (events, departed, arrived) = match self.registry.lock() {
             Ok(mut registry) => {
                 let events = registry.refresh(self.backend.name(), self.backend.scan());
-                (events, registry.take_departed())
+                (events, registry.take_departed(), registry.take_arrived())
             }
             Err(_) => return,
         };
         for key in departed {
             self.stepper.stop(&key);
+        }
+        for key in arrived {
+            self.backend.reset(&key);
         }
         for event in events {
             (self.emit)(event);
@@ -236,6 +239,19 @@ mod tests {
             PadEvent::Disconnected { .. }
         ));
         assert!(haptics.list_pads().unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_pad_is_reset_once_when_it_appears_and_not_when_it_stays() {
+        let (haptics, backend, _) = setup(vec![pad("a")]);
+        assert_eq!(backend.resets(), ["a"]);
+        haptics.list_pads().unwrap();
+        assert_eq!(backend.resets(), ["a"]);
+        backend.set_pads(vec![pad("a"), pad("b")]);
+        assert_eq!(backend.resets(), ["a", "b"]);
+        backend.set_pads(vec![pad("b")]);
+        backend.set_pads(vec![pad("a"), pad("b")]);
+        assert_eq!(backend.resets(), ["a", "b", "a"]);
     }
 
     #[test]

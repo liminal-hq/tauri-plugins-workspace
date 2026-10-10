@@ -28,6 +28,9 @@ pub enum Call {
         key: String,
         at_ms: u128,
     },
+    Reset {
+        key: String,
+    },
 }
 
 pub struct MockBackend {
@@ -49,8 +52,28 @@ impl MockBackend {
         }
     }
 
+    /// The sets and silences, without the resets a pad gets when it appears.
     pub fn calls(&self) -> Vec<Call> {
-        self.calls.lock().unwrap().clone()
+        self.calls
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|c| !matches!(c, Call::Reset { .. }))
+            .cloned()
+            .collect()
+    }
+
+    /// The keys of pads that were reset on arrival, in order.
+    pub fn resets(&self) -> Vec<String> {
+        self.calls
+            .lock()
+            .unwrap()
+            .iter()
+            .filter_map(|c| match c {
+                Call::Reset { key } => Some(key.clone()),
+                _ => None,
+            })
+            .collect()
     }
 
     pub fn fail_sets(&self, fail: bool) {
@@ -95,6 +118,12 @@ impl RumbleBackend for MockBackend {
             at_ms: self.started.elapsed().as_millis(),
         });
         Ok(())
+    }
+
+    fn reset(&self, key: &str) {
+        self.calls.lock().unwrap().push(Call::Reset {
+            key: key.to_string(),
+        });
     }
 
     fn watch(&self, notify: Notify) {

@@ -18,6 +18,8 @@ pub struct Registry {
     active: Vec<(String, PadInfo)>,
     /// The backend keys of pads that left in the last refresh.
     departed: Vec<String>,
+    /// The backend keys of pads that appeared in the last refresh.
+    arrived: Vec<String>,
 }
 
 fn info(pad: &DiscoveredPad, slot: u32, backend: &str) -> PadInfo {
@@ -32,6 +34,7 @@ fn info(pad: &DiscoveredPad, slot: u32, backend: &str) -> PadInfo {
         guid: pad.guid.clone(),
         motors: pad.motors,
         triggers: pad.triggers,
+        light_binary: pad.light_binary,
         top_tier: pad.top_tier,
         reason: pad.reason.clone(),
         backend: backend.to_string(),
@@ -44,6 +47,7 @@ impl Registry {
     pub fn refresh(&mut self, backend: &str, scan: Vec<DiscoveredPad>) -> Vec<PadEvent> {
         let mut events = Vec::new();
         self.departed.clear();
+        self.arrived.clear();
 
         let mut seen: Vec<&str> = Vec::new();
         let scan: Vec<&DiscoveredPad> = scan
@@ -81,6 +85,7 @@ impl Registry {
             self.remembered.insert(pad.key.clone(), slot);
             let connected = info(pad, slot, backend);
             self.active.push((pad.key.clone(), connected.clone()));
+            self.arrived.push(pad.key.clone());
             events.push(PadEvent::Connected(connected));
         }
 
@@ -99,6 +104,11 @@ impl Registry {
     /// Takes the keys of the pads that left in the last refresh.
     pub fn take_departed(&mut self) -> Vec<String> {
         std::mem::take(&mut self.departed)
+    }
+
+    /// Takes the keys of the pads that appeared in the last refresh.
+    pub fn take_arrived(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.arrived)
     }
 
     pub fn pads(&self) -> Vec<PadInfo> {
@@ -130,6 +140,7 @@ pub(crate) mod tests {
             guid: "guid".to_string(),
             motors: 2,
             triggers: false,
+            light_binary: false,
             top_tier: 2,
             reason: None,
         }

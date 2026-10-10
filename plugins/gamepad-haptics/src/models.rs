@@ -33,6 +33,10 @@ pub struct PadInfo {
     pub motors: u8,
     /// Whether the pad has trigger motors.
     pub triggers: bool,
+    /// Whether the light motor only switches on and off. The plugin then pulses it to approximate
+    /// in-between strengths.
+    #[serde(default)]
+    pub light_binary: bool,
     /// The highest tier this pad can play: 0 none, 1 single motor, 2 dual motor, 3 triggers.
     pub top_tier: u8,
     /// Why the pad cannot play, when `top_tier` is 0.

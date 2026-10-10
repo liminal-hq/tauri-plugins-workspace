@@ -30,6 +30,8 @@ pub struct DiscoveredPad {
     pub guid: String,
     pub motors: u8,
     pub triggers: bool,
+    /// The light motor only switches on and off.
+    pub light_binary: bool,
     pub top_tier: u8,
     /// Why the pad cannot play, when `top_tier` is 0.
     pub reason: Option<String>,
@@ -51,6 +53,13 @@ pub trait RumbleBackend: Send + Sync + 'static {
 
     /// Stops every motor at once.
     fn silence(&self, key: &str) -> Result<()>;
+
+    /// Called when a pad appears, to clear whatever it was doing before the plugin saw it: some
+    /// pads keep their last rumble command after a cable is pulled. Failures are ignored.
+    fn reset(&self, key: &str) {
+        let _ = self.set(key, Levels::default(), 1);
+        let _ = self.silence(key);
+    }
 
     /// Calls `notify` when pads may have been added or removed. The default does nothing, so
     /// callers still rescan when they list pads.

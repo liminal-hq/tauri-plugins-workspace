@@ -107,6 +107,7 @@ pub fn inspect(path: &Path) -> Option<Found> {
             guid: sdl_guid(id.bus_type().0, id.vendor(), id.product(), id.version()),
             motors: 2,
             triggers: false,
+            light_binary: light_motor_is_binary(id.vendor(), id.product()),
             top_tier,
             reason,
         },
