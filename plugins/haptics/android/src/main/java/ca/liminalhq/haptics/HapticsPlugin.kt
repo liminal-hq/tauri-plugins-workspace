@@ -624,6 +624,7 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
     val comp = VibrationEffect.startComposition()
     var added = 0
     var total = 0L
+    var carriedDelayMs = 0L
 
     for (i in 0 until steps.length()) {
       val step = getObject(steps, i)
@@ -638,8 +639,16 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
         throw IllegalArgumentException("steps[$i]: unknown primitive `$requested`")
       }
       // Kept as a Long until it is known to fit, so a huge delay truncates instead of wrapping.
-      val delayMs = if (step.present("delayMs")) step.getLong("delayMs").coerceAtLeast(0) else 0L
+      val ownDelayMs = if (step.present("delayMs")) step.getLong("delayMs").coerceAtLeast(0) else 0L
       val scale = if (step.present("scale")) step.getDouble("scale").toFloat().coerceIn(0f, 1f) else 1f
+      // A step with no strength plays nothing and uses none of the duration budget; its delay still
+      // counts, so the steps after it keep their place.
+      if (scale == 0f) {
+        carriedDelayMs += ownDelayMs
+        continue
+      }
+      val delayMs = carriedDelayMs + ownDelayMs
+      carriedDelayMs = 0L
 
       // The primitive that plays: the one asked for, or its nearest neighbour on this motor.
       val playable: String = if (support[requested]?.first == true) {

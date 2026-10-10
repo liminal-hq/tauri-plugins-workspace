@@ -318,7 +318,7 @@ describe('limits after serialisation', () => {
 		expect(total).toBeLessThanOrEqual(200);
 	});
 
-	it('drops a primitive that would end past the duration cap and says so', () => {
+	it('steps a primitive that would end past the duration cap down to what fits', () => {
 		const late: Pattern = {
 			format: PATTERN_FORMAT,
 			events: [
@@ -328,10 +328,22 @@ describe('limits after serialisation', () => {
 		};
 		const caps = { ...pixel8Pro, limits: { ...pixel8Pro.limits, maxDurationMs: 100 } };
 		const r = compilePattern(late, caps);
-		const effect = r.request?.effect;
-		expect(effect?.type === 'composition' ? effect.steps : []).toHaveLength(1);
+		expect(r.steps.map((s) => s.request.effect.type)).toEqual(['composition', 'waveform']);
+		expect(r.notes).toContain('click would run past the limit; that event drops to tier 2');
 		expect(r.notes).toContain('Truncated to 100 ms');
 		expect(r.estimatedMs).toBeLessThanOrEqual(100);
+	});
+
+	it('still plays a transient that starts 1 ms before the limit', () => {
+		const end: Pattern = {
+			format: PATTERN_FORMAT,
+			events: [{ type: 'transient', at: 99, intensity: 0.8, sharpness: 0.8 }],
+		};
+		const caps = { ...pixel8Pro, limits: { ...pixel8Pro.limits, maxDurationMs: 100 } };
+		const r = compilePattern(end, caps, { tier: 3 });
+		expect(r.steps).toHaveLength(1);
+		expect(r.steps[0].request.effect.type).toBe('waveform');
+		expect(r.estimatedMs).toBe(100);
 	});
 
 	it('treats a non-finite scale as full strength', () => {

@@ -324,6 +324,11 @@ function compilePrimitives(cx: Context): Emitted {
 	let primitiveEnd = 0;
 	let primitiveTotal = 0;
 
+	const fallbackTier = cx.caps.hasAmplitudeControl ? 2 : 1;
+	/** The amplitude form of an event, cut to the limit; what plays when a primitive cannot. */
+	const fallbackSegments = (ev: PatternEvent) =>
+		applyCaps(amplitudeSegments(ev, cx.caps, cx.scale, cx.maxAmp), cx.maxMs, cx.maxAmp);
+
 	for (const ev of cx.events) {
 		if (ev.at >= cx.maxMs) {
 			cut = true;
@@ -331,32 +336,34 @@ function compilePrimitives(cx: Context): Emitted {
 		}
 		const wanted = pickPrimitive(ev);
 		const resolved = resolvePrimitive(cx.caps, wanted);
+		let scale = 0;
+		let fits = false;
+		let dur = 0;
+		let delayMs = 0;
 		if (resolved) {
 			const level =
 				ev.type === 'transient' ? ev.intensity : peak((ev as ContinuousEvent).intensity);
-			const scale = clamp01(level * cx.scale);
+			scale = clamp01(level * cx.scale);
 			// A primitive with no strength plays nothing, so it is left out instead of sent.
 			if (scale === 0) continue;
-			const dur = primitiveMs(cx.caps, resolved.id);
-			const delayMs = Math.max(0, round(ev.at - primitiveEnd));
-			if (primitiveTotal + delayMs + dur > cx.maxMs) {
-				cut = true;
-				continue;
-			}
+			dur = primitiveMs(cx.caps, resolved.id);
+			delayMs = Math.max(0, round(ev.at - primitiveEnd));
+			fits = primitiveTotal + delayMs + dur <= cx.maxMs;
+		}
+		if (resolved && fits) {
 			primitiveTotal += delayMs + dur;
 			primitiveEnd = Math.max(primitiveEnd, ev.at) + dur;
 			items.push({ kind: 'primitive', ev, id: resolved.id, scale });
 			if (resolved.note) notes.push(resolved.note);
 		} else {
-			const capped = applyCaps(
-				amplitudeSegments(ev, cx.caps, cx.scale, cx.maxAmp),
-				cx.maxMs,
-				cx.maxAmp
-			);
+			// No primitive, or none that fits before the limit: step the event down rather than drop it.
+			const capped = fallbackSegments(ev);
 			cut = cut || capped.cut;
 			items.push({ kind: 'amplitude', ev, segs: capped.segs });
 			notes.push(
-				`No ${wanted} or neighbour; that event drops to tier ${cx.caps.hasAmplitudeControl ? 2 : 1}`
+				resolved
+					? `${wanted} would run past the limit; that event drops to tier ${fallbackTier}`
+					: `No ${wanted} or neighbour; that event drops to tier ${fallbackTier}`
 			);
 		}
 	}
@@ -392,6 +399,17 @@ function compilePrimitives(cx: Context): Emitted {
 		// Each step cancels the one before it, so steps start after the previous one ends, and one
 		// that would run past the cap once placed is dropped.
 		let end = 0;
+		const emitFallback = (segs: Segment[]) => {
+			// Without amplitude control the device plays these at one strength, so emit on/off pulses.
+			const plan = cx.caps.hasAmplitudeControl ? segs : dutyCycle(segs).on;
+			if (!plan.length) return;
+			const origin = Math.max(round(plan[0].at), end);
+			const built = waveformRequest(plan, origin, cx.caps.hasAmplitudeControl, cx.base, cx.maxMs);
+			cut = cut || built.cut;
+			if (built.end <= origin) return;
+			steps.push({ atMs: origin, request: built.request });
+			end = built.end;
+		};
 		for (const item of items) {
 			if (steps.length >= MAX_STEPS) {
 				stepsCut = true;
@@ -401,7 +419,10 @@ function compilePrimitives(cx: Context): Emitted {
 				const start = Math.max(round(item.ev.at), end);
 				const dur = primitiveMs(cx.caps, item.id);
 				if (start + dur > cx.maxMs) {
+					// Serialised past the limit: play what fits of it as the amplitude form.
+					const capped = fallbackSegments(item.ev);
 					cut = true;
+					emitFallback(capped.segs);
 					continue;
 				}
 				steps.push({
@@ -416,15 +437,7 @@ function compilePrimitives(cx: Context): Emitted {
 				});
 				end = start + dur;
 			} else if (item.segs.length) {
-				// Without amplitude control the device plays these at one strength, so emit on/off pulses.
-				const plan = cx.caps.hasAmplitudeControl ? item.segs : dutyCycle(item.segs).on;
-				if (!plan.length) continue;
-				const origin = Math.max(round(plan[0].at), end);
-				const built = waveformRequest(plan, origin, cx.caps.hasAmplitudeControl, cx.base, cx.maxMs);
-				cut = cut || built.cut;
-				if (built.end <= origin) continue;
-				steps.push({ atMs: origin, request: built.request });
-				end = built.end;
+				emitFallback(item.segs);
 			}
 		}
 	}
