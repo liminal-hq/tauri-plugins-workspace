@@ -100,6 +100,18 @@ Every call resolves with the tier that actually played, and says why when it had
 
 Pattern policies are `interrupt` (default), `queue` (four deep), `drop-if-busy` and `{ coalesce: ms }`. The `ui` lane always follows the system touch-feedback setting and ignores the master scale, policies and tier cap.
 
+### Where requests are validated
+
+The plugin's Rust layer validates every raw request (`play` and `play_steps`) on every platform, before anything else happens to it. A request that no device could play rejects with `INVALID_EFFECT`, and it rejects the same way whatever the master scale, the `setMaxTier` cap or the hardware is, so an invalid request never succeeds quietly on a device without a vibrator or at a scale of 0. The rules are:
+
+- One-shots need a positive duration and, when given, an amplitude within 1 to 255.
+- Waveforms need at least one non-zero timing, amplitudes (when given) within 0 to 255 and one per timing, and a `repeat` of -1 or an index into `timingsMs`.
+- Predefined effects and composition primitives must be known ids, and a composition step's `scale` must be within 0 to 1.
+- Envelopes need at least one control point, amplitudes within 0 to 1, positive frequencies and durations, and a total that fits `maxDurationMs`; an envelope is never shortened, because a shorter point can fall under the device's minimum.
+- A step list needs between 1 and 512 steps, each starting before `maxDurationMs`, and each step may only use the time left after its start.
+
+Only after validation does the Rust layer apply the master scale and the tier cap, then truncate one-shots and waveforms to `maxDurationMs` and drop repeats the config does not allow. Each change is reported in `reason`. What depends on the device, such as primitive substitution, the amplitude-control fallback and the API-level fallbacks, stays in the Android plugin.
+
 The pure pattern logic (validation, compiler, scheduler and tables) lives in `guest-js/pattern/` and imports nothing from `@tauri-apps/*`, so it can be extracted into its own package later.
 
 ## Configuration
