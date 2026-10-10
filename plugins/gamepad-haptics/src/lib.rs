@@ -9,9 +9,16 @@ use tauri::{
 };
 
 mod commands;
+pub mod config;
+#[cfg(test)]
+mod conformance;
 mod error;
 mod haptics;
 pub mod models;
+pub mod normalise;
+#[cfg(test)]
+mod props;
+pub mod validate;
 
 pub use error::{Error, Result};
 pub use haptics::GamepadHaptics;

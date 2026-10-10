@@ -53,6 +53,7 @@ mod tests {
             .play_frames(PlayFramesArgs {
                 pad_id: "gamepad:0".into(),
                 frames: Vec::new(),
+                scale: None,
             })
             .expect("play resolves");
         assert_eq!(res.tier, 0);
