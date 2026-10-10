@@ -155,9 +155,10 @@ function waveformRequest(
 	withAmplitudes: boolean,
 	base: RequestBase,
 	maxMs: number
-): { request: EffectRequest; end: number } {
+): { request: EffectRequest; end: number; placed: Segment[] } {
 	const timingsMs: number[] = [];
 	const amplitudes: number[] = [];
+	const placed: Segment[] = [];
 	let cursor = Math.round(origin);
 	for (const s of segs) {
 		const start = Math.max(round(s.at), cursor);
@@ -165,6 +166,7 @@ function waveformRequest(
 		const dur = Math.min(Math.max(1, round(s.dur)), maxMs - start);
 		timingsMs.push(start - cursor, dur);
 		amplitudes.push(0, s.amp);
+		placed.push({ at: start, dur, amp: s.amp });
 		cursor = start + dur;
 	}
 	const request: EffectRequest = {
@@ -173,7 +175,7 @@ function waveformRequest(
 			? { type: 'waveform', timingsMs, amplitudes, repeat: -1 }
 			: { type: 'waveform', timingsMs, repeat: -1 },
 	};
-	return { request, end: cursor };
+	return { request, end: cursor, placed };
 }
 
 type RequestBase = Pick<EffectRequest, 'id' | 'usage' | 'respectSystemSettings'>;
@@ -474,8 +476,10 @@ function compileAmplitude(cx: Context, given?: Segment[]): Attempt {
 	if (cut) notes.push(`Truncated to ${cx.maxMs} ms`);
 	notes.push(`${segs.length} one-shot segments, neighbours within ${MERGE_WITHIN} merged`);
 
-	const request = segs.length ? waveformRequest(segs, 0, true, cx.base, cx.maxMs).request : null;
-	const segments = toSegmentReport(segs, 2);
+	// The report follows what plays: overlapping segments are moved behind the ones before them.
+	const built = segs.length ? waveformRequest(segs, 0, true, cx.base, cx.maxMs) : null;
+	const request = built?.request ?? null;
+	const segments = toSegmentReport(built?.placed ?? [], 2);
 	return {
 		tier: 2,
 		estimatedMs: endMs(segments),

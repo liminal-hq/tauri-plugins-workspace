@@ -134,6 +134,21 @@ describe('mixed patterns', () => {
 });
 
 describe('limits after serialisation', () => {
+	it('reports tier-2 segments where the serialised waveform plays them', () => {
+		const overlap: Pattern = {
+			format: PATTERN_FORMAT,
+			events: [
+				{ type: 'continuous', at: 0, duration: 40, intensity: 0.5, sharpness: 0.5 },
+				{ type: 'continuous', at: 0, duration: 40, intensity: 0.5, sharpness: 0.5 },
+			],
+		};
+		const r = compilePattern(overlap, pixel8Pro, { tier: 2 });
+		const effect = r.request?.effect;
+		const total = effect?.type === 'waveform' ? effect.timingsMs.reduce((a, b) => a + b, 0) : 0;
+		expect(r.estimatedMs).toBe(total);
+		expect(r.segments.map((x) => x.atMs)).toEqual([0, 40]);
+	});
+
 	it('drops a mixed-pattern primitive that would end past the cap once serialised', () => {
 		const caps = {
 			...midRange,

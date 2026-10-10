@@ -403,9 +403,60 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
     class Ready(val built: Built, val usage: String, val stopBefore: Boolean) : Prepared()
   }
 
+  /** The checks that do not depend on the hardware or on any setting. */
+  private fun validateEffect(effectObj: JSObject) {
+    when (val type = effectObj.getString("type")) {
+      "oneshot" -> getLong(effectObj, "durationMs", "duration_ms")
+
+      "waveform" -> {
+        val timings = toLongArray(getArray(effectObj, "timingsMs", "timings_ms"))
+        if (timings.isEmpty()) throw IllegalArgumentException("timingsMs cannot be empty")
+        if (timings.all { it == 0L }) throw IllegalArgumentException("at least one timing must be non-zero")
+        if (effectObj.present("amplitudes") &&
+          getArray(effectObj, "amplitudes", "amplitudes_ms").length() != timings.size
+        ) {
+          throw IllegalArgumentException("amplitudes must have same length as timingsMs")
+        }
+      }
+
+      "predefined" -> {
+        val id = getString(effectObj, "effectId", "effect_id").lowercase()
+        if (id !in EFFECT_IDS) {
+          throw IllegalArgumentException(
+            "Unknown predefined effect `$id`. Use one of ${EFFECT_IDS.joinToString(", ")}; " +
+              "for a thud use the `thud` composition primitive."
+          )
+        }
+      }
+
+      "composition" -> {
+        val steps = getArray(effectObj, "steps")
+        for (i in 0 until steps.length()) {
+          val step = getObject(steps, i)
+          val kind = step.getString("kind")
+          if (kind != "primitive") {
+            throw IllegalArgumentException(
+              "steps[$i]: unsupported step kind `$kind`. Compositions are primitives only."
+            )
+          }
+          val requested = step.getString("primitive").lowercase()
+          if (requested !in PRIMITIVE_IDS) {
+            throw IllegalArgumentException("steps[$i]: unknown primitive `$requested`")
+          }
+        }
+      }
+
+      "envelopeWaveform" -> validateEnvelopeShape(effectObj)
+
+      else -> throw IllegalArgumentException("Unknown effect type: $type")
+    }
+  }
+
   /** Turns a request into an effect, or says why nothing will play. Throws for invalid input. */
   private fun prepare(args: JSObject, budgetMs: Long = Long.MAX_VALUE): Prepared {
     val effectObj = args.getJSObject("effect") ?: throw IllegalArgumentException("Missing effect payload")
+    // Invalid input rejects on every device, including one that has nothing to vibrate.
+    validateEffect(effectObj)
 
     val requested = (args.getString("usage", cfg.defaultUsage ?: "touch") ?: "touch").lowercase()
     val usage = if (requested in USAGES) requested else "touch"
@@ -573,9 +624,11 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
         } else {
           val ms = PREDEFINED_MS[id] ?: 20L
           if (Build.VERSION.SDK_INT < 29) {
-            Built(predefinedEffect(predefinedConstant(id), ms), 1, ms, listOf("Predefined effects require API 29+; played a pulse"))
+            boundedPredefined(
+              predefinedConstant(id), ms, maxDur, 1, listOf("Predefined effects require API 29+; played a pulse"),
+            )
           } else {
-            Built(predefinedEffect(predefinedConstant(id), ms), minOf(deviceTopTier(), 3), ms)
+            boundedPredefined(predefinedConstant(id), ms, maxDur, minOf(deviceTopTier(), 3))
           }
         }
       }
@@ -583,10 +636,8 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
       "composition" -> {
         if (Build.VERSION.SDK_INT < 30) {
           // Downgrade to a click
-          Built(
-            predefinedEffect(VibrationEffect.EFFECT_CLICK, PREDEFINED_MS.getValue("click")),
-            1,
-            PREDEFINED_MS.getValue("click"),
+          boundedPredefined(
+            VibrationEffect.EFFECT_CLICK, PREDEFINED_MS.getValue("click"), maxDur, 1,
             listOf("Composition requires API 30+"),
           )
         } else {
@@ -602,10 +653,8 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
           } else {
             "Device does not support envelope effects"
           }
-          Built(
-            predefinedEffect(VibrationEffect.EFFECT_TICK, PREDEFINED_MS.getValue("tick")),
-            minOf(deviceTopTier(), 3),
-            PREDEFINED_MS.getValue("tick"),
+          boundedPredefined(
+            VibrationEffect.EFFECT_TICK, PREDEFINED_MS.getValue("tick"), maxDur, minOf(deviceTopTier(), 3),
             listOf(reason),
           )
         } else {
@@ -667,11 +716,8 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
 
     if (added == 0) {
       reasons.add("No playable steps; played a click")
-      return Built(
-        predefinedEffect(VibrationEffect.EFFECT_CLICK, PREDEFINED_MS.getValue("click")),
-        minOf(deviceTopTier(), 3),
-        PREDEFINED_MS.getValue("click"),
-        reasons,
+      return boundedPredefined(
+        VibrationEffect.EFFECT_CLICK, PREDEFINED_MS.getValue("click"), maxDur, minOf(deviceTopTier(), 3), reasons,
       )
     }
     return Built(comp.compose(), 3, total, reasons)
@@ -683,6 +729,26 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
   private fun predefinedEffect(constant: Int, pulseMs: Long): VibrationEffect {
     if (Build.VERSION.SDK_INT >= 29) return VibrationEffect.createPredefined(constant)
     return VibrationEffect.createOneShot(pulseMs, VibrationEffect.DEFAULT_AMPLITUDE)
+  }
+
+  /**
+   * A predefined effect has a fixed length; when the remaining cap is shorter it is replaced by a
+   * one-shot pulse that fits, and the change is reported.
+   */
+  private fun boundedPredefined(
+    constant: Int,
+    ms: Long,
+    maxDur: Long,
+    tier: Int,
+    reasons: List<String> = emptyList(),
+  ): Built {
+    if (ms <= maxDur) return Built(predefinedEffect(constant, ms), tier, ms, reasons)
+    return Built(
+      VibrationEffect.createOneShot(maxDur, VibrationEffect.DEFAULT_AMPLITUDE),
+      minOf(tier, 1),
+      maxDur,
+      reasons + "Truncated to $maxDur ms",
+    )
   }
 
   private fun deviceTopTier(): Int {

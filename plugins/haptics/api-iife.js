@@ -182,6 +182,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
     function waveformRequest(segs, origin, withAmplitudes, base, maxMs) {
         const timingsMs = [];
         const amplitudes = [];
+        const placed = [];
         let cursor = Math.round(origin);
         for (const s of segs) {
             const start = Math.max(round(s.at), cursor);
@@ -190,6 +191,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
             const dur = Math.min(Math.max(1, round(s.dur)), maxMs - start);
             timingsMs.push(start - cursor, dur);
             amplitudes.push(0, s.amp);
+            placed.push({ at: start, dur, amp: s.amp });
             cursor = start + dur;
         }
         const request = {
@@ -198,7 +200,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
                 ? { type: 'waveform', timingsMs, amplitudes, repeat: -1 }
                 : { type: 'waveform', timingsMs, repeat: -1 },
         };
-        return { request, end: cursor };
+        return { request, end: cursor, placed };
     }
     function toSegmentReport(segs, tier) {
         return segs.map((s) => ({
@@ -469,8 +471,10 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         if (cut)
             notes.push(`Truncated to ${cx.maxMs} ms`);
         notes.push(`${segs.length} one-shot segments, neighbours within ${MERGE_WITHIN} merged`);
-        const request = segs.length ? waveformRequest(segs, 0, true, cx.base, cx.maxMs).request : null;
-        const segments = toSegmentReport(segs, 2);
+        // The report follows what plays: overlapping segments are moved behind the ones before them.
+        const built = segs.length ? waveformRequest(segs, 0, true, cx.base, cx.maxMs) : null;
+        const request = built?.request ?? null;
+        const segments = toSegmentReport(built?.placed ?? [], 2);
         return {
             tier: 2,
             estimatedMs: endMs(segments),
