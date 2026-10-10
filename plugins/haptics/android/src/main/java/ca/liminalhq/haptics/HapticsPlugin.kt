@@ -519,7 +519,8 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
           }
           else -> ampRaw.coerceIn(1, maxAmp)
         }
-        Built(VibrationEffect.createOneShot(dur, amp), if (hasAmplitude) 2 else 1, dur, reasons)
+        // Tier 2 only when a strength was asked for and the motor can vary it.
+        Built(VibrationEffect.createOneShot(dur, amp), if (hasAmplitude && ampRaw > 0) 2 else 1, dur, reasons)
       }
 
       "waveform" -> {

@@ -519,6 +519,69 @@
 					"silent": "Nothing in this request has any strength, so nothing plays"
 				}
 			}
+		},
+		{
+			"name": "tier-one-cap-plays-an-on-off-one-shot",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "oneshot",
+					"durationMs": 20
+				}
+			},
+			"controls": {
+				"maxTier": 1
+			},
+			"expect": {
+				"ok": {
+					"normalised": {
+						"type": "oneshot",
+						"durationMs": 20
+					},
+					"reasons": []
+				}
+			}
+		},
+		{
+			"name": "tier-one-cap-plays-an-on-off-waveform",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "waveform",
+					"timingsMs": [0, 20]
+				}
+			},
+			"controls": {
+				"maxTier": 1
+			},
+			"expect": {
+				"ok": {
+					"normalised": {
+						"type": "waveform",
+						"timingsMs": [0, 20]
+					},
+					"reasons": []
+				}
+			}
+		},
+		{
+			"name": "tier-one-cap-silences-an-amplitude-one-shot",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "oneshot",
+					"durationMs": 20,
+					"amplitude": 200
+				}
+			},
+			"controls": {
+				"maxTier": 1
+			},
+			"expect": {
+				"ok": {
+					"silent": "Capped at tier 1 by setMaxTier"
+				}
+			}
 		}
 	]
 }

@@ -110,6 +110,8 @@ The plugin's Rust layer validates every raw request (`play` and `play_steps`) on
 - Envelopes need at least one control point, amplitudes within 0 to 1, positive frequencies and durations, and a total that fits `maxDurationMs`; an envelope is never shortened, because a shorter point can fall under the device's minimum.
 - A step list needs between 1 and 512 steps, each starting before `maxDurationMs`, and each step may only use the time left after its start.
 
+The `setMaxTier` cap classifies a raw request by what it asks for: a one-shot or waveform with no amplitudes is tier 1 on any device, the same one with amplitudes is tier 2 where the motor has amplitude control, a predefined effect is at most tier 3, a composition is tier 3 and an envelope is tier 4. A request above the cap resolves at tier 0 with the reason; it does not step down to a lower form.
+
 Only after validation does the Rust layer apply the master scale and the tier cap, then truncate one-shots and waveforms to `maxDurationMs` and drop repeats the config does not allow. Each change is reported in `reason`. What depends on the device, such as primitive substitution, the amplitude-control fallback and the API-level fallbacks, stays in the Android plugin.
 
 The pure pattern logic (validation, compiler, scheduler and tables) lives in `guest-js/pattern/` and imports nothing from `@tauri-apps/*`, so it can be extracted into its own package later.

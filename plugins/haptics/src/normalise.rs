@@ -73,18 +73,22 @@ pub enum Plan<T> {
 }
 
 /// The tier a request plays at on a device, before any downgrade the hardware forces.
+///
+/// A one-shot or waveform with no amplitude is the on/off form, which is tier 1 on any device;
+/// one that names amplitudes is tier 2 where the motor has amplitude control.
 pub fn effect_tier(effect: &Effect, info: &TierInfo) -> u8 {
+    let amplitude_tier = if info.has_amplitude_control { 2 } else { 1 };
     match effect {
         Effect::EnvelopeWaveform { .. } => 4,
         Effect::Composition { .. } => 3,
         Effect::Predefined { .. } => info.top_tier.min(3),
-        Effect::Oneshot { .. } | Effect::Waveform { .. } => {
-            if info.has_amplitude_control {
-                2
-            } else {
-                1
-            }
+        Effect::Oneshot {
+            amplitude: None, ..
         }
+        | Effect::Waveform {
+            amplitudes: None, ..
+        } => 1,
+        Effect::Oneshot { .. } | Effect::Waveform { .. } => amplitude_tier,
     }
 }
 
@@ -460,6 +464,48 @@ mod tests {
             max_tier: None,
         };
         assert!(plan_play(bad, &controls, &limits(), device).is_err());
+    }
+
+    #[test]
+    fn the_on_off_form_of_an_effect_is_tier_one_on_any_device() {
+        let info = TierInfo {
+            top_tier: 3,
+            has_amplitude_control: true,
+        };
+        let tier = |effect: serde_json::Value| effect_tier(&request(effect).effect, &info);
+
+        assert_eq!(
+            tier(serde_json::json!({ "type": "oneshot", "durationMs": 20 })),
+            1
+        );
+        assert_eq!(
+            tier(serde_json::json!({ "type": "waveform", "timingsMs": [0, 20] })),
+            1
+        );
+        assert_eq!(
+            tier(serde_json::json!({ "type": "oneshot", "durationMs": 20, "amplitude": 200 })),
+            2
+        );
+        assert_eq!(
+            tier(
+                serde_json::json!({ "type": "waveform", "timingsMs": [0, 20], "amplitudes": [0, 200] })
+            ),
+            2
+        );
+        let no_amplitude = TierInfo {
+            top_tier: 1,
+            has_amplitude_control: false,
+        };
+        assert_eq!(
+            effect_tier(
+                &request(
+                    serde_json::json!({ "type": "oneshot", "durationMs": 20, "amplitude": 200 })
+                )
+                .effect,
+                &no_amplitude
+            ),
+            1
+        );
     }
 
     #[test]
