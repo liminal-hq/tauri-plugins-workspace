@@ -1,5 +1,5 @@
 if ('__TAURI__' in window) {
-var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
+var __TAURI_PLUGIN_PHONE_HAPTICS__ = (function (exports, core) {
     'use strict';
 
     // Primitive tables shared by the compiler: durations, amplitude ceilings and neighbours
@@ -1055,7 +1055,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
     /** A 0..1 option, with a missing or non-finite value counting as full strength. */
     const unit = (v) => (Number.isFinite(v) ? clamp01(v) : 1);
     function load() {
-        const next = core.invoke('plugin:haptics|capabilities').then((caps) => {
+        const next = core.invoke('plugin:phone-haptics|capabilities').then((caps) => {
             if (cached === next)
                 loaded = caps;
             return caps;
@@ -1094,7 +1094,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
     async function stop() {
         stopCount++;
         scheduler.stop();
-        await core.invoke('plugin:haptics|stop');
+        await core.invoke('plugin:phone-haptics|stop');
     }
     // ── patterns ──────────────────────────────────────────────────────────────────────────────────
     function assertValid(pattern, caps) {
@@ -1253,10 +1253,10 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         }
     }
     function sendPlay(req, global = {}) {
-        return invalidInput(core.invoke('plugin:haptics|play', { req, ...global }));
+        return invalidInput(core.invoke('plugin:phone-haptics|play', { req, ...global }));
     }
     function sendSteps(steps, global = {}) {
-        return invalidInput(core.invoke('plugin:haptics|play_steps', { steps, ...global }));
+        return invalidInput(core.invoke('plugin:phone-haptics|play_steps', { steps, ...global }));
     }
     /** Plays `{ atMs, request }` steps scheduled natively from one start time. */
     function playSteps(steps) {
@@ -1265,7 +1265,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
     // ── UI lane ───────────────────────────────────────────────────────────────────────────────────
     /** System-style feedback that follows the touch-feedback setting. Not affected by the controls above. */
     function ui(kind) {
-        return invalidInput(core.invoke('plugin:haptics|ui', { kind }));
+        return invalidInput(core.invoke('plugin:phone-haptics|ui', { kind }));
     }
 
     exports.AMPLITUDE_CEILING = AMPLITUDE_CEILING;
@@ -1299,4 +1299,4 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
     return exports;
 
 })({}, __TAURI__.core);
-Object.defineProperty(window.__TAURI__, 'haptics', { value: __TAURI_PLUGIN_HAPTICS__ }) }
+Object.defineProperty(window.__TAURI__, 'phoneHaptics', { value: __TAURI_PLUGIN_PHONE_HAPTICS__ }) }

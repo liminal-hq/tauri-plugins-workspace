@@ -7,8 +7,8 @@ import {
 	EFFECT_IDS,
 	MAX_STEPS,
 	PRIMITIVE_IDS,
-} from '../../../plugins/haptics/guest-js/pattern/tables';
-import type { CompiledStep, EffectRequest } from '../../../plugins/haptics/guest-js/types';
+} from '../../../plugins/phone-haptics/guest-js/pattern/tables';
+import type { CompiledStep, EffectRequest } from '../../../plugins/phone-haptics/guest-js/types';
 
 export type Limits = { maxDurationMs: number };
 

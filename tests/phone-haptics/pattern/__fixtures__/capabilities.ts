@@ -8,7 +8,7 @@ import type {
 	PrimitiveId,
 	PrimitiveSupport,
 	Tier,
-} from '../../../../plugins/haptics/guest-js/types';
+} from '../../../../plugins/phone-haptics/guest-js/types';
 
 const IDS: PrimitiveId[] = ['tick', 'low_tick', 'click', 'thud', 'spin', 'quick_rise', 'slow_rise'];
 

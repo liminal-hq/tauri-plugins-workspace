@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { describe, expect, it } from 'vitest';
-import { placeSteps, playbackEnd } from '../../../plugins/haptics/guest-js/pattern/playback';
-import type { CompiledStep } from '../../../plugins/haptics/guest-js/types';
+import { placeSteps, playbackEnd } from '../../../plugins/phone-haptics/guest-js/pattern/playback';
+import type { CompiledStep } from '../../../plugins/phone-haptics/guest-js/types';
 import { midRange } from './__fixtures__/capabilities';
 
 const step = (atMs: number, effect: CompiledStep['request']['effect']): CompiledStep => ({

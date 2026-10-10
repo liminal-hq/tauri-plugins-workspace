@@ -3,12 +3,12 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { PATTERN_FORMAT } from '../../../../plugins/haptics/guest-js/pattern/types';
+import { PATTERN_FORMAT } from '../../../../plugins/phone-haptics/guest-js/pattern/types';
 import type {
 	CurvePoint,
 	Pattern,
 	PatternEvent,
-} from '../../../../plugins/haptics/guest-js/pattern/types';
+} from '../../../../plugins/phone-haptics/guest-js/pattern/types';
 
 const curve3 = (a: number, b: number, c: number): CurvePoint[] => [
 	{ t: 0, v: a },

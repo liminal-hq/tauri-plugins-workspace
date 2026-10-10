@@ -1,3 +1,3 @@
 import { createConfig } from '../../shared/rollup.config.js';
 
-export default createConfig('haptics');
+export default createConfig('phone-haptics');

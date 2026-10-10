@@ -4,9 +4,12 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MAX_QUEUE, PatternScheduler } from '../../../plugins/haptics/guest-js/pattern/schedule';
-import type { Job, Outcome } from '../../../plugins/haptics/guest-js/pattern/schedule';
-import type { Policy } from '../../../plugins/haptics/guest-js/pattern/types';
+import {
+	MAX_QUEUE,
+	PatternScheduler,
+} from '../../../plugins/phone-haptics/guest-js/pattern/schedule';
+import type { Job, Outcome } from '../../../plugins/phone-haptics/guest-js/pattern/schedule';
+import type { Policy } from '../../../plugins/phone-haptics/guest-js/pattern/types';
 
 type Played = { at: number; scale: number };
 

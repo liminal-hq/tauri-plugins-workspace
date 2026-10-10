@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { describe, it, expect } from 'vitest';
-import { placeSteps, playbackEnd } from '../../../plugins/haptics/guest-js/pattern/playback';
-import { compilePattern } from '../../../plugins/haptics/guest-js/pattern/compile';
+import { placeSteps, playbackEnd } from '../../../plugins/phone-haptics/guest-js/pattern/playback';
+import { compilePattern } from '../../../plugins/phone-haptics/guest-js/pattern/compile';
 import {
 	fixtures,
 	envelopeDevice,
@@ -15,9 +15,9 @@ import {
 	desktop,
 } from './__fixtures__/capabilities';
 import { seedCues } from './__fixtures__/cues';
-import { PATTERN_FORMAT } from '../../../plugins/haptics/guest-js/pattern/types';
-import type { Pattern } from '../../../plugins/haptics/guest-js/pattern/types';
-import type { Tier } from '../../../plugins/haptics/guest-js/types';
+import { PATTERN_FORMAT } from '../../../plugins/phone-haptics/guest-js/pattern/types';
+import type { Pattern } from '../../../plugins/phone-haptics/guest-js/pattern/types';
+import type { Tier } from '../../../plugins/phone-haptics/guest-js/types';
 
 const tiers: Tier[] = [4, 3, 2, 1, 0];
 

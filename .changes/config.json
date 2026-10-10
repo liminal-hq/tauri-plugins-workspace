@@ -67,12 +67,12 @@
 			"path": "./plugins/material-you",
 			"manager": "javascript"
 		},
-		"haptics": {
-			"path": "./plugins/haptics",
+		"phone-haptics": {
+			"path": "./plugins/phone-haptics",
 			"manager": "rust"
 		},
-		"haptics-js": {
-			"path": "./plugins/haptics",
+		"phone-haptics-js": {
+			"path": "./plugins/phone-haptics",
 			"manager": "javascript"
 		},
 		"xdg-portal": {

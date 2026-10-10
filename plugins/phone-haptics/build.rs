@@ -17,7 +17,7 @@ fn main() {
 
 fn inject_android_permissions() -> std::io::Result<()> {
     tauri_plugin::mobile::update_android_manifest(
-        "tauri-plugin-haptics.permissions",
+        "tauri-plugin-phone-haptics.permissions",
         "manifest",
         r#"<uses-permission android:name="android.permission.VIBRATE" />"#.to_string(),
     )
