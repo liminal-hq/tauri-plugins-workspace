@@ -127,7 +127,7 @@ This is a `pnpm` workspace monorepo.
 
 ## Best Practices
 
-- **NO BARREL FILES:** Do not use `index.ts` re-export barrels.
+- **NO BARREL FILES:** Do not use `index.ts` re-export barrels. The one exception is a plugin's `guest-js/index.ts`, the package entry point Tauri's guest bindings are built from, which may re-export that plugin's public API.
 - **DIRECT IMPORTS:** Import directly from concrete module paths.
 - **REUSE HELPERS:** Check `shared/` and plugin-local helpers before adding duplicate logic.
 - **API STABILITY:** Keep Rust command names and guest JS APIs stable once released.
