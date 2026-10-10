@@ -98,10 +98,9 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
 
   override fun load(webView: WebView) {
     this.webView = webView
-    // Pull config from tauri.conf.json if present
-    runCatching { getConfig(PluginConfigArgs::class.java) }.onSuccess {
-      cfg = it
-    }
+    // Pull config from tauri.conf.json if present. Without a `plugins.haptics` entry the config
+    // comes back null, and the defaults already in `cfg` stay.
+    runCatching { getConfig(PluginConfigArgs::class.java) }.getOrNull()?.let { cfg = it }
   }
 
   @Command
