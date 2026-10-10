@@ -160,6 +160,48 @@ describe('tier 2 without amplitude control', () => {
 	});
 });
 
+describe('mixed patterns without amplitude control', () => {
+	const caps = {
+		...midRange,
+		hasAmplitudeControl: false,
+		primitives: {
+			...midRange.primitives,
+			spin: { supported: false, durationMs: null },
+			quick_rise: { supported: false, durationMs: null },
+		},
+	};
+	const mixed: Pattern = {
+		format: PATTERN_FORMAT,
+		events: [
+			{ type: 'transient', at: 0, intensity: 0.8, sharpness: 0.8 },
+			{ type: 'continuous', at: 100, duration: 120, intensity: 0.6, sharpness: 0.5 },
+		],
+	};
+
+	it('emits the fallback as on/off pulses and reports them at tier 1', () => {
+		const r = compilePattern(mixed, caps);
+		expect(r.mixed).toBe(true);
+		const waveform = r.steps.map((s) => s.request.effect).find((e) => e.type === 'waveform');
+		expect(waveform && 'amplitudes' in waveform ? waveform.amplitudes : undefined).toBeUndefined();
+		expect(
+			r.segments.filter((s) => s.tier !== 3).every((s) => s.tier === 1 && s.amplitude === 1)
+		).toBe(true);
+		expect(r.notes.some((n) => n.endsWith('drops to tier 1'))).toBe(true);
+	});
+
+	it('compiles a pattern with no usable primitive as on/off', () => {
+		const none = {
+			...caps,
+			primitives: Object.fromEntries(
+				Object.entries(caps.primitives).map(([k]) => [k, { supported: false, durationMs: null }])
+			),
+		} as typeof caps;
+		const r = compilePattern(mixed, none, { tier: 3 });
+		expect(r.tier).toBe(1);
+		expect(r.segments.every((s) => s.tier === 1)).toBe(true);
+	});
+});
+
 describe('limits after serialisation', () => {
 	it('reports tier-2 segments where the serialised waveform plays them', () => {
 		const overlap: Pattern = {

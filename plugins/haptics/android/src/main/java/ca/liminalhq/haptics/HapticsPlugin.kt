@@ -555,17 +555,20 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
         val support = if (Build.VERSION.SDK_INT >= 30) {
           runCatching { vibrator.areEffectsSupported(predefinedConstant(id)).firstOrNull() }.getOrNull()
         } else null
+        val ms = PREDEFINED_MS[id] ?: 20L
         if (support == Vibrator.VIBRATION_EFFECT_SUPPORT_NO) {
-          Built(null, 0, 0, listOf("This device does not support the predefined effect `$id`"))
+          // No hardware version, but the system plays a generic pattern for a predefined effect, so
+          // it still plays; it is reported as a downgrade.
+          boundedPredefined(
+            predefinedConstant(id), ms, maxDur, 1,
+            listOf("No native `$id` on this device; the system's generic pattern plays"),
+          )
+        } else if (Build.VERSION.SDK_INT < 29) {
+          boundedPredefined(
+            predefinedConstant(id), ms, maxDur, 1, listOf("Predefined effects require API 29+; played a pulse"),
+          )
         } else {
-          val ms = PREDEFINED_MS[id] ?: 20L
-          if (Build.VERSION.SDK_INT < 29) {
-            boundedPredefined(
-              predefinedConstant(id), ms, maxDur, 1, listOf("Predefined effects require API 29+; played a pulse"),
-            )
-          } else {
-            boundedPredefined(predefinedConstant(id), ms, maxDur, minOf(deviceTopTier(), 3))
-          }
+          boundedPredefined(predefinedConstant(id), ms, maxDur, minOf(deviceTopTier(), 3))
         }
       }
 

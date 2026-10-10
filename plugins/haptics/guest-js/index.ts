@@ -164,7 +164,8 @@ export function unregister(id: string): void {
 	scheduler.cancel(id);
 }
 
-const REASON_NOTES = /missing on this motor|drops to tier 2|over the|Capped|Truncated|No envelope/;
+const REASON_NOTES =
+	/missing on this motor|drops to tier [12]|over the|Capped|Truncated|No envelope/;
 
 function silent(reason: string, decision?: Decision, tier: Tier = 0): PlayResult {
 	return {
@@ -221,7 +222,8 @@ export async function trigger(id: string, opts: TriggerOptions = {}): Promise<Pl
 	});
 
 	if (outcome.result) return { ...outcome.result, policy: outcome.policy };
-	return silent('', outcome.policy, first.tier);
+	// Nothing was sent to the device for this trigger, so no tier played.
+	return silent('', outcome.policy);
 }
 
 function withNotes(res: PlayResult, report: CompileReport, caps: Capabilities): PlayResult {

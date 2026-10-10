@@ -346,7 +346,9 @@ function compilePrimitives(cx: Context): Emitted {
 			);
 			cut = cut || capped.cut;
 			items.push({ kind: 'amplitude', ev, segs: capped.segs });
-			notes.push(`No ${wanted} or neighbour; that event drops to tier 2`);
+			notes.push(
+				`No ${wanted} or neighbour; that event drops to tier ${cx.caps.hasAmplitudeControl ? 2 : 1}`
+			);
 		}
 	}
 
@@ -356,9 +358,12 @@ function compilePrimitives(cx: Context): Emitted {
 	if (!primitiveItems.length) {
 		// Nothing needed a primitive the motor has, so the whole pattern is tier 2.
 		const segs = items.flatMap((i) => (i.kind === 'amplitude' ? i.segs : []));
-		const amplitude = compileAmplitude({ ...cx, events: [] }, segs);
-		if (cut || amplitude.cut) notes.push(`Truncated to ${cx.maxMs} ms`);
-		return { ...withoutCut(amplitude), notes, tier: 2 };
+		// Without amplitude control the fallback is on/off, which is what the device plays.
+		const fallback = cx.caps.hasAmplitudeControl
+			? compileAmplitude({ ...cx, events: [] }, segs)
+			: compileOnOff({ ...cx, events: [] }, segs);
+		if (cut || fallback.cut) notes.push(`Truncated to ${cx.maxMs} ms`);
+		return { ...withoutCut(fallback), notes };
 	}
 
 	const steps: CompiledStep[] = [];
@@ -402,8 +407,11 @@ function compilePrimitives(cx: Context): Emitted {
 				});
 				end = start + dur;
 			} else if (item.segs.length) {
-				const origin = Math.max(round(item.segs[0].at), end);
-				const built = waveformRequest(item.segs, origin, true, cx.base, cx.maxMs);
+				// Without amplitude control the device plays these at one strength, so emit on/off pulses.
+				const plan = cx.caps.hasAmplitudeControl ? item.segs : dutyCycle(item.segs).on;
+				if (!plan.length) continue;
+				const origin = Math.max(round(plan[0].at), end);
+				const built = waveformRequest(plan, origin, cx.caps.hasAmplitudeControl, cx.base, cx.maxMs);
 				cut = cut || built.cut;
 				if (built.end <= origin) continue;
 				steps.push({ atMs: origin, request: built.request });
@@ -446,16 +454,8 @@ function compileAmplitude(cx: Context, given?: Segment[]): Emitted & { cut: bool
 	};
 }
 
-function compileOnOff(cx: Context): Emitted {
-	const notes: string[] = [];
-	const quiet = compileAmplitude(cx);
-	// The amplitude plan as it plays, so the duty cycle follows the serialised segments.
-	const source = placeSteps(quiet.steps, cx.caps).map((s) => ({
-		at: s.atMs,
-		dur: s.durationMs,
-		amp: round(s.amplitude * 255),
-	}));
-
+/** Turns amplitude segments into full-strength pulses, dropping the ones too quiet to feel. */
+function dutyCycle(source: Segment[]): { on: Segment[]; dropped: number } {
 	const on: Segment[] = [];
 	let dropped = 0;
 	for (const s of source) {
@@ -468,6 +468,20 @@ function compileOnOff(cx: Context): Emitted {
 			on.push({ at: s.at + x, dur: Math.min(s.dur - x, Math.max(MIN_ON_MS, onTime)), amp: 255 });
 		}
 	}
+	return { on, dropped };
+}
+
+function compileOnOff(cx: Context, given?: Segment[]): Emitted & { cut: boolean } {
+	const notes: string[] = [];
+	const quiet = compileAmplitude(cx, given);
+	// The amplitude plan as it plays, so the duty cycle follows the serialised segments.
+	const { on, dropped } = dutyCycle(
+		placeSteps(quiet.steps, cx.caps).map((s) => ({
+			at: s.atMs,
+			dur: s.durationMs,
+			amp: round(s.amplitude * 255),
+		}))
+	);
 	notes.push(`Duty-cycled on a ${DUTY_PERIOD_MS} ms period, minimum on-time ${MIN_ON_MS} ms`);
 	if (dropped) {
 		notes.push(
@@ -476,7 +490,8 @@ function compileOnOff(cx: Context): Emitted {
 	}
 
 	const built = on.length ? waveformRequest(on, 0, false, cx.base, cx.maxMs) : null;
-	if (quiet.cut || built?.cut) notes.push(`Truncated to ${cx.maxMs} ms`);
+	const cut = quiet.cut || (built?.cut ?? false);
+	if (cut) notes.push(`Truncated to ${cx.maxMs} ms`);
 
 	const request = built?.request ?? null;
 	return {
@@ -485,6 +500,7 @@ function compileOnOff(cx: Context): Emitted {
 		notes,
 		steps: request ? [{ atMs: 0, request }] : [],
 		request,
+		cut,
 	};
 }
 
@@ -543,7 +559,7 @@ export function compilePattern(
 	if (!result) {
 		if (target >= 3) result = compilePrimitives(cx);
 		else if (target === 2 && caps.hasAmplitudeControl) result = withoutCut(compileAmplitude(cx));
-		else result = compileOnOff(cx);
+		else result = withoutCut(compileOnOff(cx));
 	}
 
 	// The report is read off the steps, so it can only say what the steps play.

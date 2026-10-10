@@ -79,11 +79,15 @@ const PRIMITIVES: PrimitiveId[] = [
 const device: fc.Arbitrary<Capabilities> = fc
 	.record({
 		base: fc.constantFrom(...Object.values(fixtures)),
+		amplitudeControl: fc.boolean(),
 		maxDurationMs: fc.constantFrom(100, 300, 1000, 10_000),
 		maxAmplitude: fc.constantFrom(255, 128),
 		off: fc.subarray(PRIMITIVES),
 	})
-	.map(({ base, maxDurationMs, maxAmplitude, off }) => {
+	.map(({ base: fixture, amplitudeControl, maxDurationMs, maxAmplitude, off }) => {
+		// Only a device that can vary its strength has amplitude control; keep the tier consistent.
+		const base =
+			fixture.topTier >= 2 ? { ...fixture, hasAmplitudeControl: amplitudeControl } : fixture;
 		const primitives = { ...base.primitives };
 		for (const id of off) primitives[id] = { supported: false, durationMs: null };
 		return { ...base, primitives, limits: { ...base.limits, maxDurationMs, maxAmplitude } };
@@ -151,6 +155,19 @@ describe('compiler properties', () => {
 					expect(s.atMs).toBeLessThan(caps.limits.maxDurationMs);
 					previousEnd = s.atMs + stepLength(s, caps);
 					expect(previousEnd).toBeLessThanOrEqual(caps.limits.maxDurationMs);
+				}
+			}),
+			options
+		);
+	});
+
+	it('emits no amplitude waveform for a device without amplitude control', () => {
+		fc.assert(
+			fc.property(compiled, ({ report, caps }) => {
+				if (caps.hasAmplitudeControl) return;
+				for (const s of report.steps) {
+					const e = s.request.effect;
+					if (e.type === 'waveform') expect(e.amplitudes).toBeUndefined();
 				}
 			}),
 			options

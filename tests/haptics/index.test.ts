@@ -232,6 +232,17 @@ describe('review fixes', () => {
 	});
 });
 
+describe('triggers that do not play', () => {
+	it('report tier 0 for a trigger dropped while the pattern is busy', async () => {
+		await api.register('busy', { ...click, policy: 'drop-if-busy' });
+		const first = await api.trigger('busy');
+		const second = await api.trigger('busy');
+		expect(first.tier).toBeGreaterThan(0);
+		expect(second).toMatchObject({ tier: 0, policy: 'dropped' });
+		expect(commands().filter((c) => c.endsWith('|play'))).toHaveLength(1);
+	});
+});
+
 describe('raw play', () => {
 	const oneShot = { effect: { type: 'oneshot', durationMs: 50, amplitude: 200 } } as const;
 

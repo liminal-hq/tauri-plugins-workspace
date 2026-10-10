@@ -431,7 +431,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
                 const capped = applyCaps(amplitudeSegments(ev, cx.caps, cx.scale, cx.maxAmp), cx.maxMs, cx.maxAmp);
                 cut = cut || capped.cut;
                 items.push({ kind: 'amplitude', ev, segs: capped.segs });
-                notes.push(`No ${wanted} or neighbour; that event drops to tier 2`);
+                notes.push(`No ${wanted} or neighbour; that event drops to tier ${cx.caps.hasAmplitudeControl ? 2 : 1}`);
             }
         }
         const mixed = items.some((i) => i.kind === 'amplitude');
@@ -439,10 +439,13 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         if (!primitiveItems.length) {
             // Nothing needed a primitive the motor has, so the whole pattern is tier 2.
             const segs = items.flatMap((i) => (i.kind === 'amplitude' ? i.segs : []));
-            const amplitude = compileAmplitude({ ...cx, events: [] }, segs);
-            if (cut || amplitude.cut)
+            // Without amplitude control the fallback is on/off, which is what the device plays.
+            const fallback = cx.caps.hasAmplitudeControl
+                ? compileAmplitude({ ...cx, events: [] }, segs)
+                : compileOnOff({ ...cx, events: [] }, segs);
+            if (cut || fallback.cut)
                 notes.push(`Truncated to ${cx.maxMs} ms`);
-            return { ...withoutCut(amplitude), notes, tier: 2 };
+            return { ...withoutCut(fallback), notes };
         }
         const steps = [];
         let request = null;
@@ -487,8 +490,12 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
                     end = start + dur;
                 }
                 else if (item.segs.length) {
-                    const origin = Math.max(round(item.segs[0].at), end);
-                    const built = waveformRequest(item.segs, origin, true, cx.base, cx.maxMs);
+                    // Without amplitude control the device plays these at one strength, so emit on/off pulses.
+                    const plan = cx.caps.hasAmplitudeControl ? item.segs : dutyCycle(item.segs).on;
+                    if (!plan.length)
+                        continue;
+                    const origin = Math.max(round(plan[0].at), end);
+                    const built = waveformRequest(plan, origin, cx.caps.hasAmplitudeControl, cx.base, cx.maxMs);
                     cut = cut || built.cut;
                     if (built.end <= origin)
                         continue;
@@ -525,15 +532,8 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
             cut,
         };
     }
-    function compileOnOff(cx) {
-        const notes = [];
-        const quiet = compileAmplitude(cx);
-        // The amplitude plan as it plays, so the duty cycle follows the serialised segments.
-        const source = placeSteps(quiet.steps, cx.caps).map((s) => ({
-            at: s.atMs,
-            dur: s.durationMs,
-            amp: round(s.amplitude * 255),
-        }));
+    /** Turns amplitude segments into full-strength pulses, dropping the ones too quiet to feel. */
+    function dutyCycle(source) {
         const on = [];
         let dropped = 0;
         for (const s of source) {
@@ -546,12 +546,24 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
                 on.push({ at: s.at + x, dur: Math.min(s.dur - x, Math.max(MIN_ON_MS, onTime)), amp: 255 });
             }
         }
+        return { on, dropped };
+    }
+    function compileOnOff(cx, given) {
+        const notes = [];
+        const quiet = compileAmplitude(cx, given);
+        // The amplitude plan as it plays, so the duty cycle follows the serialised segments.
+        const { on, dropped } = dutyCycle(placeSteps(quiet.steps, cx.caps).map((s) => ({
+            at: s.atMs,
+            dur: s.durationMs,
+            amp: round(s.amplitude * 255),
+        })));
         notes.push(`Duty-cycled on a ${DUTY_PERIOD_MS} ms period, minimum on-time ${MIN_ON_MS} ms`);
         if (dropped) {
             notes.push(`${dropped} quiet segment${dropped > 1 ? 's' : ''} under amplitude ${ON_OFF_FLOOR} dropped`);
         }
         const built = on.length ? waveformRequest(on, 0, false, cx.base, cx.maxMs) : null;
-        if (quiet.cut || built?.cut)
+        const cut = quiet.cut || (built?.cut ?? false);
+        if (cut)
             notes.push(`Truncated to ${cx.maxMs} ms`);
         const request = built?.request ?? null;
         return {
@@ -560,6 +572,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
             notes,
             steps: request ? [{ atMs: 0, request }] : [],
             request,
+            cut,
         };
     }
     // ── entry point ───────────────────────────────────────────────────────────────────────────────
@@ -614,7 +627,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
             else if (target === 2 && caps.hasAmplitudeControl)
                 result = withoutCut(compileAmplitude(cx));
             else
-                result = compileOnOff(cx);
+                result = withoutCut(compileOnOff(cx));
         }
         // The report is read off the steps, so it can only say what the steps play.
         const segments = placeSteps(result.steps, caps);
@@ -1088,7 +1101,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         patterns.delete(id);
         scheduler.cancel(id);
     }
-    const REASON_NOTES = /missing on this motor|drops to tier 2|over the|Capped|Truncated|No envelope/;
+    const REASON_NOTES = /missing on this motor|drops to tier [12]|over the|Capped|Truncated|No envelope/;
     function silent(reason, decision, tier = 0) {
         return {
             ok: true,
@@ -1143,7 +1156,8 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         });
         if (outcome.result)
             return { ...outcome.result, policy: outcome.policy };
-        return silent('', outcome.policy, first.tier);
+        // Nothing was sent to the device for this trigger, so no tier played.
+        return silent('', outcome.policy);
     }
     function withNotes(res, report, caps) {
         const reasons = res.reason ? res.reason.split(' · ') : [];
