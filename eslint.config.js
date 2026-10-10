@@ -38,5 +38,21 @@ export default [
 			'no-console': 'off',
 		},
 	},
+	{
+		// The scheduler uses browser timers, and callback types name their parameters.
+		files: ['plugins/gamepad-haptics/guest-js/**/*.ts', 'tests/gamepad-haptics/**/*.ts'],
+		languageOptions: {
+			globals: {
+				setTimeout: 'readonly',
+				clearTimeout: 'readonly',
+				navigator: 'readonly',
+				window: 'readonly',
+				URL: 'readonly',
+			},
+		},
+		rules: {
+			'no-unused-vars': 'off',
+		},
+	},
 	baseIgnores,
 ];
