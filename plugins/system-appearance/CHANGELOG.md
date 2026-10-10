@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.1]
+
+- [`ae1a21f`](https://github.com/liminal-hq/tauri-plugins-workspace/commit/ae1a21fccba223ac1fb37a9df0656418b094724b) Ships `LICENSE-MIT` and `LICENSE-APACHE` inside each published crate and npm package. The `package.json` `files` lists already named them, but the files were missing from the plugin directories, so the licence texts were not in the packages.
+
 ## [0.1.0]
 
 - [`99386f4`](https://github.com/liminal-hq/tauri-plugins-workspace/commit/99386f4db72d8c713c36ef3035aac9348eacb9d0) Adds the appearance preferences to `system-appearance`: `get_appearance` (`getAppearance()` in JavaScript) reports the colour scheme, accent colour, contrast, reduced motion, reduced transparency, text scale and icon theme with a `revision` and the source that supplied each value, and `system-appearance://appearance-changed` (`onAppearanceChanged()`) pushes changes as they happen. On Linux it reads the `org.freedesktop.appearance` portal settings and the GNOME keys the portal passes through, falling back to `gsettings`, to KDE's `kdeglobals` (watched for changes) and to Cinnamon's schemas. On Windows it reads `UISettings`, `AccessibilitySettings` and the light/dark registry value, and follows their change events. macOS and unsupported platforms report every feature unavailable. `getStatus()` gains `appearanceAvailable` and an `appearance` list that reports each feature's availability with a typed reason; `available`, `reason` and `features` keep describing the titlebar preferences only.

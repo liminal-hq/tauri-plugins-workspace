@@ -1,6 +1,6 @@
 [package]
 name = "tauri-plugin-os-prefs"
-version = "0.1.0"
+version = "0.1.1"
 description = "Tauri plugin that reads the user's operating system preferences, such as the 12/24-hour clock, and pushes changes"
 authors = { workspace = true }
 edition = { workspace = true }

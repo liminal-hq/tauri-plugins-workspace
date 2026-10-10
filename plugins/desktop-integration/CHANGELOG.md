@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.3.1]
+
+- [`ae1a21f`](https://github.com/liminal-hq/tauri-plugins-workspace/commit/ae1a21fccba223ac1fb37a9df0656418b094724b) Ships `LICENSE-MIT` and `LICENSE-APACHE` inside each published crate and npm package. The `package.json` `files` lists already named them, but the files were missing from the plugin directories, so the licence texts were not in the packages.
+
 ## [0.3.0]
 
 - [`95e243c`](https://github.com/liminal-hq/tauri-plugins-workspace/commit/95e243c37aeaed6c8a3a4954c68b462b5eec8541) Updates the `ashpd` dependency to 0.13, enabling only the portal features the plugin uses, so the workspace builds one `ashpd` and one `zbus`.

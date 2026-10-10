@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.5]
+
+- [`ae1a21f`](https://github.com/liminal-hq/tauri-plugins-workspace/commit/ae1a21fccba223ac1fb37a9df0656418b094724b) Ships `LICENSE-MIT` and `LICENSE-APACHE` inside each published crate and npm package. The `package.json` `files` lists already named them, but the files were missing from the plugin directories, so the licence texts were not in the packages.
+
 ## \[0.1.4]
 
 - [`9ca5b53`](https://github.com/liminal-hq/tauri-plugins-workspace/commit/9ca5b53ab786ca77e768b4ba0a795b761f814f57) Fixes `material-you` so it registers its command on every platform instead of Android only. Previously, calling `getMaterialYouColours()` from a desktop (or iOS) app threw a "command not found" error rather than resolving gracefully; it now returns `{ supported: false }` outside Android, matching the plugin's own documented platform-support metadata.
