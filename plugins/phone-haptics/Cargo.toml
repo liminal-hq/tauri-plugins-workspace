@@ -1,5 +1,5 @@
 [package]
-name = "tauri-plugin-haptics"
+name = "tauri-plugin-phone-haptics"
 version = "0.0.0"
 description = "Tauri plugin for authoring and replaying haptic patterns, with capability reporting and graceful downgrades"
 authors = { workspace = true }
@@ -8,7 +8,7 @@ license = { workspace = true }
 rust-version = { workspace = true }
 repository = { workspace = true }
 build = "build.rs"
-links = "tauri-plugin-haptics"
+links = "tauri-plugin-phone-haptics"
 keywords = ["tauri", "plugin", "android", "haptics", "vibration"]
 categories = ["api-bindings"]
 

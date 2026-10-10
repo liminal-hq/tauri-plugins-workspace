@@ -139,7 +139,7 @@ impl<R: Runtime, T: Manager<R>> HapticsExt<R> for T {
 }
 
 pub fn init<R: Runtime>() -> TauriPlugin<R, Option<config::Config>> {
-    Builder::<R, Option<config::Config>>::new("haptics")
+    Builder::<R, Option<config::Config>>::new("phone-haptics")
         .invoke_handler(tauri::generate_handler![
             commands::capabilities,
             commands::play,

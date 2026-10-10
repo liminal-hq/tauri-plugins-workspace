@@ -5,17 +5,17 @@
 
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { compilePattern } from '../../../plugins/haptics/guest-js/pattern/compile';
-import { primitiveMs } from '../../../plugins/haptics/guest-js/pattern/tables';
-import { PATTERN_FORMAT } from '../../../plugins/haptics/guest-js/pattern/types';
-import type { Pattern, PatternEvent } from '../../../plugins/haptics/guest-js/pattern/types';
-import { validatePattern } from '../../../plugins/haptics/guest-js/pattern/validate';
+import { compilePattern } from '../../../plugins/phone-haptics/guest-js/pattern/compile';
+import { primitiveMs } from '../../../plugins/phone-haptics/guest-js/pattern/tables';
+import { PATTERN_FORMAT } from '../../../plugins/phone-haptics/guest-js/pattern/types';
+import type { Pattern, PatternEvent } from '../../../plugins/phone-haptics/guest-js/pattern/types';
+import { validatePattern } from '../../../plugins/phone-haptics/guest-js/pattern/validate';
 import type {
 	Capabilities,
 	CompiledStep,
 	PrimitiveId,
 	Tier,
-} from '../../../plugins/haptics/guest-js/types';
+} from '../../../plugins/phone-haptics/guest-js/types';
 import { checkRequest, checkSteps } from '../conformance/request-rules';
 import { fixtures } from './__fixtures__/capabilities';
 

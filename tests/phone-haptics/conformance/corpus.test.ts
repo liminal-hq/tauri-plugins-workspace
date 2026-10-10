@@ -11,8 +11,8 @@ import {
 	EFFECT_IDS,
 	MAX_STEPS,
 	PRIMITIVE_IDS,
-} from '../../../plugins/haptics/guest-js/pattern/tables';
-import type { CompiledStep, EffectRequest } from '../../../plugins/haptics/guest-js/types';
+} from '../../../plugins/phone-haptics/guest-js/pattern/tables';
+import type { CompiledStep, EffectRequest } from '../../../plugins/phone-haptics/guest-js/types';
 import { checkRequest, checkSteps } from './request-rules';
 
 type Case = {
@@ -27,7 +27,7 @@ type Case = {
 
 const corpus = JSON.parse(
 	readFileSync(
-		new URL('../../../plugins/haptics/tests/conformance/requests.json', import.meta.url),
+		new URL('../../../plugins/phone-haptics/tests/conformance/requests.json', import.meta.url),
 		'utf8'
 	)
 ) as {
@@ -43,18 +43,18 @@ const invoke = vi.fn();
 	},
 };
 
-type Api = typeof import('../../../plugins/haptics/guest-js/index');
+type Api = typeof import('../../../plugins/phone-haptics/guest-js/index');
 let api: Api;
 
 beforeEach(async () => {
 	vi.resetModules();
 	invoke.mockReset();
 	invoke.mockImplementation(async (cmd: string) =>
-		cmd === 'plugin:haptics|capabilities'
+		cmd === 'plugin:phone-haptics|capabilities'
 			? pixel8Pro
 			: { ok: true, tier: 0, target: 'phone', estimatedMs: 0, downgraded: false }
 	);
-	api = await import('../../../plugins/haptics/guest-js/index');
+	api = await import('../../../plugins/phone-haptics/guest-js/index');
 });
 
 describe('corpus constants', () => {
@@ -99,6 +99,9 @@ describe('the guest forwards requests untouched', () => {
 		else await api.playSteps(c.steps as CompiledStep[]);
 
 		expect(invoke).toHaveBeenCalledTimes(1);
-		expect(invoke).toHaveBeenCalledWith(`plugin:haptics|${c.command}`, { ...sent, ...controls });
+		expect(invoke).toHaveBeenCalledWith(`plugin:phone-haptics|${c.command}`, {
+			...sent,
+			...controls,
+		});
 	});
 });

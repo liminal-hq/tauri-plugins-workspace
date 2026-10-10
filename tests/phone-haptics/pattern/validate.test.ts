@@ -8,8 +8,8 @@ import {
 	formatIssues,
 	isPattern,
 	validatePattern,
-} from '../../../plugins/haptics/guest-js/pattern/validate';
-import { PATTERN_FORMAT } from '../../../plugins/haptics/guest-js/pattern/types';
+} from '../../../plugins/phone-haptics/guest-js/pattern/validate';
+import { PATTERN_FORMAT } from '../../../plugins/phone-haptics/guest-js/pattern/types';
 
 const ok = {
 	format: PATTERN_FORMAT,

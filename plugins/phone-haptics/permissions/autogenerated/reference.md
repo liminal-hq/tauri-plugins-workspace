@@ -22,7 +22,7 @@ Default permissions for the haptics plugin
 <tr>
 <td>
 
-`haptics:allow-capabilities`
+`phone-haptics:allow-capabilities`
 
 </td>
 <td>
@@ -35,7 +35,7 @@ Enables the capabilities command without any pre-configured scope.
 <tr>
 <td>
 
-`haptics:deny-capabilities`
+`phone-haptics:deny-capabilities`
 
 </td>
 <td>
@@ -48,7 +48,7 @@ Denies the capabilities command without any pre-configured scope.
 <tr>
 <td>
 
-`haptics:allow-play`
+`phone-haptics:allow-play`
 
 </td>
 <td>
@@ -61,7 +61,7 @@ Enables the play command without any pre-configured scope.
 <tr>
 <td>
 
-`haptics:deny-play`
+`phone-haptics:deny-play`
 
 </td>
 <td>
@@ -74,7 +74,7 @@ Denies the play command without any pre-configured scope.
 <tr>
 <td>
 
-`haptics:allow-play-steps`
+`phone-haptics:allow-play-steps`
 
 </td>
 <td>
@@ -87,7 +87,7 @@ Enables the play_steps command without any pre-configured scope.
 <tr>
 <td>
 
-`haptics:deny-play-steps`
+`phone-haptics:deny-play-steps`
 
 </td>
 <td>
@@ -100,7 +100,7 @@ Denies the play_steps command without any pre-configured scope.
 <tr>
 <td>
 
-`haptics:allow-stop`
+`phone-haptics:allow-stop`
 
 </td>
 <td>
@@ -113,7 +113,7 @@ Enables the stop command without any pre-configured scope.
 <tr>
 <td>
 
-`haptics:deny-stop`
+`phone-haptics:deny-stop`
 
 </td>
 <td>
@@ -126,7 +126,7 @@ Denies the stop command without any pre-configured scope.
 <tr>
 <td>
 
-`haptics:allow-ui`
+`phone-haptics:allow-ui`
 
 </td>
 <td>
@@ -139,7 +139,7 @@ Enables the ui command without any pre-configured scope.
 <tr>
 <td>
 
-`haptics:deny-ui`
+`phone-haptics:deny-ui`
 
 </td>
 <td>

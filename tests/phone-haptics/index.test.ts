@@ -6,8 +6,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { envelopeDevice, pixel8Pro } from './pattern/__fixtures__/capabilities';
 import { seedCues } from './pattern/__fixtures__/cues';
-import { PATTERN_FORMAT } from '../../plugins/haptics/guest-js/pattern/types';
-import type { Capabilities, PlayResult } from '../../plugins/haptics/guest-js/types';
+import { PATTERN_FORMAT } from '../../plugins/phone-haptics/guest-js/pattern/types';
+import type { Capabilities, PlayResult } from '../../plugins/phone-haptics/guest-js/types';
 
 const invoke = vi.fn();
 
@@ -18,7 +18,7 @@ const invoke = vi.fn();
 	},
 };
 
-type Api = typeof import('../../plugins/haptics/guest-js/index');
+type Api = typeof import('../../plugins/phone-haptics/guest-js/index');
 let api: Api;
 let caps: Capabilities;
 
@@ -36,10 +36,10 @@ beforeEach(async () => {
 	invoke.mockReset();
 	caps = pixel8Pro;
 	invoke.mockImplementation(async (cmd: string) => {
-		if (cmd === 'plugin:haptics|capabilities') return caps;
+		if (cmd === 'plugin:phone-haptics|capabilities') return caps;
 		return nativeResult();
 	});
-	api = await import('../../plugins/haptics/guest-js/index');
+	api = await import('../../plugins/phone-haptics/guest-js/index');
 });
 
 afterEach(() => {
@@ -106,7 +106,7 @@ describe('trigger', () => {
 	it('plays a registered pattern through play() and reports the policy', async () => {
 		await api.register('jump', { ...click });
 		const res = await api.trigger('jump');
-		expect(commands()).toContain('plugin:haptics|play');
+		expect(commands()).toContain('plugin:phone-haptics|play');
 		expect(res.ok).toBe(true);
 		expect(res.policy).toBe('played');
 	});
@@ -125,7 +125,7 @@ describe('trigger', () => {
 		await api.register('jump', { ...click });
 		api.setMasterScale(0.5);
 		await api.trigger('jump', { scale: 0.5 });
-		const call = invoke.mock.calls.find((c) => c[0] === 'plugin:haptics|play');
+		const call = invoke.mock.calls.find((c) => c[0] === 'plugin:phone-haptics|play');
 		expect(call?.[1].req.effect.steps[0].scale).toBeCloseTo(0.2);
 	});
 
@@ -155,7 +155,7 @@ describe('trigger', () => {
 			],
 		});
 		const res = await api.trigger('mix');
-		expect(commands()).toContain('plugin:haptics|play_steps');
+		expect(commands()).toContain('plugin:phone-haptics|play_steps');
 		expect(res.reason).toContain('drops to tier 2');
 	});
 
@@ -182,7 +182,7 @@ describe('review fixes', () => {
 		await api.register('copy', original);
 		original.events[0].intensity = 0.1;
 		await api.trigger('copy');
-		const call = invoke.mock.calls.find((c) => c[0] === 'plugin:haptics|play');
+		const call = invoke.mock.calls.find((c) => c[0] === 'plugin:phone-haptics|play');
 		expect(call?.[1].req.effect.steps[0].scale).toBeCloseTo(0.8);
 	});
 
@@ -217,8 +217,8 @@ describe('review fixes', () => {
 		const request = { effect: { type: 'oneshot', durationMs: 20, amplitude: 200 } } as const;
 		await api.play({ ...request });
 		await api.playSteps([{ atMs: 0, request: { ...request } }]);
-		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play', { req: request, scale: 0 });
-		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play_steps', {
+		expect(invoke).toHaveBeenCalledWith('plugin:phone-haptics|play', { req: request, scale: 0 });
+		expect(invoke).toHaveBeenCalledWith('plugin:phone-haptics|play_steps', {
 			steps: [{ atMs: 0, request }],
 			scale: 0,
 		});
@@ -227,7 +227,7 @@ describe('review fixes', () => {
 	it('treats a non-finite trigger scale as full strength', async () => {
 		await api.register('nan', { ...click });
 		await api.trigger('nan', { scale: Number.NaN });
-		const call = invoke.mock.calls.find((c) => c[0] === 'plugin:haptics|play');
+		const call = invoke.mock.calls.find((c) => c[0] === 'plugin:phone-haptics|play');
 		expect(call?.[1].req.effect.steps[0].scale).toBeCloseTo(0.8);
 	});
 });
@@ -235,7 +235,7 @@ describe('review fixes', () => {
 describe('triggers that do not play', () => {
 	it('frees the pattern when the device resolved it silently', async () => {
 		invoke.mockImplementation(async (cmd: string) =>
-			cmd === 'plugin:haptics|capabilities'
+			cmd === 'plugin:phone-haptics|capabilities'
 				? caps
 				: nativeResult({
 						tier: 0,
@@ -281,36 +281,36 @@ describe('raw play', () => {
 		await api.play({ effect: { type: 'oneshot', durationMs: 50, amplitude: 0 } });
 		await api.play({ effect: { type: 'oneshot', durationMs: 50, amplitude: 300 } });
 		const sent = invoke.mock.calls
-			.filter((c) => c[0] === 'plugin:haptics|play')
+			.filter((c) => c[0] === 'plugin:phone-haptics|play')
 			.map((c) => c[1].req.effect.amplitude);
 		expect(sent).toEqual([0, 300]);
 	});
 
 	it('sends the request through unchanged by default', async () => {
 		await api.play({ ...oneShot });
-		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play', { req: oneShot });
+		expect(invoke).toHaveBeenCalledWith('plugin:phone-haptics|play', { req: oneShot });
 	});
 
 	it('forwards the master scale and leaves the request as it was sent', async () => {
 		api.setMasterScale(0.5);
 		await api.play({ ...oneShot });
-		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play', { req: oneShot, scale: 0.5 });
+		expect(invoke).toHaveBeenCalledWith('plugin:phone-haptics|play', { req: oneShot, scale: 0.5 });
 	});
 
 	it('forwards the max tier for the plugin to apply', async () => {
 		api.setMaxTier(2);
 		await api.play({ ...oneShot });
-		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play', { req: oneShot, maxTier: 2 });
+		expect(invoke).toHaveBeenCalledWith('plugin:phone-haptics|play', { req: oneShot, maxTier: 2 });
 		api.setMaxTier(null);
 		await api.play({ ...oneShot });
-		expect(invoke).toHaveBeenLastCalledWith('plugin:haptics|play', { req: oneShot });
+		expect(invoke).toHaveBeenLastCalledWith('plugin:phone-haptics|play', { req: oneShot });
 	});
 });
 
 describe('native errors', () => {
 	const rejectWith = (message: string) =>
 		invoke.mockImplementation(async (cmd: string) => {
-			if (cmd === 'plugin:haptics|capabilities') return caps;
+			if (cmd === 'plugin:phone-haptics|capabilities') return caps;
 			throw message;
 		});
 
@@ -331,7 +331,7 @@ describe('native errors', () => {
 
 	it('keeps a missing permission or a failed bridge apart from invalid input', async () => {
 		rejectWith(
-			'plugin:haptics|play not allowed. Permissions associated with this command: haptics:allow-play'
+			'plugin:phone-haptics|play not allowed. Permissions associated with this command: phone-haptics:allow-play'
 		);
 		await expect(
 			api.play({ effect: { type: 'predefined', effectId: 'click' } })
@@ -351,7 +351,7 @@ describe('playSteps', () => {
 		api.setMasterScale(0.5);
 		api.setMaxTier(3);
 		await api.playSteps([{ ...step }]);
-		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play_steps', {
+		expect(invoke).toHaveBeenCalledWith('plugin:phone-haptics|play_steps', {
 			steps: [step],
 			scale: 0.5,
 			maxTier: 3,
@@ -360,7 +360,7 @@ describe('playSteps', () => {
 
 	it('sends no controls when none are set', async () => {
 		await api.playSteps([{ ...step }]);
-		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play_steps', { steps: [step] });
+		expect(invoke).toHaveBeenCalledWith('plugin:phone-haptics|play_steps', { steps: [step] });
 	});
 });
 
@@ -372,11 +372,11 @@ describe('stop and ui', () => {
 		await vi.advanceTimersByTimeAsync(0);
 		await api.stop();
 		expect((await waiting).policy).toBe('dropped');
-		expect(commands()).toContain('plugin:haptics|stop');
+		expect(commands()).toContain('plugin:phone-haptics|stop');
 	});
 
 	it('passes the UI lane kind to native', async () => {
 		await api.ui('toggle-on');
-		expect(invoke).toHaveBeenCalledWith('plugin:haptics|ui', { kind: 'toggle-on' });
+		expect(invoke).toHaveBeenCalledWith('plugin:phone-haptics|ui', { kind: 'toggle-on' });
 	});
 });

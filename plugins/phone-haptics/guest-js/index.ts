@@ -58,7 +58,7 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const unit = (v: number | undefined): number => (Number.isFinite(v) ? clamp01(v as number) : 1);
 
 function load(): Promise<Capabilities> {
-	const next = invoke<Capabilities>('plugin:haptics|capabilities').then(
+	const next = invoke<Capabilities>('plugin:phone-haptics|capabilities').then(
 		(caps) => {
 			if (cached === next) loaded = caps;
 			return caps;
@@ -103,7 +103,7 @@ export function setMaxTier(t: Tier | null): void {
 export async function stop(): Promise<void> {
 	stopCount++;
 	scheduler.stop();
-	await invoke('plugin:haptics|stop');
+	await invoke('plugin:phone-haptics|stop');
 }
 
 // ── patterns ──────────────────────────────────────────────────────────────────────────────────
@@ -288,14 +288,14 @@ function sendPlay(
 	req: EffectRequest,
 	global: { scale?: number; maxTier?: Tier } = {}
 ): Promise<PlayResult> {
-	return invalidInput(invoke<PlayResult>('plugin:haptics|play', { req, ...global }));
+	return invalidInput(invoke<PlayResult>('plugin:phone-haptics|play', { req, ...global }));
 }
 
 function sendSteps(
 	steps: CompiledStep[],
 	global: { scale?: number; maxTier?: Tier } = {}
 ): Promise<PlayResult> {
-	return invalidInput(invoke<PlayResult>('plugin:haptics|play_steps', { steps, ...global }));
+	return invalidInput(invoke<PlayResult>('plugin:phone-haptics|play_steps', { steps, ...global }));
 }
 
 /** Plays `{ atMs, request }` steps scheduled natively from one start time. */
@@ -307,7 +307,7 @@ export function playSteps(steps: CompiledStep[]): Promise<PlayResult> {
 
 /** System-style feedback that follows the touch-feedback setting. Not affected by the controls above. */
 export function ui(kind: UiKind): Promise<PlayResult> {
-	return invalidInput(invoke<PlayResult>('plugin:haptics|ui', { kind }));
+	return invalidInput(invoke<PlayResult>('plugin:phone-haptics|ui', { kind }));
 }
 
 export type { Decision };
