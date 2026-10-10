@@ -1,6 +1,6 @@
 [package]
 name = "tauri-plugin-window-manager"
-version = "0.0.0"
+version = "0.1.0"
 description = "Tauri plugin that reaches window manager features a webview cannot, such as the compositor's own window menu"
 authors = { workspace = true }
 edition = { workspace = true }

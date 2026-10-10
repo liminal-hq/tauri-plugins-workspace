@@ -1,6 +1,6 @@
 [package]
 name = "tauri-plugin-system-appearance"
-version = "0.0.0"
+version = "0.1.0"
 description = "Tauri plugin that reads the operating system's window titlebar and appearance preferences and pushes changes"
 authors = { workspace = true }
 edition = { workspace = true }
