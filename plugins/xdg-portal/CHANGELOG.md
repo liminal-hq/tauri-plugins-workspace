@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.3.1]
+
+- [`ae1a21f`](https://github.com/liminal-hq/tauri-plugins-workspace/commit/ae1a21fccba223ac1fb37a9df0656418b094724b) Ships `LICENSE-MIT` and `LICENSE-APACHE` inside each published crate and npm package. The `package.json` `files` lists already named them, but the files were missing from the plugin directories, so the licence texts were not in the packages.
+
 ## [0.3.0]
 
 - [`3030fc0`](https://github.com/liminal-hq/tauri-plugins-workspace/commit/3030fc09778cf7d5addcd0731cc03e95e718038b) Notifications can carry action buttons. `sendNotification` in `xdg-portal` and `notify` in `desktop-integration` take an optional `actions` list of `{ id, label }` (at most 3; extras are dropped and logged; ids and labels are validated). `xdg-portal` maps them to the Notification portal's `buttons`, and `desktop-integration` to the `actions` array of `org.freedesktop.Notifications.Notify` after the `default` key. A pressed button, like the default click, arrives through the existing `notification-action` event as `{ id, action }` with the notification's own `id` and the button's id as `action`; `desktop-integration` ignores signals for notifications it did not send. `get_status` gains a `notificationActions` feature: available when the Notification portal is version 1 or later (`xdg-portal`) or the server lists the `actions` capability (`desktop-integration`), otherwise unavailable with the new `actions-unsupported` reason and a `detail` explaining that only the default click is offered. Windows toasts do not show buttons yet and report the feature as unavailable.

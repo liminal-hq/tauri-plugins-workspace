@@ -1,6 +1,6 @@
 [package]
 name = "tauri-plugin-phone-haptics"
-version = "0.1.0"
+version = "0.1.1"
 description = "Tauri plugin for authoring and replaying haptic patterns, with capability reporting and graceful downgrades"
 authors = { workspace = true }
 edition = { workspace = true }

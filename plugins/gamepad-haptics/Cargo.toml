@@ -1,6 +1,6 @@
 [package]
 name = "tauri-plugin-gamepad-haptics"
-version = "0.1.0"
+version = "0.1.1"
 description = "Tauri plugin that plays rumble on gamepads from one pattern language, without reading their input"
 authors = { workspace = true }
 edition = { workspace = true }
