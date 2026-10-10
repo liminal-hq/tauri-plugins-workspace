@@ -36,3 +36,7 @@ proptest = "1"
 
 [build-dependencies]
 tauri-plugin = { workspace = true, features = ["build"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+evdev = "0.13"
+inotify = "0.11"

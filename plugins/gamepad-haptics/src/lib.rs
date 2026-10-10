@@ -10,16 +10,20 @@ use tauri::{
     AppHandle, Emitter, Manager, RunEvent, Runtime, WindowEvent,
 };
 
-use backend::{NullBackend, RumbleBackend};
+#[cfg(not(target_os = "linux"))]
+use backend::NullBackend;
+use backend::RumbleBackend;
 use config::Config;
 
-mod backend;
+pub mod backend;
 mod commands;
 pub mod config;
 #[cfg(test)]
 mod conformance;
 mod error;
 mod haptics;
+#[cfg(target_os = "linux")]
+pub mod linux;
 #[cfg(test)]
 mod mock;
 pub mod models;
@@ -31,7 +35,7 @@ mod registry;
 pub mod validate;
 
 pub use error::{Error, Result};
-pub use haptics::GamepadHaptics;
+pub use haptics::{Emit, GamepadHaptics};
 pub use models::*;
 
 /// Extensions to [`tauri::App`], [`tauri::AppHandle`] and [`tauri::Window`] to access the gamepad-haptics APIs.
@@ -95,5 +99,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R, Option<Config>> {
 /// The backend for this platform. Platforms without a native path find no pads, and the guest
 /// falls back to the webview's Gamepad API.
 fn platform_backend() -> Arc<dyn RumbleBackend> {
+    #[cfg(target_os = "linux")]
+    return Arc::new(linux::EvdevBackend::new());
+    #[cfg(not(target_os = "linux"))]
     Arc::new(NullBackend)
 }

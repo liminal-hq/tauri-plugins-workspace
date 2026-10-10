@@ -9,6 +9,8 @@ use serde::{Serialize, Serializer};
 pub enum Error {
     #[error("invalid request: {0}")]
     InvalidRequest(String),
+    #[error("{0}")]
+    Backend(String),
     #[error("unknown pad `{0}`")]
     UnknownPad(String),
 }
