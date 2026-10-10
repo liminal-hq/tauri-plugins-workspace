@@ -1,0 +1,453 @@
+{
+	"constants": {
+		"maxSteps": 512,
+		"effectIds": ["click", "double_click", "tick", "heavy_click"],
+		"primitiveIds": ["tick", "low_tick", "click", "thud", "spin", "quick_rise", "slow_rise"]
+	},
+	"defaults": {
+		"limits": {
+			"maxDurationMs": 1000,
+			"maxAmplitude": 255,
+			"allowRepeatingWaveforms": false
+		},
+		"device": {
+			"topTier": 4,
+			"hasAmplitudeControl": true
+		}
+	},
+	"cases": [
+		{
+			"name": "oneshot-within-limits",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "oneshot",
+					"durationMs": 20,
+					"amplitude": 200
+				}
+			},
+			"expect": {
+				"ok": {
+					"normalised": {
+						"type": "oneshot",
+						"durationMs": 20,
+						"amplitude": 200
+					},
+					"reasons": []
+				}
+			}
+		},
+		{
+			"name": "oneshot-truncated",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "oneshot",
+					"durationMs": 5000
+				}
+			},
+			"expect": {
+				"ok": {
+					"normalised": {
+						"type": "oneshot",
+						"durationMs": 1000
+					},
+					"reasons": ["Truncated to 1000 ms"]
+				}
+			}
+		},
+		{
+			"name": "oneshot-amplitude-zero",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "oneshot",
+					"durationMs": 20,
+					"amplitude": 0
+				}
+			},
+			"expect": {
+				"error": "amplitude must be within 1..255"
+			}
+		},
+		{
+			"name": "oneshot-zero-duration",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "oneshot",
+					"durationMs": 0
+				}
+			},
+			"expect": {
+				"error": "durationMs must be positive"
+			}
+		},
+		{
+			"name": "waveform-repeat-ignored",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "waveform",
+					"timingsMs": [10, 10],
+					"repeat": 0
+				}
+			},
+			"expect": {
+				"ok": {
+					"normalised": {
+						"type": "waveform",
+						"timingsMs": [10, 10],
+						"repeat": -1
+					},
+					"reasons": ["Repeat ignored: allowRepeatingWaveforms is false"]
+				}
+			}
+		},
+		{
+			"name": "waveform-repeat-allowed",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "waveform",
+					"timingsMs": [10, 10],
+					"repeat": 0
+				}
+			},
+			"limits": {
+				"allowRepeatingWaveforms": true
+			},
+			"expect": {
+				"ok": {
+					"normalised": {
+						"type": "waveform",
+						"timingsMs": [10, 10],
+						"repeat": 0
+					},
+					"reasons": []
+				}
+			}
+		},
+		{
+			"name": "waveform-repeat-out-of-range",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "waveform",
+					"timingsMs": [10, 10],
+					"repeat": 2
+				}
+			},
+			"limits": {
+				"allowRepeatingWaveforms": true
+			},
+			"expect": {
+				"error": "repeat must be -1 or an index into timingsMs"
+			}
+		},
+		{
+			"name": "waveform-truncated",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "waveform",
+					"timingsMs": [600, 300, 600, 50]
+				}
+			},
+			"expect": {
+				"ok": {
+					"normalised": {
+						"type": "waveform",
+						"timingsMs": [600, 300, 100, 0]
+					},
+					"reasons": ["Truncated to 1000 ms"]
+				}
+			}
+		},
+		{
+			"name": "waveform-amplitude-over-255",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "waveform",
+					"timingsMs": [10, 10],
+					"amplitudes": [300, 0]
+				}
+			},
+			"expect": {
+				"error": "amplitudes must be within 0..255"
+			}
+		},
+		{
+			"name": "predefined-unknown",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "predefined",
+					"effectId": "pop"
+				}
+			},
+			"expect": {
+				"error": "Unknown predefined effect"
+			}
+		},
+		{
+			"name": "composition-scale-out-of-range",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "composition",
+					"steps": [
+						{
+							"kind": "primitive",
+							"primitive": "tick",
+							"scale": 1.5
+						}
+					]
+				}
+			},
+			"expect": {
+				"error": "scale must be within 0..1"
+			}
+		},
+		{
+			"name": "envelope-empty",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "envelopeWaveform",
+					"controlPoints": []
+				}
+			},
+			"expect": {
+				"error": "controlPoints cannot be empty"
+			}
+		},
+		{
+			"name": "envelope-amplitude-invalid-under-scale",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "envelopeWaveform",
+					"controlPoints": [
+						{
+							"amplitude": 2.0,
+							"frequencyHz": 120.0,
+							"durationMs": 20
+						}
+					]
+				}
+			},
+			"controls": {
+				"scale": 0.5
+			},
+			"expect": {
+				"error": "amplitude must be within 0..1"
+			}
+		},
+		{
+			"name": "envelope-over-limit",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "envelopeWaveform",
+					"controlPoints": [
+						{
+							"amplitude": 0.5,
+							"frequencyHz": 120.0,
+							"durationMs": 600
+						},
+						{
+							"amplitude": 0.5,
+							"frequencyHz": 120.0,
+							"durationMs": 600
+						}
+					]
+				}
+			},
+			"expect": {
+				"error": "exceeds the limit"
+			}
+		},
+		{
+			"name": "invalid-at-scale-zero",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "oneshot",
+					"durationMs": 0
+				}
+			},
+			"controls": {
+				"scale": 0
+			},
+			"expect": {
+				"error": "durationMs must be positive"
+			}
+		},
+		{
+			"name": "valid-at-scale-zero-is-silent",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "predefined",
+					"effectId": "click"
+				}
+			},
+			"controls": {
+				"scale": 0
+			},
+			"expect": {
+				"ok": {
+					"silent": "Master scale is 0, so nothing plays"
+				}
+			}
+		},
+		{
+			"name": "tier-cap-silences-a-valid-composition",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "composition",
+					"steps": [
+						{
+							"kind": "primitive",
+							"primitive": "click"
+						}
+					]
+				}
+			},
+			"controls": {
+				"maxTier": 2
+			},
+			"expect": {
+				"ok": {
+					"silent": "Capped at tier 2 by setMaxTier"
+				}
+			}
+		},
+		{
+			"name": "invalid-above-the-tier-cap",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "envelopeWaveform",
+					"controlPoints": []
+				}
+			},
+			"controls": {
+				"maxTier": 1
+			},
+			"expect": {
+				"error": "controlPoints cannot be empty"
+			}
+		},
+		{
+			"name": "scale-rounds-half-up",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "oneshot",
+					"durationMs": 20,
+					"amplitude": 200
+				}
+			},
+			"controls": {
+				"scale": 0.5
+			},
+			"expect": {
+				"ok": {
+					"normalised": {
+						"type": "oneshot",
+						"durationMs": 20,
+						"amplitude": 100
+					},
+					"reasons": []
+				}
+			}
+		},
+		{
+			"name": "steps-empty",
+			"command": "play_steps",
+			"steps": [],
+			"expect": {
+				"error": "steps cannot be empty"
+			}
+		},
+		{
+			"name": "steps-at-the-limit",
+			"command": "play_steps",
+			"steps": [
+				{
+					"atMs": 1000,
+					"request": {
+						"effect": {
+							"type": "predefined",
+							"effectId": "click"
+						}
+					}
+				}
+			],
+			"expect": {
+				"error": "steps[0]: atMs 1000 is not below the limit of 1000 ms"
+			}
+		},
+		{
+			"name": "steps-use-the-time-left",
+			"command": "play_steps",
+			"steps": [
+				{
+					"atMs": 990,
+					"request": {
+						"effect": {
+							"type": "oneshot",
+							"durationMs": 50
+						}
+					}
+				}
+			],
+			"expect": {
+				"ok": {
+					"normalised": [
+						{
+							"atMs": 990,
+							"budgetMs": 10,
+							"effect": {
+								"type": "oneshot",
+								"durationMs": 10
+							}
+						}
+					],
+					"reasons": ["Truncated to 10 ms"]
+				}
+			}
+		},
+		{
+			"name": "steps-name-the-invalid-step",
+			"command": "play_steps",
+			"steps": [
+				{
+					"atMs": 0,
+					"request": {
+						"effect": {
+							"type": "predefined",
+							"effectId": "click"
+						}
+					}
+				},
+				{
+					"atMs": 10,
+					"request": {
+						"effect": {
+							"type": "oneshot",
+							"durationMs": 0
+						}
+					}
+				}
+			],
+			"expect": {
+				"error": "steps[1]: durationMs must be positive"
+			}
+		}
+	]
+}

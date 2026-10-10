@@ -6,6 +6,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
     //
     // (c) Copyright 2026 Liminal HQ, Scott Morris
     // SPDX-License-Identifier: Apache-2.0 OR MIT
+    /** The most steps one `play_steps` call may schedule; the plugin rejects longer lists. */
     const PRIMITIVE_IDS = [
         'tick',
         'low_tick',

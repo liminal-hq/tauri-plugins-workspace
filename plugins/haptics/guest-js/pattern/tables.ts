@@ -3,8 +3,13 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import type { Capabilities, PrimitiveId } from '../types';
+import type { Capabilities, PredefinedEffectId, PrimitiveId } from '../types';
 import type { ContinuousEvent, PatternEvent } from './types';
+
+/** The most steps one `play_steps` call may schedule; the plugin rejects longer lists. */
+export const MAX_STEPS = 512;
+
+export const EFFECT_IDS: PredefinedEffectId[] = ['click', 'double_click', 'tick', 'heavy_click'];
 
 export const PRIMITIVE_IDS: PrimitiveId[] = [
 	'tick',

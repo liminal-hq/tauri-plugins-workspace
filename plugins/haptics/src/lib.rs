@@ -10,6 +10,8 @@ use tauri::{
 
 mod commands;
 mod config;
+#[cfg(test)]
+mod conformance;
 #[cfg(not(target_os = "android"))]
 mod desktop;
 mod error;
