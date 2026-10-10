@@ -332,8 +332,14 @@ function sendSteps(steps: CompiledStep[]): Promise<PlayResult> {
 }
 
 /** Plays `{ atMs, request }` steps scheduled natively from one start time. */
-export function playSteps(steps: CompiledStep[]): Promise<PlayResult> {
-	if (masterScale === 0) return Promise.resolve(silent('Master scale is 0, so nothing plays'));
+export async function playSteps(steps: CompiledStep[]): Promise<PlayResult> {
+	if (masterScale === 0) return silent('Master scale is 0, so nothing plays');
+	if (maxTier !== null) {
+		const caps = await capabilities();
+		if (steps.some((s) => effectTier(s.request, caps) > maxTier!)) {
+			return silent(`Capped at tier ${maxTier} by setMaxTier`);
+		}
+	}
 	return sendSteps(steps.map((s) => ({ ...s, request: scaled(s.request) })));
 }
 

@@ -33,6 +33,8 @@ export const MERGE_BOOST = 0.15;
 type Group<R> = {
 	job: Job<R>;
 	merges: number;
+	/** The strongest scale among the merged triggers. */
+	scale: number;
 	timer: ReturnType<typeof setTimeout>;
 	settle: (outcome: Outcome<R>) => void;
 };
@@ -168,6 +170,7 @@ export class PatternScheduler {
 			// Merge into the open group; once it holds three merges later triggers are absorbed
 			// without a further boost.
 			if (group.merges < MAX_MERGES) group.merges++;
+			group.scale = Math.max(group.scale, job.scale);
 			return Promise.resolve({ policy: 'coalesced' });
 		}
 
@@ -175,10 +178,11 @@ export class PatternScheduler {
 			const created: Group<R> = {
 				job,
 				merges: 0,
+				scale: job.scale,
 				settle: resolve,
 				timer: setTimeout(() => {
 					st.group = undefined;
-					const boosted = job.scale + MERGE_BOOST * created.merges;
+					const boosted = created.scale + MERGE_BOOST * created.merges;
 					this.play(st, job, boosted, 'played').then(resolve, reject);
 				}, windowMs),
 			};

@@ -129,6 +129,6 @@ The plugin's Android manifest declares `android.permission.VIBRATE`; consuming a
 | Linux    | No vibrator: every call resolves at tier 0 with a reason, so patterns still validate and compile                              |
 | Windows  | Same as Linux                                                                                                                 |
 | macOS    | Same as Linux                                                                                                                 |
-| iOS      | Not implemented                                                                                                               |
+| iOS      | Not implemented: every call resolves at tier 0 like desktop                                                                   |
 
 The Android Kotlin is compiled by an app's Android build. It has been exercised on a Pixel 8 Pro, which has primitives and amplitude control but no envelope hardware, so tier 4 is covered by unit tests only.

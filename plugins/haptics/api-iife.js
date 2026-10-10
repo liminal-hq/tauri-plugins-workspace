@@ -253,9 +253,10 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         };
         const initialFrequencyHz = lastFreq;
         for (const ev of cx.events) {
-            if (ev.at > t)
-                push(0, lastFreq, ev.at - t);
-            else if (ev.at < t)
+            const at = round(ev.at);
+            if (at > t)
+                push(0, lastFreq, at - t);
+            else if (at < t)
                 serialised = true;
             if (ev.type === 'transient') {
                 const f = freqFor(ev.sharpness);
@@ -654,16 +655,18 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
                 // without a further boost.
                 if (group.merges < MAX_MERGES)
                     group.merges++;
+                group.scale = Math.max(group.scale, job.scale);
                 return Promise.resolve({ policy: 'coalesced' });
             }
             return new Promise((resolve, reject) => {
                 const created = {
                     job,
                     merges: 0,
+                    scale: job.scale,
                     settle: resolve,
                     timer: setTimeout(() => {
                         st.group = undefined;
-                        const boosted = job.scale + MERGE_BOOST * created.merges;
+                        const boosted = created.scale + MERGE_BOOST * created.merges;
                         this.play(st, job, boosted, 'played').then(resolve, reject);
                     }, windowMs),
                 };
@@ -1157,9 +1160,15 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         return invalidInput(core.invoke('plugin:haptics|play_steps', { steps }));
     }
     /** Plays `{ atMs, request }` steps scheduled natively from one start time. */
-    function playSteps(steps) {
+    async function playSteps(steps) {
         if (masterScale === 0)
-            return Promise.resolve(silent('Master scale is 0, so nothing plays'));
+            return silent('Master scale is 0, so nothing plays');
+        if (maxTier !== null) {
+            const caps = await capabilities();
+            if (steps.some((s) => effectTier(s.request, caps) > maxTier)) {
+                return silent(`Capped at tier ${maxTier} by setMaxTier`);
+            }
+        }
         return sendSteps(steps.map((s) => ({ ...s, request: scaled(s.request) })));
     }
     // ── UI lane ───────────────────────────────────────────────────────────────────────────────────

@@ -10,4 +10,16 @@ fn main() {
         .global_api_script_path("./api-iife.js")
         .android_path("android")
         .build();
+
+    inject_android_permissions()
+        .expect("Failed to inject Android manifest permissions for haptics");
+}
+
+fn inject_android_permissions() -> std::io::Result<()> {
+    tauri_plugin::mobile::update_android_manifest(
+        "tauri-plugin-haptics.permissions",
+        "manifest",
+        r#"<uses-permission android:name="android.permission.VIBRATE" />"#.to_string(),
+    )
+    .map_err(std::io::Error::other)
 }

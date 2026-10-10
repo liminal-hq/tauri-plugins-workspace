@@ -568,8 +568,12 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
         if (support == Vibrator.VIBRATION_EFFECT_SUPPORT_NO) {
           Built(null, 0, 0, listOf("This device does not support the predefined effect `$id`"))
         } else {
-          val tier = minOf(deviceTopTier(), 3)
-          Built(VibrationEffect.createPredefined(predefinedConstant(id)), tier, PREDEFINED_MS[id] ?: 20L)
+          val ms = PREDEFINED_MS[id] ?: 20L
+          if (Build.VERSION.SDK_INT < 29) {
+            Built(predefinedEffect(predefinedConstant(id), ms), 1, ms, listOf("Predefined effects require API 29+; played a pulse"))
+          } else {
+            Built(predefinedEffect(predefinedConstant(id), ms), minOf(deviceTopTier(), 3), ms)
+          }
         }
       }
 
@@ -577,13 +581,13 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
         if (Build.VERSION.SDK_INT < 30) {
           // Downgrade to a click
           Built(
-            VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK),
+            predefinedEffect(VibrationEffect.EFFECT_CLICK, PREDEFINED_MS.getValue("click")),
             1,
             PREDEFINED_MS.getValue("click"),
             listOf("Composition requires API 30+"),
           )
         } else {
-          buildComposition(effectObj)
+          buildComposition(effectObj, maxDur)
         }
       }
 
@@ -595,7 +599,7 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
             "Device does not support envelope effects"
           }
           Built(
-            VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK),
+            predefinedEffect(VibrationEffect.EFFECT_TICK, PREDEFINED_MS.getValue("tick")),
             minOf(deviceTopTier(), 3),
             PREDEFINED_MS.getValue("tick"),
             listOf(reason),
@@ -614,7 +618,7 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
    * Composition of primitives only. A primitive the motor lacks is swapped for its nearest neighbour,
    * dropped when it has none, and every change is reported; with nothing left it plays a click.
    */
-  private fun buildComposition(effectObj: JSObject): Built {
+  private fun buildComposition(effectObj: JSObject, maxDur: Long): Built {
     val steps = getArray(effectObj, "steps")
     val support = primitiveSupport(true)
     val reasons = mutableListOf<String>()
@@ -647,21 +651,34 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
           continue
         }
       }
+      val stepMs = delay + (support[id]?.second ?: PRIMITIVE_MS.getValue(id)).toLong()
+      if (total + stepMs > maxDur) {
+        reasons.add("Truncated to $maxDur ms")
+        break
+      }
       comp.addPrimitive(mapPrimitive(id!!), scale, delay)
       added++
-      total += delay + (support[id]?.second ?: PRIMITIVE_MS.getValue(id)).toLong()
+      total += stepMs
     }
 
     if (added == 0) {
       reasons.add("No playable steps; played a click")
       return Built(
-        VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK),
+        predefinedEffect(VibrationEffect.EFFECT_CLICK, PREDEFINED_MS.getValue("click")),
         minOf(deviceTopTier(), 3),
         PREDEFINED_MS.getValue("click"),
         reasons,
       )
     }
     return Built(comp.compose(), 3, total, reasons)
+  }
+
+  /**
+   * `createPredefined` arrived in API 29; older releases play a one-shot pulse of the same length.
+   */
+  private fun predefinedEffect(constant: Int, pulseMs: Long): VibrationEffect {
+    if (Build.VERSION.SDK_INT >= 29) return VibrationEffect.createPredefined(constant)
+    return VibrationEffect.createOneShot(pulseMs, VibrationEffect.DEFAULT_AMPLITUDE)
   }
 
   private fun deviceTopTier(): Int {

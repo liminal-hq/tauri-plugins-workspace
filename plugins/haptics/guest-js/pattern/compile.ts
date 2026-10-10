@@ -250,8 +250,9 @@ function compileEnvelope(cx: Context): Attempt | { fallback: string } {
 
 	const initialFrequencyHz = lastFreq;
 	for (const ev of cx.events) {
-		if (ev.at > t) push(0, lastFreq, ev.at - t);
-		else if (ev.at < t) serialised = true;
+		const at = round(ev.at);
+		if (at > t) push(0, lastFreq, at - t);
+		else if (at < t) serialised = true;
 
 		if (ev.type === 'transient') {
 			const f = freqFor(ev.sharpness);

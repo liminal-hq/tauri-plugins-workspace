@@ -112,6 +112,17 @@ describe('coalesce', () => {
 		expect(played[0].at).toBe(100);
 	});
 
+	it('plays a group at its strongest merged scale', async () => {
+		const outcomes = [
+			scheduler.submit(job({ coalesce: 50 }, 100, 0.2)),
+			scheduler.submit(job({ coalesce: 50 }, 100, 0.8)),
+		];
+		await vi.runAllTimersAsync();
+		await Promise.all(outcomes);
+		// 0.8 from the stronger trigger + 0.15 × 1 merge.
+		expect(played[0].scale).toBeCloseTo(0.95);
+	});
+
 	it('caps the scale at 1', async () => {
 		const outcomes: Promise<Outcome<number>>[] = [];
 		for (let i = 0; i < 4; i++) outcomes.push(scheduler.submit(job({ coalesce: 50 }, 100, 0.9)));

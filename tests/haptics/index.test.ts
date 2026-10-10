@@ -279,6 +279,21 @@ describe('native errors', () => {
 });
 
 describe('playSteps', () => {
+	it('resolves at tier 0 when a step is above the max tier', async () => {
+		caps = envelopeDevice;
+		api.setMaxTier(2);
+		const res = await api.playSteps([
+			{
+				atMs: 0,
+				request: {
+					effect: { type: 'composition', steps: [{ kind: 'primitive', primitive: 'click' }] },
+				},
+			},
+		]);
+		expect(res).toMatchObject({ ok: true, tier: 0, reason: 'Capped at tier 2 by setMaxTier' });
+		expect(commands()).not.toContain('plugin:haptics|play_steps');
+	});
+
 	it('applies the master scale to every step and sends them to native', async () => {
 		api.setMasterScale(0.5);
 		await api.playSteps([
