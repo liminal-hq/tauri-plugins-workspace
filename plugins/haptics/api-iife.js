@@ -371,6 +371,10 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         }
         if (lastAmp > 0)
             push(0, lastFreq, minPt);
+        // An envelope with no strength anywhere plays nothing, so there is nothing to emit.
+        if (points.every((p) => p.amplitude <= 0)) {
+            return { tier: 4, mixed: false, notes: [], steps: [], request: null };
+        }
         const limit = Math.min(info.maxDurationMs, cx.maxMs);
         if (points.length > info.maxSize) {
             return {

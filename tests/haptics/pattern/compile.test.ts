@@ -212,8 +212,8 @@ describe('events with no strength', () => {
 	};
 
 	it('leaves no steps at any tier', () => {
-		for (const tier of [3, 2, 1] as const) {
-			const r = compilePattern(silent, pixel8Pro, { tier });
+		for (const tier of [4, 3, 2, 1] as const) {
+			const r = compilePattern(silent, tier === 4 ? envelopeDevice : pixel8Pro, { tier });
 			expect(r.steps, `tier ${tier}`).toEqual([]);
 			expect(r.estimatedMs).toBe(0);
 		}

@@ -208,6 +208,20 @@ describe('compiler properties', () => {
 		);
 	});
 
+	it('never emits an envelope with no strength', () => {
+		fc.assert(
+			fc.property(compiled, ({ report }) => {
+				for (const s of report.steps) {
+					const e = s.request.effect;
+					if (e.type === 'envelopeWaveform') {
+						expect(e.controlPoints.some((p) => p.amplitude > 0)).toBe(true);
+					}
+				}
+			}),
+			options
+		);
+	});
+
 	it('is deterministic', () => {
 		fc.assert(
 			fc.property(compiled, ({ pattern: p, caps, tier: t, scale, report }) => {
