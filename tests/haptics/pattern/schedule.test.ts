@@ -164,6 +164,21 @@ describe('stop', () => {
 	});
 });
 
+describe('a run that played nothing', () => {
+	it('leaves the pattern free for the next trigger', async () => {
+		const silent: Job<number> = { ...job('drop-if-busy', 1000), didPlay: () => false };
+		expect((await scheduler.submit(silent)).policy).toBe('played');
+		expect(scheduler.isBusy('cue')).toBe(false);
+		expect((await scheduler.submit(job('drop-if-busy', 1000))).policy).toBe('played');
+	});
+
+	it('still holds the pattern busy when the run played', async () => {
+		const loud: Job<number> = { ...job('drop-if-busy', 1000), didPlay: () => true };
+		await scheduler.submit(loud);
+		expect(scheduler.isBusy('cue')).toBe(true);
+	});
+});
+
 describe('failures and cancel', () => {
 	it('is not busy after a play that failed', async () => {
 		const failing: Job<number> = {

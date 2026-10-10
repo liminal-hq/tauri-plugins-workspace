@@ -748,10 +748,16 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
             }
             st.busyUntil = 0;
         }
+        /** A run that played nothing was never busy, so the pattern is free again. */
+        release(st, job, result) {
+            if (job.didPlay && !job.didPlay(result) && st.queue.length === 0)
+                st.busyUntil = 0;
+        }
         async play(st, job, scale, policy) {
             st.busyUntil = Date.now() + job.estimatedMs;
             try {
                 const result = await job.run(Math.min(1, scale));
+                this.release(st, job, result);
                 return { policy, result };
             }
             catch (err) {
@@ -773,7 +779,10 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
                         // Start from a promise so a synchronous throw in `run` rejects instead of escaping.
                         Promise.resolve()
                             .then(() => job.run(job.scale))
-                            .then((result) => resolve({ policy: 'queued', result }), reject);
+                            .then((result) => {
+                            this.release(st, job, result);
+                            resolve({ policy: 'queued', result });
+                        }, reject);
                     }, wait),
                 };
                 st.queue.push(entry);
@@ -1178,6 +1187,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
             policy: entry.pattern.policy ?? 'interrupt',
             estimatedMs: first.estimatedMs,
             scale: triggerScale,
+            didPlay: (res) => res.tier > 0,
             run: (scale) => {
                 // A merged group arrives with a higher scale, so compile again at that strength.
                 const report = scale === triggerScale ? first : compileFor(masterScale * scale);
@@ -1221,9 +1231,12 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
     function play(req) {
         return sendPlay(req, controls());
     }
+    /** The messages that mean the request itself was refused: the plugin's own, or Tauri's argument check. */
+    const INPUT_REFUSED = /^(invalid request:|invalid args )/;
     /**
-     * Hardware limits never make a play call reject, so a rejection means the native side refused the
-     * input. Native errors arrive as plain strings; wrap them so callers always get `{ code, message }`.
+     * Hardware limits never make a play call reject. Native errors arrive as plain strings, so the ones
+     * that refuse the input become `INVALID_EFFECT`, and anything else (a missing permission, a failed
+     * bridge) becomes `PLUGIN_ERROR` so callers can tell the two apart.
      */
     async function invalidInput(call) {
         try {
@@ -1232,7 +1245,8 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         catch (err) {
             if (err instanceof HapticsError)
                 throw err;
-            throw new HapticsError('INVALID_EFFECT', err instanceof Error ? err.message : String(err));
+            const message = err instanceof Error ? err.message : String(err);
+            throw new HapticsError(INPUT_REFUSED.test(message) ? 'INVALID_EFFECT' : 'PLUGIN_ERROR', message);
         }
     }
     function sendPlay(req, global = {}) {

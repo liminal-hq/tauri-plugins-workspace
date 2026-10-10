@@ -74,7 +74,7 @@ await stop();
 
 ## Tiers
 
-Every call resolves with the tier that actually played, and says why when it had to step down. A device with no vibrator resolves at tier 0 and never throws; invalid input rejects with `INVALID_EFFECT`. The guest bindings add that code to the rejection (`HapticsError.code`); a raw `invoke('plugin:haptics|…')` call receives the message text only, such as `invalid request: controlPoints cannot be empty`.
+Every call resolves with the tier that actually played, and says why when it had to step down. A device with no vibrator resolves at tier 0 and never throws; invalid input rejects with `INVALID_EFFECT`. The guest bindings add that code to the rejection (`HapticsError.code`); a raw `invoke('plugin:haptics|…')` call receives the message text only, such as `invalid request: controlPoints cannot be empty`. A failure that is not about the input, such as a missing `haptics:allow-play` permission or a broken native bridge, rejects with code `PLUGIN_ERROR` instead, so the two can be told apart.
 
 | Tier | Name       | Needs                              | How a pattern plays                                                    |
 | ---- | ---------- | ---------------------------------- | ---------------------------------------------------------------------- |

@@ -657,6 +657,8 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
         val neighbour = PRIMITIVE_NEIGHBOURS[requested]?.firstOrNull { support[it]?.first == true }
         if (neighbour == null) {
           reasons.add("$requested missing on this motor and has no neighbour; step dropped")
+          // The dropped step's delay still counts, so the steps after it keep their place.
+          carriedDelayMs = delayMs
           continue
         }
         reasons.add("$requested missing on this motor → $neighbour")

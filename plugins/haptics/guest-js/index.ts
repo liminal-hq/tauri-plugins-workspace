@@ -34,7 +34,7 @@ export type PatternEntry = { pattern: Pattern; options?: RegisterOptions };
 /** Invalid input rejects with one of these; hardware limits never do. */
 export class HapticsError extends Error {
 	constructor(
-		readonly code: 'INVALID_EFFECT' | 'UNKNOWN_PATTERN',
+		readonly code: 'INVALID_EFFECT' | 'UNKNOWN_PATTERN' | 'PLUGIN_ERROR',
 		message: string
 	) {
 		super(message);
@@ -215,6 +215,7 @@ export async function trigger(id: string, opts: TriggerOptions = {}): Promise<Pl
 		policy: entry.pattern.policy ?? 'interrupt',
 		estimatedMs: first.estimatedMs,
 		scale: triggerScale,
+		didPlay: (res) => res.tier > 0,
 		run: (scale) => {
 			// A merged group arrives with a higher scale, so compile again at that strength.
 			const report = scale === triggerScale ? first : compileFor(masterScale * scale);
@@ -262,16 +263,24 @@ export function play(req: EffectRequest): Promise<PlayResult> {
 	return sendPlay(req, controls());
 }
 
+/** The messages that mean the request itself was refused: the plugin's own, or Tauri's argument check. */
+const INPUT_REFUSED = /^(invalid request:|invalid args )/;
+
 /**
- * Hardware limits never make a play call reject, so a rejection means the native side refused the
- * input. Native errors arrive as plain strings; wrap them so callers always get `{ code, message }`.
+ * Hardware limits never make a play call reject. Native errors arrive as plain strings, so the ones
+ * that refuse the input become `INVALID_EFFECT`, and anything else (a missing permission, a failed
+ * bridge) becomes `PLUGIN_ERROR` so callers can tell the two apart.
  */
 async function invalidInput<T>(call: Promise<T>): Promise<T> {
 	try {
 		return await call;
 	} catch (err) {
 		if (err instanceof HapticsError) throw err;
-		throw new HapticsError('INVALID_EFFECT', err instanceof Error ? err.message : String(err));
+		const message = err instanceof Error ? err.message : String(err);
+		throw new HapticsError(
+			INPUT_REFUSED.test(message) ? 'INVALID_EFFECT' : 'PLUGIN_ERROR',
+			message
+		);
 	}
 }
 

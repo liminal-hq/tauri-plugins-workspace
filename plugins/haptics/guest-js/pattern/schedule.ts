@@ -18,6 +18,8 @@ export type Job<R> = {
 	scale: number;
 	/** Plays the pattern at `scale`. */
 	run: (scale: number) => Promise<R>;
+	/** Whether a result means something played; a run that resolved silently frees the pattern. */
+	didPlay?: (result: R) => boolean;
 };
 
 export type Outcome<R> = {
@@ -126,6 +128,11 @@ export class PatternScheduler {
 		st.busyUntil = 0;
 	}
 
+	/** A run that played nothing was never busy, so the pattern is free again. */
+	private release<R>(st: KeyState<R>, job: Job<R>, result: R): void {
+		if (job.didPlay && !job.didPlay(result) && st.queue.length === 0) st.busyUntil = 0;
+	}
+
 	private async play<R>(
 		st: KeyState<R>,
 		job: Job<R>,
@@ -135,6 +142,7 @@ export class PatternScheduler {
 		st.busyUntil = Date.now() + job.estimatedMs;
 		try {
 			const result = await job.run(Math.min(1, scale));
+			this.release(st, job, result);
 			return { policy, result };
 		} catch (err) {
 			// A play that failed never ran, so the pattern is not busy.
@@ -157,7 +165,10 @@ export class PatternScheduler {
 					// Start from a promise so a synchronous throw in `run` rejects instead of escaping.
 					Promise.resolve()
 						.then(() => job.run(job.scale))
-						.then((result) => resolve({ policy: 'queued', result }), reject);
+						.then((result) => {
+							this.release(st, job, result);
+							resolve({ policy: 'queued', result });
+						}, reject);
 				}, wait),
 			};
 			st.queue.push(entry);

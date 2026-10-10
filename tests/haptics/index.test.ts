@@ -233,6 +233,24 @@ describe('review fixes', () => {
 });
 
 describe('triggers that do not play', () => {
+	it('frees the pattern when the device resolved it silently', async () => {
+		invoke.mockImplementation(async (cmd: string) =>
+			cmd === 'plugin:haptics|capabilities'
+				? caps
+				: nativeResult({
+						tier: 0,
+						estimatedMs: 0,
+						downgraded: true,
+						reason: 'Touch feedback is off',
+					})
+		);
+		await api.register('quiet', { ...click, policy: 'drop-if-busy' });
+		await api.trigger('quiet');
+		const second = await api.trigger('quiet');
+		expect(second.policy).toBe('played');
+		expect(commands().filter((c) => c.endsWith('|play'))).toHaveLength(2);
+	});
+
 	it('report tier 0 for a trigger dropped while the pattern is busy', async () => {
 		await api.register('busy', { ...click, policy: 'drop-if-busy' });
 		const first = await api.trigger('busy');
@@ -290,15 +308,36 @@ describe('raw play', () => {
 });
 
 describe('native errors', () => {
-	it('wraps a rejected play call as INVALID_EFFECT with the native message', async () => {
+	const rejectWith = (message: string) =>
 		invoke.mockImplementation(async (cmd: string) => {
 			if (cmd === 'plugin:haptics|capabilities') return caps;
-			throw 'Unknown predefined effect `pop`';
+			throw message;
 		});
+
+	it('wraps a refused request as INVALID_EFFECT with the native message', async () => {
+		rejectWith('invalid request: Unknown predefined effect `pop`');
 		await expect(
 			api.play({ effect: { type: 'predefined', effectId: 'click' } })
-		).rejects.toMatchObject({ code: 'INVALID_EFFECT', message: 'Unknown predefined effect `pop`' });
-		await expect(api.ui('tick')).rejects.toMatchObject({ code: 'INVALID_EFFECT' });
+		).rejects.toMatchObject({
+			code: 'INVALID_EFFECT',
+			message: 'invalid request: Unknown predefined effect `pop`',
+		});
+	});
+
+	it('treats Tauri argument errors as invalid input', async () => {
+		rejectWith('invalid args `req` for command `play`: missing field `effect`');
+		await expect(api.play({} as never)).rejects.toMatchObject({ code: 'INVALID_EFFECT' });
+	});
+
+	it('keeps a missing permission or a failed bridge apart from invalid input', async () => {
+		rejectWith(
+			'plugin:haptics|play not allowed. Permissions associated with this command: haptics:allow-play'
+		);
+		await expect(
+			api.play({ effect: { type: 'predefined', effectId: 'click' } })
+		).rejects.toMatchObject({ code: 'PLUGIN_ERROR' });
+		rejectWith('mobile plugin invoke error: the webview is unreachable');
+		await expect(api.ui('tick')).rejects.toMatchObject({ code: 'PLUGIN_ERROR' });
 	});
 });
 
