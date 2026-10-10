@@ -39,6 +39,11 @@ impl Haptics {
     }
 
     pub fn play_steps(&self, steps: Vec<CompiledStep>) -> Result<PlayResult> {
+        if steps.is_empty() {
+            return Err(crate::Error::InvalidRequest(
+                "steps cannot be empty".to_string(),
+            ));
+        }
         for step in &steps {
             validate_request(&step.request)?;
         }
@@ -89,9 +94,21 @@ mod tests {
     }
 
     #[test]
+    fn play_steps_rejects_an_empty_list_like_android() {
+        assert!(matches!(
+            haptics().play_steps(Vec::new()),
+            Err(crate::Error::InvalidRequest(_))
+        ));
+    }
+
+    #[test]
     fn play_steps_and_ui_resolve_at_tier_zero() {
+        let request: EffectRequest = serde_json::from_value(serde_json::json!({
+            "effect": { "type": "predefined", "effectId": "click" }
+        }))
+        .expect("deserialize request");
         let steps = haptics()
-            .play_steps(Vec::new())
+            .play_steps(vec![CompiledStep { at_ms: 0, request }])
             .expect("play_steps resolves");
         assert_eq!(steps.tier, 0);
 

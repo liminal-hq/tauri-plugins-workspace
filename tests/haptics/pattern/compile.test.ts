@@ -133,6 +133,16 @@ describe('mixed patterns', () => {
 	});
 });
 
+describe('tier 2 without amplitude control', () => {
+	it('compiles on/off when the device has primitives but no amplitude control', () => {
+		const caps = { ...midRange, hasAmplitudeControl: false };
+		const r = compilePattern(seedCues.hurt, caps, { tier: 2 });
+		expect(r.tier).toBe(1);
+		const effect = r.request?.effect;
+		expect(effect?.type === 'waveform' && effect.amplitudes).toBeFalsy();
+	});
+});
+
 describe('limits after serialisation', () => {
 	it('reports tier-2 segments where the serialised waveform plays them', () => {
 		const overlap: Pattern = {

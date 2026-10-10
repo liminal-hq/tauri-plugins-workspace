@@ -234,6 +234,16 @@ describe('review fixes', () => {
 describe('raw play', () => {
 	const oneShot = { effect: { type: 'oneshot', durationMs: 50, amplitude: 200 } } as const;
 
+	it('leaves an out-of-range one-shot amplitude for the native check to reject', async () => {
+		api.setMasterScale(0.5);
+		await api.play({ effect: { type: 'oneshot', durationMs: 50, amplitude: 0 } });
+		await api.play({ effect: { type: 'oneshot', durationMs: 50, amplitude: 300 } });
+		const sent = invoke.mock.calls
+			.filter((c) => c[0] === 'plugin:haptics|play')
+			.map((c) => c[1].req.effect.amplitude);
+		expect(sent).toEqual([0, 300]);
+	});
+
 	it('sends the request through unchanged by default', async () => {
 		await api.play({ ...oneShot });
 		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play', { req: oneShot });

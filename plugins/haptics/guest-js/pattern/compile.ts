@@ -587,7 +587,7 @@ export function compilePattern(
 	}
 	if (!result) {
 		if (target >= 3) result = compilePrimitives(cx);
-		else if (target === 2) result = compileAmplitude(cx);
+		else if (target === 2 && caps.hasAmplitudeControl) result = compileAmplitude(cx);
 		else result = compileOnOff(cx);
 	}
 

@@ -69,7 +69,13 @@ pub fn validate_request(req: &EffectRequest) -> Result<()> {
                 }
             }
         }
-        Effect::EnvelopeWaveform { control_points, .. } => {
+        Effect::EnvelopeWaveform {
+            initial_frequency_hz,
+            control_points,
+        } => {
+            if matches!(initial_frequency_hz, Some(f) if !f.is_finite() || *f <= 0.0) {
+                return invalid("initialFrequencyHz must be positive");
+            }
             if control_points.is_empty() {
                 return invalid("controlPoints cannot be empty");
             }
@@ -123,6 +129,9 @@ mod tests {
             serde_json::json!({ "type": "predefined", "effectId": "pop" }),
             serde_json::json!({ "type": "composition", "steps": [{ "kind": "primitive", "primitive": "pop" }] }),
             serde_json::json!({ "type": "envelopeWaveform", "controlPoints": [] }),
+            serde_json::json!({ "type": "envelopeWaveform", "initialFrequencyHz": 0.0, "controlPoints": [
+                { "amplitude": 0.5, "frequencyHz": 120.0, "durationMs": 20 }
+            ] }),
             serde_json::json!({ "type": "envelopeWaveform", "controlPoints": [
                 { "amplitude": 2.0, "frequencyHz": 120.0, "durationMs": 20 }
             ] }),

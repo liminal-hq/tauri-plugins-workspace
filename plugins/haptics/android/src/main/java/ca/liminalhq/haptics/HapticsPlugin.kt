@@ -344,8 +344,9 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
         if (!step.has("atMs")) throw IllegalArgumentException("steps[$i]: missing field `atMs`")
         val atMs = step.getLong("atMs")
         if (atMs < 0) throw IllegalArgumentException("steps[$i]: atMs must not be negative")
-        if (atMs > maxDur) {
-          throw IllegalArgumentException("steps[$i]: atMs $atMs exceeds the limit of $maxDur ms")
+        // A step that starts at the limit has no time left to play in.
+        if (atMs >= maxDur) {
+          throw IllegalArgumentException("steps[$i]: atMs $atMs is not below the limit of $maxDur ms")
         }
         val request = step.getJSObject("request")
           ?: throw IllegalArgumentException("steps[$i]: missing field `request`")
@@ -699,7 +700,8 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
       if (requested !in PRIMITIVE_IDS) {
         throw IllegalArgumentException("steps[$i]: unknown primitive `$requested`")
       }
-      val delay = if (step.present("delayMs")) step.getLong("delayMs").toInt().coerceAtLeast(0) else 0
+      // Kept as a Long until it is known to fit, so a huge delay truncates instead of wrapping.
+      val delayMs = if (step.present("delayMs")) step.getLong("delayMs").coerceAtLeast(0) else 0L
       val scale = if (step.present("scale")) step.getDouble("scale").toFloat().coerceIn(0f, 1f) else 1f
 
       var id: String? = requested
@@ -712,12 +714,12 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
           continue
         }
       }
-      val stepMs = delay + (support[id]?.second ?: PRIMITIVE_MS.getValue(id)).toLong()
+      val stepMs = delayMs + (support[id]?.second ?: PRIMITIVE_MS.getValue(id)).toLong()
       if (total + stepMs > maxDur) {
         reasons.add("Truncated to $maxDur ms")
         break
       }
-      comp.addPrimitive(mapPrimitive(id!!), scale, delay)
+      comp.addPrimitive(mapPrimitive(id!!), scale, delayMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
       added++
       total += stepMs
     }
@@ -807,6 +809,12 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
     if (points.length() == 0) {
       throw IllegalArgumentException("controlPoints cannot be empty")
     }
+    val initial = when {
+      effectObj.present("initialFrequencyHz") -> effectObj.getDouble("initialFrequencyHz")
+      effectObj.present("initial_frequency_hz") -> effectObj.getDouble("initial_frequency_hz")
+      else -> null
+    }
+    if (initial != null) checkFrequency(initial.toFloat(), null)
     for (i in 0 until points.length()) {
       val p = getObject(points, i)
       if (!p.present("amplitude")) throw IllegalArgumentException("controlPoints[$i]: missing amplitude")

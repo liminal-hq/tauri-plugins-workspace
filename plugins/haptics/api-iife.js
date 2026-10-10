@@ -571,7 +571,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         if (!result) {
             if (target >= 3)
                 result = compilePrimitives(cx);
-            else if (target === 2)
+            else if (target === 2 && caps.hasAmplitudeControl)
                 result = compileAmplitude(cx);
             else
                 result = compileOnOff(cx);
@@ -1127,11 +1127,16 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
             return req;
         const e = req.effect;
         switch (e.type) {
-            case 'oneshot':
+            case 'oneshot': {
+                // An amplitude outside 1..255 is left for the native check to reject, not scaled into range.
+                const given = e.amplitude;
+                if (given !== undefined && !(Number.isInteger(given) && given >= 1 && given <= 255))
+                    return req;
                 return {
                     ...req,
-                    effect: { ...e, amplitude: Math.max(1, Math.round((e.amplitude ?? 255) * masterScale)) },
+                    effect: { ...e, amplitude: Math.max(1, Math.round((given ?? 255) * masterScale)) },
                 };
+            }
             case 'waveform':
                 if (!e.amplitudes)
                     return req;
