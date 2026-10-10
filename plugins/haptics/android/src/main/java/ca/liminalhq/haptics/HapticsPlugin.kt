@@ -637,22 +637,24 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
       val delayMs = if (step.present("delayMs")) step.getLong("delayMs").coerceAtLeast(0) else 0L
       val scale = if (step.present("scale")) step.getDouble("scale").toFloat().coerceIn(0f, 1f) else 1f
 
-      var id: String? = requested
-      if (support[requested]?.first != true) {
-        id = PRIMITIVE_NEIGHBOURS[requested]?.firstOrNull { support[it]?.first == true }
-        if (id != null) {
-          reasons.add("$requested missing on this motor → $id")
-        } else {
+      // The primitive that plays: the one asked for, or its nearest neighbour on this motor.
+      val playable: String = if (support[requested]?.first == true) {
+        requested
+      } else {
+        val neighbour = PRIMITIVE_NEIGHBOURS[requested]?.firstOrNull { support[it]?.first == true }
+        if (neighbour == null) {
           reasons.add("$requested missing on this motor and has no neighbour; step dropped")
           continue
         }
+        reasons.add("$requested missing on this motor → $neighbour")
+        neighbour
       }
-      val stepMs = delayMs + (support[id]?.second ?: PRIMITIVE_MS.getValue(id)).toLong()
+      val stepMs = delayMs + (support[playable]?.second ?: PRIMITIVE_MS.getValue(playable)).toLong()
       if (total + stepMs > maxDur) {
         reasons.add("Truncated to $maxDur ms")
         break
       }
-      comp.addPrimitive(mapPrimitive(id!!), scale, delayMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+      comp.addPrimitive(mapPrimitive(playable), scale, delayMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
       added++
       total += stepMs
     }
