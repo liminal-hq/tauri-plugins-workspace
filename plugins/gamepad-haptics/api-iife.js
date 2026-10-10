@@ -695,7 +695,8 @@ var __TAURI_PLUGIN_GAMEPAD_HAPTICS__ = (function (exports, core, event) {
                 if (!pattern)
                     throw new Error(`Unknown pattern \`${id}\`. Register it first.`);
                 const caps = await limitsAndPads();
-                const scale = (options.scale ?? 1) * masterScale;
+                // Rust rejects a scale over 1, so the product is held to 0..1 however the caller scaled it.
+                const scale = Math.min(1, Math.max(0, (options.scale ?? 1) * masterScale));
                 const policy = pattern.policy ?? 'interrupt';
                 // Choose the pad: an id, a hint, or the first native pad that can play.
                 let native;

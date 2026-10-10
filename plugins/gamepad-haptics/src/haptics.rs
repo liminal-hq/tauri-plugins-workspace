@@ -22,6 +22,8 @@ struct Inner {
     backend: Arc<dyn RumbleBackend>,
     stepper: Stepper,
     registry: Mutex<Registry>,
+    /// Held for a whole refresh, so events leave in the order the registry produced them.
+    refresh_lock: Mutex<()>,
     config: Config,
     emit: Emit,
 }
@@ -29,9 +31,14 @@ struct Inner {
 impl Inner {
     /// Rescans the pads, silences any that left, and emits what changed.
     fn refresh(&self) {
+        let Ok(_ordered) = self.refresh_lock.lock() else {
+            return;
+        };
+        // Scanning touches the disk, so it happens before the registry is locked.
+        let scan = self.backend.scan();
         let (events, departed, arrived) = match self.registry.lock() {
             Ok(mut registry) => {
-                let events = registry.refresh(self.backend.name(), self.backend.scan());
+                let events = registry.refresh(self.backend.name(), scan);
                 (events, registry.take_departed(), registry.take_arrived())
             }
             Err(_) => return,
@@ -62,6 +69,7 @@ impl GamepadHaptics {
             stepper: Stepper::new(Arc::clone(&backend)),
             backend,
             registry: Mutex::new(Registry::default()),
+            refresh_lock: Mutex::new(()),
             config,
             emit,
         });
@@ -84,18 +92,24 @@ impl GamepadHaptics {
             platform: std::env::consts::OS.to_string(),
             backend: self.inner.backend.name().to_string(),
             limits: self.inner.config.limits(),
-            pads: self.list_pads()?,
+            // The hot-plug watcher keeps the registry current, so this does not rescan; `list_pads`
+            // does, for backends that cannot watch.
+            pads: self.snapshot(),
         })
     }
 
-    pub fn list_pads(&self) -> Result<Vec<PadInfo>> {
-        self.inner.refresh();
-        Ok(self
-            .inner
+    fn snapshot(&self) -> Vec<PadInfo> {
+        self.inner
             .registry
             .lock()
             .map(|registry| registry.pads())
-            .unwrap_or_default())
+            .unwrap_or_default()
+    }
+
+    /// Rescans, then lists the pads present.
+    pub fn list_pads(&self) -> Result<Vec<PadInfo>> {
+        self.inner.refresh();
+        Ok(self.snapshot())
     }
 
     pub fn play_frames(&self, args: PlayFramesArgs) -> Result<PlayResult> {
@@ -239,6 +253,16 @@ mod tests {
             PadEvent::Disconnected { .. }
         ));
         assert!(haptics.list_pads().unwrap().is_empty());
+    }
+
+    #[test]
+    fn capabilities_read_the_registry_without_rescanning() {
+        let (haptics, backend, _) = setup(vec![pad("a")]);
+        let scans = backend.scans();
+        assert_eq!(haptics.capabilities().unwrap().pads.len(), 1);
+        assert_eq!(backend.scans(), scans);
+        haptics.list_pads().unwrap();
+        assert_eq!(backend.scans(), scans + 1);
     }
 
     #[test]

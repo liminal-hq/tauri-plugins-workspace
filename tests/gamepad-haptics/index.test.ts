@@ -106,6 +106,14 @@ describe('createBackend', () => {
 		expect((call?.[1] as { args: { scale: number } }).args.scale).toBe(0.25);
 	});
 
+	it('holds the scale it forwards to 0..1', async () => {
+		const backend = api.createBackend();
+		await backend.register('hit', tap);
+		await backend.trigger('hit', { scale: 3 });
+		const call = invoke.mock.calls.find((c) => c[0] === 'plugin:gamepad-haptics|play_frames');
+		expect((call?.[1] as { args: { scale?: number } }).args.scale).toBeUndefined();
+	});
+
 	it('rejects a pattern that breaks the format at register time', async () => {
 		const backend = api.createBackend();
 		await expect(backend.register('bad', { ...tap, events: [] })).rejects.toThrow();

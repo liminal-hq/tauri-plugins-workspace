@@ -20,9 +20,16 @@ pub struct Config {
     pub stop_on_blur: Option<bool>,
 }
 
+/// The longest limit that can be honoured: the kernel stores an effect's length in 15 bits, and a
+/// pad may hold a level for a frame's time plus a little slack.
+pub const MAX_DURATION_CAP_MS: u64 = 30_000;
+
 impl Config {
     pub fn limits(&self) -> Limits {
-        let max_duration_ms = self.max_duration_ms.unwrap_or(3_000).max(1);
+        let max_duration_ms = self
+            .max_duration_ms
+            .unwrap_or(3_000)
+            .clamp(1, MAX_DURATION_CAP_MS);
         Limits {
             max_duration_ms,
             max_continuous_ms: self
@@ -64,6 +71,12 @@ mod tests {
         assert_eq!(limits.max_duration_ms, 1);
         assert_eq!(limits.max_continuous_ms, 1);
         assert_eq!(config.master_scale(), 1.0);
+
+        let long = Config {
+            max_duration_ms: Some(120_000),
+            ..Config::default()
+        };
+        assert_eq!(long.limits().max_duration_ms, MAX_DURATION_CAP_MS);
         assert!(config.stop_on_blur());
     }
 }

@@ -153,15 +153,32 @@ impl Stepper {
     }
 
     pub fn play(&self, key: &str, frames: &[Frame]) {
-        self.stop(key);
+        // The lock is held from stopping the old worker to storing the new one, so two overlapping
+        // calls for one pad cannot both start a worker and lose track of one of them.
+        let Ok(mut jobs) = self.jobs.lock() else {
+            return;
+        };
+        let finished: Vec<String> = jobs
+            .iter()
+            .filter(|(_, job)| job.handle.is_finished())
+            .map(|(key, _)| key.clone())
+            .collect();
+        for key in finished {
+            if let Some(job) = jobs.remove(&key) {
+                let _ = job.handle.join();
+            }
+        }
+        if let Some(old) = jobs.remove(key) {
+            let _ = old.stop.send(());
+            let _ = old.handle.join();
+        }
+
         let updates = schedule(frames);
         let (stop, rx) = channel();
         let backend = Arc::clone(&self.backend);
         let owned = key.to_string();
         let handle = thread::spawn(move || run(backend, owned, updates, rx));
-        if let Ok(mut jobs) = self.jobs.lock() {
-            jobs.insert(key.to_string(), Job { stop, handle });
-        }
+        jobs.insert(key.to_string(), Job { stop, handle });
     }
 
     /// Stops `key` and waits until its worker has silenced the pad.
@@ -279,6 +296,27 @@ mod tests {
             .filter(|c| matches!(c, Call::Silence { .. }))
             .count();
         assert_eq!(silences, 2);
+    }
+
+    #[test]
+    fn overlapping_plays_leave_one_worker_that_stop_can_reach() {
+        let backend = Arc::new(MockBackend::new(vec![]));
+        let stepper = Arc::new(Stepper::new(backend.clone()));
+        let handles: Vec<_> = (0..8)
+            .map(|_| {
+                let stepper = Arc::clone(&stepper);
+                thread::spawn(move || stepper.play("a", &[frame(2_000, 1.0, 1.0)]))
+            })
+            .collect();
+        for h in handles {
+            h.join().unwrap();
+        }
+        stepper.stop("a");
+        // Nothing is left playing: after the stop, no later call reaches the pad.
+        let count = backend.calls().len();
+        thread::sleep(Duration::from_millis(80));
+        assert_eq!(backend.calls().len(), count);
+        assert!(matches!(backend.calls().last(), Some(Call::Silence { .. })));
     }
 
     #[test]

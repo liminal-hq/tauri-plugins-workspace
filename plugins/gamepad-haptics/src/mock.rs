@@ -5,7 +5,7 @@
 
 use std::{
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
         Mutex,
     },
     time::Instant,
@@ -38,6 +38,7 @@ pub struct MockBackend {
     calls: Mutex<Vec<Call>>,
     notify: Mutex<Option<Notify>>,
     fail_sets: AtomicBool,
+    scans: AtomicUsize,
     started: Instant,
 }
 
@@ -48,6 +49,7 @@ impl MockBackend {
             calls: Mutex::new(Vec::new()),
             notify: Mutex::new(None),
             fail_sets: AtomicBool::new(false),
+            scans: AtomicUsize::new(0),
             started: Instant::now(),
         }
     }
@@ -76,6 +78,11 @@ impl MockBackend {
             .collect()
     }
 
+    /// How many times the pads were scanned.
+    pub fn scans(&self) -> usize {
+        self.scans.load(Ordering::SeqCst)
+    }
+
     pub fn fail_sets(&self, fail: bool) {
         self.fail_sets.store(fail, Ordering::SeqCst);
     }
@@ -96,6 +103,7 @@ impl RumbleBackend for MockBackend {
     }
 
     fn scan(&self) -> Vec<DiscoveredPad> {
+        self.scans.fetch_add(1, Ordering::SeqCst);
         self.pads.lock().unwrap().clone()
     }
 
