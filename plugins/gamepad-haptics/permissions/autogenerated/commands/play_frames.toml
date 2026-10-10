@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-play-frames"
+description = "Enables the play_frames command without any pre-configured scope."
+commands.allow = ["play_frames"]
+
+[[permission]]
+identifier = "deny-play-frames"
+description = "Denies the play_frames command without any pre-configured scope."
+commands.deny = ["play_frames"]

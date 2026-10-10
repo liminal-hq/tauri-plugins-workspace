@@ -1,0 +1,8 @@
+[default]
+description = "Default permissions for the gamepad-haptics plugin. Listening to pad connection events also needs the core event permission (`core:event:default`)."
+permissions = [
+  "allow-capabilities",
+  "allow-list-pads",
+  "allow-play-frames",
+  "allow-stop",
+]

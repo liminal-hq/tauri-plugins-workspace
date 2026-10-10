@@ -13,6 +13,7 @@ A collection of Tauri v2 plugins for building privacy-focused, local-first appli
 | [`desktop-integration`](plugins/desktop-integration) | X11 window activation and unified global-shortcut binding                                                                                              | Linux                                     |
 | [`system-appearance`](plugins/system-appearance)     | Window titlebar layout and actions, and the appearance preferences (colour scheme, accent, contrast, motion, text scale, icon theme), pushed on change | Linux, Windows, macOS                     |
 | [`os-prefs`](plugins/os-prefs)                       | The user's 12/24-hour clock setting, pushed on change                                                                                                  | Linux, Windows, macOS, Android, iOS       |
+| [`gamepad-haptics`](plugins/gamepad-haptics)         | Rumble for gamepads from one pattern language, plus a web fallback when no native path exists                                                          | Linux (native), web fallback elsewhere    |
 | [`window-manager`](plugins/window-manager)           | Compositor window menu and window manager features                                                                                                     | Linux, Windows (partial), macOS (partial) |
 
 ## Installation
