@@ -74,9 +74,6 @@ private val PRIMITIVE_MS = mapOf(
 // Rough length of a system UI tick, for the result estimate.
 private const val UI_FEEDBACK_MS = 20L
 
-// The most steps one `play_steps` call may schedule.
-private const val MAX_STEPS = 512
-
 private val PREDEFINED_MS = mapOf("click" to 15L, "double_click" to 60L, "tick" to 10L, "heavy_click" to 30L)
 
 // Nearest supported stand-in, tried in order, when a motor lacks a primitive.
@@ -298,7 +295,8 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
     val args = argsRoot.getJSObject("req") ?: argsRoot
 
     val prepared = try {
-      prepare(args)
+      // The Rust layer has validated the request and says how long it may play.
+      prepare(args, argsRoot.optLong("budgetMs", Long.MAX_VALUE))
     } catch (e: Throwable) {
       invoke.reject(e.message ?: "Invalid haptics request", "INVALID_EFFECT")
       return
@@ -328,10 +326,6 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
       invoke.reject("steps cannot be empty", "INVALID_EFFECT")
       return
     }
-    if (steps.length() > MAX_STEPS) {
-      invoke.reject("steps exceeds the maximum of $MAX_STEPS", "INVALID_EFFECT")
-      return
-    }
 
     val maxDur = (cfg.maxDurationMs ?: 10_000).coerceAtLeast(1)
     val ready = mutableListOf<Pair<Long, Prepared.Ready>>()
@@ -344,15 +338,11 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
         if (!step.has("atMs")) throw IllegalArgumentException("steps[$i]: missing field `atMs`")
         val atMs = step.getLong("atMs")
         if (atMs < 0) throw IllegalArgumentException("steps[$i]: atMs must not be negative")
-        // A step that starts at the limit has no time left to play in.
-        if (atMs >= maxDur) {
-          throw IllegalArgumentException("steps[$i]: atMs $atMs is not below the limit of $maxDur ms")
-        }
         val request = step.getJSObject("request")
           ?: throw IllegalArgumentException("steps[$i]: missing field `request`")
         val prepared = try {
-          // A step may only use what is left of the duration cap after its start offset.
-          prepare(request, maxDur - atMs)
+          // The Rust layer gives each step what is left of the duration cap after its offset.
+          prepare(request, if (step.has("budgetMs")) step.getLong("budgetMs") else maxDur - atMs)
         } catch (e: IllegalArgumentException) {
           throw IllegalArgumentException("steps[$i]: ${e.message}")
         }
@@ -404,68 +394,9 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
     class Ready(val built: Built, val usage: String, val stopBefore: Boolean) : Prepared()
   }
 
-  /** The checks that do not depend on the hardware or on any setting. */
-  private fun validateEffect(effectObj: JSObject) {
-    when (val type = effectObj.getString("type")) {
-      "oneshot" -> {
-        if (getLong(effectObj, "durationMs", "duration_ms") <= 0) {
-          throw IllegalArgumentException("durationMs must be positive")
-        }
-        // Absent means the default strength; an explicit value must be a real one.
-        if (effectObj.present("amplitude") && effectObj.getInt("amplitude") !in 1..255) {
-          throw IllegalArgumentException("amplitude must be within 1..255")
-        }
-      }
-
-      "waveform" -> {
-        val timings = toLongArray(getArray(effectObj, "timingsMs", "timings_ms"))
-        if (timings.isEmpty()) throw IllegalArgumentException("timingsMs cannot be empty")
-        if (timings.all { it == 0L }) throw IllegalArgumentException("at least one timing must be non-zero")
-        if (effectObj.present("amplitudes") &&
-          getArray(effectObj, "amplitudes", "amplitudes_ms").length() != timings.size
-        ) {
-          throw IllegalArgumentException("amplitudes must have same length as timingsMs")
-        }
-      }
-
-      "predefined" -> {
-        val id = getString(effectObj, "effectId", "effect_id").lowercase()
-        if (id !in EFFECT_IDS) {
-          throw IllegalArgumentException(
-            "Unknown predefined effect `$id`. Use one of ${EFFECT_IDS.joinToString(", ")}; " +
-              "for a thud use the `thud` composition primitive."
-          )
-        }
-      }
-
-      "composition" -> {
-        val steps = getArray(effectObj, "steps")
-        for (i in 0 until steps.length()) {
-          val step = getObject(steps, i)
-          val kind = step.getString("kind")
-          if (kind != "primitive") {
-            throw IllegalArgumentException(
-              "steps[$i]: unsupported step kind `$kind`. Compositions are primitives only."
-            )
-          }
-          val requested = step.getString("primitive").lowercase()
-          if (requested !in PRIMITIVE_IDS) {
-            throw IllegalArgumentException("steps[$i]: unknown primitive `$requested`")
-          }
-        }
-      }
-
-      "envelopeWaveform" -> validateEnvelopeShape(effectObj)
-
-      else -> throw IllegalArgumentException("Unknown effect type: $type")
-    }
-  }
-
   /** Turns a request into an effect, or says why nothing will play. Throws for invalid input. */
   private fun prepare(args: JSObject, budgetMs: Long = Long.MAX_VALUE): Prepared {
     val effectObj = args.getJSObject("effect") ?: throw IllegalArgumentException("Missing effect payload")
-    // Invalid input rejects on every device, including one that has nothing to vibrate.
-    validateEffect(effectObj)
 
     val requested = (args.getString("usage", cfg.defaultUsage ?: "touch") ?: "touch").lowercase()
     val usage = if (requested in USAGES) requested else "touch"
@@ -559,12 +490,10 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
 
     return when (type) {
       "oneshot" -> {
-        val requestedDur = getLong(effectObj, "durationMs", "duration_ms")
-        val dur = requestedDur.coerceAtMost(maxDur)
+        val dur = getLong(effectObj, "durationMs", "duration_ms")
         val ampRaw = if (effectObj.present("amplitude")) effectObj.getInt("amplitude") else -1
         val hasAmplitude = vibrator.hasAmplitudeControl()
         val reasons = mutableListOf<String>()
-        if (dur < requestedDur) reasons.add("Truncated to $maxDur ms")
         val amp = when {
           ampRaw <= 0 -> VibrationEffect.DEFAULT_AMPLITUDE
           !hasAmplitude -> {
@@ -577,43 +506,27 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
       }
 
       "waveform" -> {
+        // Repeat policy and the duration cap are already applied by the Rust layer.
         val timings = toLongArray(getArray(effectObj, "timingsMs", "timings_ms"))
         val repeat = if (effectObj.present("repeat")) effectObj.getInt("repeat") else -1
-
-        // Enforce repeat safety, and say so
-        val allowRepeat = cfg.allowRepeatingWaveforms ?: false
-        val safeRepeat = if (!allowRepeat && repeat >= 0) -1 else repeat
         val reasons = mutableListOf<String>()
-        if (safeRepeat != repeat) reasons.add("Repeat ignored: allowRepeatingWaveforms is false")
-        val capped = capWaveformDuration(timings, maxDur)
-        if (timings.sum() > maxDur) reasons.add("Truncated to $maxDur ms")
-
-        if (capped.isEmpty()) {
-          throw IllegalArgumentException("timingsMs cannot be empty")
-        }
-        if (capped.all { it == 0L }) {
-          throw IllegalArgumentException("at least one timing must be non-zero")
-        }
-        val total = capped.sum()
+        val total = timings.sum()
         val hasAmplitude = vibrator.hasAmplitudeControl()
 
         if (effectObj.present("amplitudes")) {
           val amps = toIntArray(getArray(effectObj, "amplitudes", "amplitudes_ms")).map { it.coerceIn(0, maxAmp) }.toIntArray()
-          if (amps.size != capped.size) {
-            throw IllegalArgumentException("amplitudes must have same length as timingsMs")
-          }
           val eff = if (hasAmplitude) {
-            VibrationEffect.createWaveform(capped, amps, safeRepeat)
+            VibrationEffect.createWaveform(timings, amps, repeat)
           } else {
             // Downgrade: non-zero amplitudes become the default strength. The timings-only overload
             // would start with an off phase, so the amplitude layout is kept instead.
             reasons.add("Device lacks amplitude control")
             val onOff = IntArray(amps.size) { if (amps[it] > 0) VibrationEffect.DEFAULT_AMPLITUDE else 0 }
-            VibrationEffect.createWaveform(capped, onOff, safeRepeat)
+            VibrationEffect.createWaveform(timings, onOff, repeat)
           }
           Built(eff, if (hasAmplitude) 2 else 1, total, reasons)
         } else {
-          Built(VibrationEffect.createWaveform(capped, safeRepeat), 1, total, reasons)
+          Built(VibrationEffect.createWaveform(timings, repeat), 1, total, reasons)
         }
       }
 
@@ -655,7 +568,6 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
       }
 
       "envelopeWaveform" -> {
-        validateEnvelopeShape(effectObj)
         if (!envelopeEffectsSupported()) {
           val reason = if (Build.VERSION.SDK_INT < 36) {
             "Envelope requires API 36+ and device support"
@@ -801,42 +713,12 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
   }
 
   /**
-   * The checks that do not depend on the hardware, so an invalid envelope is rejected the same way
-   * on a device that falls back to a tick as on one that plays it.
-   */
-  private fun validateEnvelopeShape(effectObj: JSObject) {
-    val points = getArray(effectObj, "controlPoints", "control_points")
-    if (points.length() == 0) {
-      throw IllegalArgumentException("controlPoints cannot be empty")
-    }
-    val initial = when {
-      effectObj.present("initialFrequencyHz") -> effectObj.getDouble("initialFrequencyHz")
-      effectObj.present("initial_frequency_hz") -> effectObj.getDouble("initial_frequency_hz")
-      else -> null
-    }
-    if (initial != null) checkFrequency(initial.toFloat(), null)
-    for (i in 0 until points.length()) {
-      val p = getObject(points, i)
-      if (!p.present("amplitude")) throw IllegalArgumentException("controlPoints[$i]: missing amplitude")
-      val amplitude = p.getDouble("amplitude").toFloat()
-      if (amplitude.isNaN() || amplitude < 0f || amplitude > 1f) {
-        throw IllegalArgumentException("controlPoints[$i]: amplitude must be within 0..1")
-      }
-      checkFrequency(getDouble(p, "frequencyHz", "frequency_hz", i).toFloat(), null)
-      if (getLong(p, "durationMs", "duration_ms") <= 0) {
-        throw IllegalArgumentException("controlPoints[$i]: durationMs must be positive")
-      }
-    }
-  }
-
-  /**
    * Builds a waveform envelope from `controlPoints` (amplitude 0..1, frequencyHz, durationMs).
    * Validates against device limits so callers get a clear INVALID_EFFECT error.
    */
   private fun buildEnvelopeEffect(effectObj: JSObject, maxDur: Long): VibrationEffect {
     if (Build.VERSION.SDK_INT < 36) throw IllegalStateException("Envelope requires API 36+")
 
-    validateEnvelopeShape(effectObj)
     val points = getArray(effectObj, "controlPoints", "control_points")
 
     val info = vibrator.envelopeEffectInfo
@@ -892,24 +774,6 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
     if (obj.has(primary)) return obj.getDouble(primary)
     if (obj.has(fallback)) return obj.getDouble(fallback)
     throw IllegalArgumentException("controlPoints[$index]: missing field `$primary`")
-  }
-
-  private fun capWaveformDuration(timings: LongArray, maxDur: Long): LongArray {
-    var total = 0L
-    val out = LongArray(timings.size)
-    for (i in timings.indices) {
-      val remain = (maxDur - total).coerceAtLeast(0)
-      val v = timings[i].coerceAtLeast(0)
-      val capped = v.coerceAtMost(remain)
-      out[i] = capped
-      total += capped
-      if (total >= maxDur) {
-        // zero out the rest
-        for (j in i + 1 until timings.size) out[j] = 0
-        break
-      }
-    }
-    return out
   }
 
   private fun toLongArray(arr: JSArray): LongArray {
