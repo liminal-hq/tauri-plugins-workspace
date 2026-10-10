@@ -359,15 +359,19 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     if (ready.isNotEmpty()) {
-      cancelScheduled()
-      vibrator.cancel()
+      // Older scheduled steps are replaced only when a step asks to stop what is playing.
+      if (ready.any { it.second.stopBefore }) cancelScheduled()
       val generation = stepGeneration
       val start = SystemClock.uptimeMillis()
       for ((atMs, step) in ready) {
         stepHandler.postAtTime({
           // Superseded by a stop or a newer call, or the OS refused the effect: stay quiet.
           if (generation == stepGeneration) {
-            runCatching { vibrate(step.built.effect!!, step.usage) }
+            runCatching {
+              // Each step stops the current effect when it starts, not when the list is accepted.
+              if (step.stopBefore) vibrator.cancel()
+              vibrate(step.built.effect!!, step.usage)
+            }
           }
         }, stepToken, start + atMs)
       }
