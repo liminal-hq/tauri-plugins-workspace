@@ -16,6 +16,8 @@ mod error;
 #[cfg(target_os = "android")]
 mod mobile;
 mod models;
+#[cfg(not(target_os = "android"))]
+mod validate;
 
 pub use error::{Error, Result};
 

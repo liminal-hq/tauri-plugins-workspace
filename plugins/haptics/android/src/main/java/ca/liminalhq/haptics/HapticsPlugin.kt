@@ -406,7 +406,15 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
   /** The checks that do not depend on the hardware or on any setting. */
   private fun validateEffect(effectObj: JSObject) {
     when (val type = effectObj.getString("type")) {
-      "oneshot" -> getLong(effectObj, "durationMs", "duration_ms")
+      "oneshot" -> {
+        if (getLong(effectObj, "durationMs", "duration_ms") <= 0) {
+          throw IllegalArgumentException("durationMs must be positive")
+        }
+        // Absent means the default strength; an explicit value must be a real one.
+        if (effectObj.present("amplitude") && effectObj.getInt("amplitude") !in 1..255) {
+          throw IllegalArgumentException("amplitude must be within 1..255")
+        }
+      }
 
       "waveform" -> {
         val timings = toLongArray(getArray(effectObj, "timingsMs", "timings_ms"))
