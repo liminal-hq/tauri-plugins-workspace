@@ -287,6 +287,9 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
             amplitudes.push(0, s.amp);
             cursor = start + dur;
         }
+        // Nothing fit before the cap, so there is no request to send.
+        if (timingsMs.length === 0)
+            return { request: null, end: cursor, cut };
         const request = {
             ...base,
             effect: withAmplitudes
@@ -492,7 +495,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
                 const origin = Math.max(round(plan[0].at), end);
                 const built = waveformRequest(plan, origin, cx.caps.hasAmplitudeControl, cx.base, cx.maxMs);
                 cut = cut || built.cut;
-                if (built.end <= origin)
+                if (!built.request || built.end <= origin)
                     return;
                 steps.push({ atMs: origin, request: built.request });
                 end = built.end;

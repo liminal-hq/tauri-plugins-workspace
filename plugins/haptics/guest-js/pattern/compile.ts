@@ -157,7 +157,7 @@ function waveformRequest(
 	withAmplitudes: boolean,
 	base: RequestBase,
 	maxMs: number
-): { request: EffectRequest; end: number; cut: boolean } {
+): { request: EffectRequest | null; end: number; cut: boolean } {
 	const timingsMs: number[] = [];
 	const amplitudes: number[] = [];
 	let cut = false;
@@ -175,6 +175,8 @@ function waveformRequest(
 		amplitudes.push(0, s.amp);
 		cursor = start + dur;
 	}
+	// Nothing fit before the cap, so there is no request to send.
+	if (timingsMs.length === 0) return { request: null, end: cursor, cut };
 	const request: EffectRequest = {
 		...base,
 		effect: withAmplitudes
@@ -406,7 +408,7 @@ function compilePrimitives(cx: Context): Emitted {
 			const origin = Math.max(round(plan[0].at), end);
 			const built = waveformRequest(plan, origin, cx.caps.hasAmplitudeControl, cx.base, cx.maxMs);
 			cut = cut || built.cut;
-			if (built.end <= origin) return;
+			if (!built.request || built.end <= origin) return;
 			steps.push({ atMs: origin, request: built.request });
 			end = built.end;
 		};

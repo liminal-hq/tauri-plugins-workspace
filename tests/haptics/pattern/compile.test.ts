@@ -637,3 +637,23 @@ describe('request details', () => {
 		expect(effect).toMatchObject({ steps: [{ delayMs: 0 }, { delayMs: 85 }] });
 	});
 });
+
+describe('events that start at the limit', () => {
+	it('emits no empty waveform when a transient rounds onto the cap', () => {
+		const maxMs = pixel8Pro.limits.maxDurationMs;
+		const pattern: Pattern = {
+			format: PATTERN_FORMAT,
+			events: [{ type: 'transient', at: maxMs - 0.4, intensity: 1, sharpness: 1 }],
+		};
+		for (const tier of [2, 1] as Tier[]) {
+			const report = compilePattern(pattern, pixel8Pro, { tier });
+			for (const step of report.steps) {
+				const effect = step.request.effect;
+				if (effect.type === 'waveform') expect(effect.timingsMs.length).toBeGreaterThan(0);
+			}
+			if (report.request?.effect.type === 'waveform') {
+				expect(report.request.effect.timingsMs.length).toBeGreaterThan(0);
+			}
+		}
+	});
+});

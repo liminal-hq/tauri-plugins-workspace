@@ -126,6 +126,44 @@ pub fn apply_scale(mut req: EffectRequest, scale: f64) -> EffectRequest {
     req
 }
 
+/// Says why the master scale did nothing to a request it cannot scale, if that is the case.
+pub(crate) fn scale_note(effect: &Effect, scale: f64) -> Option<&'static str> {
+    if (scale - 1.0).abs() < f64::EPSILON {
+        return None;
+    }
+    match effect {
+        Effect::Predefined { .. } => Some("Master scale does not apply to predefined effects"),
+        Effect::Waveform {
+            amplitudes: None, ..
+        } => Some("Master scale does not apply to on/off waveforms"),
+        _ => None,
+    }
+}
+
+/// Applies `scale`, unless that would lift the request above `max_tier`, as it does when it gives a
+/// one-shot an amplitude. Then the request plays unscaled at the tier that was asked for.
+fn scale_within_tier(
+    req: EffectRequest,
+    scale: f64,
+    cap: Option<(u8, &TierInfo)>,
+    reasons: &mut Vec<String>,
+) -> EffectRequest {
+    if let Some(note) = scale_note(&req.effect, scale) {
+        push_unique(reasons, note.to_string());
+    }
+    let scaled = apply_scale(req.clone(), scale);
+    match cap {
+        Some((max_tier, info)) if effect_tier(&scaled.effect, info) > max_tier => {
+            push_unique(
+                reasons,
+                format!("Master scale does not apply at tier {max_tier}"),
+            );
+            req
+        }
+        _ => scaled,
+    }
+}
+
 /// Brings a valid request within the limits, returning what it changed. It never fails: whatever
 /// could not be fixed by shortening was already rejected by validation.
 pub(crate) fn cap_request(
@@ -247,15 +285,23 @@ pub fn plan_play(
             "Master scale is 0, so nothing plays",
         )));
     }
-    if let Some(max_tier) = controls.max_tier {
-        if effect_tier(&req.effect, &tier_info()?) > max_tier {
+    let info = match controls.max_tier {
+        Some(_) => Some(tier_info()?),
+        None => None,
+    };
+    let cap = controls.max_tier.zip(info.as_ref());
+    if let Some((max_tier, info)) = cap {
+        if effect_tier(&req.effect, info) > max_tier {
             return Ok(Plan::Silent(PlayResult::silent(&format!(
                 "Capped at tier {max_tier} by setMaxTier"
             ))));
         }
     }
 
-    let (req, reasons) = cap_request(apply_scale(req, scale), limits, limits.max_duration_ms);
+    let mut reasons = Vec::new();
+    let scaled = scale_within_tier(req, scale, cap, &mut reasons);
+    let (req, capped) = cap_request(scaled, limits, limits.max_duration_ms);
+    reasons.extend(capped);
     if plays_nothing(&req.effect) {
         return Ok(Plan::Silent(PlayResult::silent(NO_STRENGTH)));
     }
@@ -284,11 +330,15 @@ pub fn plan_steps(
             "Master scale is 0, so nothing plays",
         )));
     }
-    if let Some(max_tier) = controls.max_tier {
-        let info = tier_info()?;
+    let info = match controls.max_tier {
+        Some(_) => Some(tier_info()?),
+        None => None,
+    };
+    let cap = controls.max_tier.zip(info.as_ref());
+    if let Some((max_tier, info)) = cap {
         if steps
             .iter()
-            .any(|s| effect_tier(&s.request.effect, &info) > max_tier)
+            .any(|s| effect_tier(&s.request.effect, info) > max_tier)
         {
             return Ok(Plan::Silent(PlayResult::silent(&format!(
                 "Capped at tier {max_tier} by setMaxTier"
@@ -301,8 +351,10 @@ pub fn plan_steps(
         .into_iter()
         .map(|step| {
             let budget_ms = limits.max_duration_ms - step.at_ms;
-            let (request, changes) =
-                cap_request(apply_scale(step.request, scale), limits, budget_ms);
+            let mut changes = Vec::new();
+            let scaled = scale_within_tier(step.request, scale, cap, &mut changes);
+            let (request, capped) = cap_request(scaled, limits, budget_ms);
+            changes.extend(capped);
             for reason in changes {
                 push_unique(&mut reasons, reason);
             }
@@ -536,6 +588,58 @@ mod tests {
             }
             Plan::Forward(_) => panic!("expected silent"),
         }
+    }
+
+    #[test]
+    fn scaling_never_lifts_a_request_above_the_tier_cap() {
+        // An on/off one-shot has no amplitude to scale; giving it one would make it tier 2.
+        let req = request(serde_json::json!({ "type": "oneshot", "durationMs": 40 }));
+        let controls = RawControls {
+            scale: Some(0.5),
+            max_tier: Some(1),
+        };
+        let n = forwarded(plan_play(req, &controls, &limits(), device).unwrap());
+        assert!(matches!(
+            n.value().req.effect,
+            Effect::Oneshot {
+                amplitude: None,
+                ..
+            }
+        ));
+        assert_eq!(n.reasons(), ["Master scale does not apply at tier 1"]);
+    }
+
+    #[test]
+    fn the_master_scale_says_when_it_cannot_apply() {
+        let controls = RawControls {
+            scale: Some(0.5),
+            max_tier: None,
+        };
+        for (effect, note) in [
+            (
+                serde_json::json!({ "type": "predefined", "effectId": "heavy_click" }),
+                "Master scale does not apply to predefined effects",
+            ),
+            (
+                serde_json::json!({ "type": "waveform", "timingsMs": [10, 20] }),
+                "Master scale does not apply to on/off waveforms",
+            ),
+        ] {
+            let n = forwarded(plan_play(request(effect), &controls, &limits(), device).unwrap());
+            assert_eq!(n.reasons(), [note]);
+        }
+        // Nothing to say at full strength.
+        let full = RawControls::default();
+        let n = forwarded(
+            plan_play(
+                request(serde_json::json!({ "type": "predefined", "effectId": "click" })),
+                &full,
+                &limits(),
+                device,
+            )
+            .unwrap(),
+        );
+        assert!(n.reasons().is_empty());
     }
 
     #[test]
