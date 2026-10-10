@@ -1,0 +1,42 @@
+[package]
+name = "tauri-plugin-gamepad-haptics"
+version = "0.0.0"
+description = "Tauri plugin that plays rumble on gamepads from one pattern language, without reading their input"
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+rust-version = { workspace = true }
+repository = { workspace = true }
+build = "build.rs"
+links = "tauri-plugin-gamepad-haptics"
+keywords = ["tauri", "plugin", "gamepad", "rumble", "haptics"]
+categories = ["api-bindings"]
+
+[package.metadata.platforms.support]
+linux = { level = "partial", notes = "Plays dual-motor rumble through evdev force feedback; checked on DualShock 3 and 4 pads" }
+windows = { level = "none", notes = "No native backend yet; the guest-side web fallback drives the Gamepad API in WebView2" }
+macos = { level = "none", notes = "No native backend yet; the guest-side web fallback drives the Gamepad API in WKWebView" }
+android = { level = "none", notes = "No native backend yet" }
+ios = { level = "none", notes = "No native backend yet" }
+
+[lib]
+name = "tauri_plugin_gamepad_haptics"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+
+[dev-dependencies]
+tauri = { workspace = true, features = ["test"] }
+proptest = "1"
+
+[build-dependencies]
+tauri-plugin = { workspace = true, features = ["build"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+evdev = "0.13"
+inotify = "0.11"

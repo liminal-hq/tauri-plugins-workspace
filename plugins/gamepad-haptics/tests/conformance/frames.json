@@ -1,0 +1,170 @@
+{
+	"constants": { "maxFrames": 512 },
+	"defaults": {
+		"limits": { "maxDurationMs": 1000, "maxContinuousMs": 100 },
+		"pad": { "topTier": 2 },
+		"masterScale": 1
+	},
+	"cases": [
+		{
+			"name": "within-limits",
+			"args": { "padId": "gamepad:0", "frames": [{ "durationMs": 50, "heavy": 0.5, "light": 1 }] },
+			"expect": { "ok": { "tier": 2, "reasons": [] } }
+		},
+		{
+			"name": "empty-frames",
+			"args": { "padId": "gamepad:0", "frames": [] },
+			"expect": { "error": "cannot be empty" }
+		},
+		{
+			"name": "zero-duration",
+			"args": { "padId": "gamepad:0", "frames": [{ "durationMs": 0, "heavy": 0.5, "light": 0.5 }] },
+			"expect": { "error": "frames[0]: durationMs must be positive" }
+		},
+		{
+			"name": "level-above-one",
+			"args": { "padId": "gamepad:0", "frames": [{ "durationMs": 10, "heavy": 1.5, "light": 0 }] },
+			"expect": { "error": "heavy must be within 0..1" }
+		},
+		{
+			"name": "over-the-duration-limit",
+			"args": {
+				"padId": "gamepad:0",
+				"frames": [{ "durationMs": 1001, "heavy": 0.5, "light": 0.5 }]
+			},
+			"expect": { "error": "over the limit of 1000 ms" }
+		},
+		{
+			"name": "invalid-input-at-scale-zero",
+			"args": {
+				"padId": "gamepad:0",
+				"scale": 0,
+				"frames": [{ "durationMs": 0, "heavy": 0.5, "light": 0.5 }]
+			},
+			"expect": { "error": "durationMs must be positive" }
+		},
+		{
+			"name": "invalid-input-on-a-dead-pad",
+			"pad": { "topTier": 0 },
+			"args": { "padId": "gamepad:0", "frames": [{ "durationMs": 10, "heavy": 2, "light": 0 }] },
+			"expect": { "error": "heavy must be within 0..1" }
+		},
+		{
+			"name": "scale-out-of-range",
+			"args": {
+				"padId": "gamepad:0",
+				"scale": 1.5,
+				"frames": [{ "durationMs": 10, "heavy": 0.5, "light": 0.5 }]
+			},
+			"expect": { "error": "scale must be within 0..1" }
+		},
+		{
+			"name": "scale-zero-is-silent",
+			"args": {
+				"padId": "gamepad:0",
+				"scale": 0,
+				"frames": [{ "durationMs": 10, "heavy": 0.5, "light": 0.5 }]
+			},
+			"expect": { "silent": "Master scale is 0" }
+		},
+		{
+			"name": "scale-half",
+			"args": {
+				"padId": "gamepad:0",
+				"scale": 0.5,
+				"frames": [{ "durationMs": 10, "heavy": 0.5, "light": 1 }]
+			},
+			"expect": {
+				"ok": { "tier": 2, "frames": [{ "durationMs": 10, "heavy": 0.25, "light": 0.5 }] }
+			}
+		},
+		{
+			"name": "single-motor-pad-merges-motors",
+			"pad": { "topTier": 1 },
+			"args": {
+				"padId": "gamepad:0",
+				"frames": [{ "durationMs": 10, "heavy": 0.25, "light": 0.75 }]
+			},
+			"expect": { "ok": { "tier": 1, "frames": [{ "durationMs": 10, "heavy": 0.75, "light": 0 }] } }
+		},
+		{
+			"name": "triggers-dropped-on-a-pad-without-them",
+			"args": {
+				"padId": "gamepad:0",
+				"frames": [{ "durationMs": 10, "heavy": 0.5, "light": 0.5, "rightTrigger": 1 }]
+			},
+			"expect": {
+				"ok": { "tier": 1, "frames": [{ "durationMs": 10, "heavy": 0.5, "light": 0.5 }] }
+			}
+		},
+		{
+			"name": "triggers-played-on-a-trigger-pad",
+			"pad": { "topTier": 3 },
+			"args": {
+				"padId": "gamepad:0",
+				"frames": [{ "durationMs": 10, "heavy": 0.5, "light": 0.5, "rightTrigger": 1 }]
+			},
+			"expect": { "ok": { "tier": 3, "reasons": [] } }
+		},
+		{
+			"name": "long-run-is-cut",
+			"args": { "padId": "gamepad:0", "frames": [{ "durationMs": 150, "heavy": 1, "light": 1 }] },
+			"expect": {
+				"ok": {
+					"tier": 1,
+					"frames": [
+						{ "durationMs": 100, "heavy": 1, "light": 1 },
+						{ "durationMs": 50, "heavy": 0, "light": 0 }
+					],
+					"reasons": ["Capped continuous rumble at 100 ms"]
+				}
+			}
+		},
+		{
+			"name": "short-light-tap-on-a-binary-light-motor-becomes-a-full-pulse",
+			"pad": { "topTier": 2, "lightBinary": true },
+			"args": {
+				"padId": "gamepad:0",
+				"frames": [
+					{ "durationMs": 40, "heavy": 0, "light": 1 },
+					{ "durationMs": 160, "heavy": 0, "light": 0 }
+				]
+			},
+			"expect": {
+				"ok": {
+					"tier": 1,
+					"frames": [
+						{ "durationMs": 100, "heavy": 0, "light": 1 },
+						{ "durationMs": 100, "heavy": 0, "light": 0 }
+					]
+				}
+			}
+		},
+		{
+			"name": "short-soft-heavy-tap-on-a-weak-heavy-motor-is-lengthened",
+			"pad": { "topTier": 2, "weakHeavy": true },
+			"args": {
+				"padId": "gamepad:0",
+				"frames": [
+					{ "durationMs": 60, "heavy": 0.5, "light": 0 },
+					{ "durationMs": 140, "heavy": 0, "light": 0 }
+				]
+			},
+			"expect": {
+				"ok": {
+					"tier": 1,
+					"frames": [
+						{ "durationMs": 90, "heavy": 0.5, "light": 0 },
+						{ "durationMs": 110, "heavy": 0, "light": 0 }
+					]
+				}
+			}
+		},
+		{
+			"name": "dead-pad-is-silent-with-its-reason",
+			"pad": { "topTier": 0, "reason": "No write access to /dev/input/event3" },
+			"args": { "padId": "gamepad:0", "frames": [{ "durationMs": 10, "heavy": 1, "light": 1 }] },
+			"expect": { "silent": "No write access to /dev/input/event3" }
+		}
+	]
+}

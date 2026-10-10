@@ -42,11 +42,19 @@ export default [
 		// The haptics guest bindings use browser timers and `structuredClone`, and declare callback
 		// types with named parameters, which the base `no-unused-vars` rule misreads as unused.
 		// `tsc --strict` already covers unused and undefined identifiers there.
-		files: ['plugins/haptics/guest-js/**/*.ts', 'tests/haptics/**/*.ts'],
+		files: [
+			'plugins/haptics/guest-js/**/*.ts',
+			'tests/haptics/**/*.ts',
+			'plugins/gamepad-haptics/guest-js/**/*.ts',
+			'tests/gamepad-haptics/**/*.ts',
+		],
 		languageOptions: {
 			globals: {
 				clearTimeout: 'readonly',
 				document: 'readonly',
+				navigator: 'readonly',
+				URL: 'readonly',
+				window: 'readonly',
 				setTimeout: 'readonly',
 				structuredClone: 'readonly',
 			},

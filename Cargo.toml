@@ -7,6 +7,7 @@ members = [
   "plugins/system-appearance",
   "plugins/os-prefs",
   "plugins/window-manager",
+  "plugins/gamepad-haptics",
   "examples/api/src-tauri",
 ]
 # plugins/hdmv depends on libhdmv which is not available in CI.

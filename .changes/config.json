@@ -115,6 +115,14 @@
 			"path": "./plugins/os-prefs",
 			"manager": "javascript"
 		},
+		"gamepad-haptics": {
+			"path": "./plugins/gamepad-haptics",
+			"manager": "rust"
+		},
+		"gamepad-haptics-js": {
+			"path": "./plugins/gamepad-haptics",
+			"manager": "javascript"
+		},
 		"api-example": {
 			"path": "./examples/api/src-tauri",
 			"manager": "rust",

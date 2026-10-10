@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-list-pads"
+description = "Enables the list_pads command without any pre-configured scope."
+commands.allow = ["list_pads"]
+
+[[permission]]
+identifier = "deny-list-pads"
+description = "Denies the list_pads command without any pre-configured scope."
+commands.deny = ["list_pads"]
