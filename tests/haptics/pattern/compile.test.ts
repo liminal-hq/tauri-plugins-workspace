@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { describe, it, expect } from 'vitest';
+import { placeSteps, playbackEnd } from '../../../plugins/haptics/guest-js/pattern/playback';
 import { compilePattern } from '../../../plugins/haptics/guest-js/pattern/compile';
 import {
 	fixtures,
@@ -27,6 +28,22 @@ describe('golden reports', () => {
 				if (tier > caps.topTier) continue;
 				it(`${cueName} on ${deviceName} at tier ${tier}`, () => {
 					expect(compilePattern(pattern, caps, { tier })).toMatchSnapshot();
+				});
+			}
+		}
+	}
+});
+
+describe('reports follow playback', () => {
+	for (const [cueName, pattern] of Object.entries(seedCues)) {
+		for (const [deviceName, caps] of Object.entries(fixtures)) {
+			for (const tier of tiers) {
+				if (tier > caps.topTier) continue;
+				it(`${cueName} on ${deviceName} at tier ${tier}`, () => {
+					const r = compilePattern(pattern, caps, { tier });
+					const placed = placeSteps(r.steps, caps);
+					expect(r.segments).toEqual(placed);
+					expect(r.estimatedMs).toBe(playbackEnd(placed));
 				});
 			}
 		}

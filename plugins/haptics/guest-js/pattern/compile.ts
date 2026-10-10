@@ -11,17 +11,18 @@ import type {
 	PrimitiveId,
 	Tier,
 } from '../types';
-import { AMPLITUDE_CEILING, pickPrimitive, primitiveMs, resolvePrimitive } from './tables';
+import type { CompiledSegment } from './playback';
+import { placeSteps, playbackEnd } from './playback';
+import {
+	AMPLITUDE_CEILING,
+	MAX_STEPS,
+	pickPrimitive,
+	primitiveMs,
+	resolvePrimitive,
+} from './tables';
 import type { ContinuousEvent, CurvePoint, Pattern, PatternEvent } from './types';
 
-/** One bar of the compiled pattern, for previews: when, how long and how strong (0..1). */
-export type CompiledSegment = {
-	atMs: number;
-	durationMs: number;
-	amplitude: number;
-	tier: Tier; // the tier this segment was compiled at (2 inside a mixed tier-3 pattern)
-	label?: string; // the primitive, at tier 3
-};
+export type { CompiledSegment };
 
 export type CompileReport = {
 	id?: string;
@@ -155,18 +156,22 @@ function waveformRequest(
 	withAmplitudes: boolean,
 	base: RequestBase,
 	maxMs: number
-): { request: EffectRequest; end: number; placed: Segment[] } {
+): { request: EffectRequest; end: number; cut: boolean } {
 	const timingsMs: number[] = [];
 	const amplitudes: number[] = [];
-	const placed: Segment[] = [];
+	let cut = false;
 	let cursor = Math.round(origin);
 	for (const s of segs) {
 		const start = Math.max(round(s.at), cursor);
-		if (start >= maxMs) break;
-		const dur = Math.min(Math.max(1, round(s.dur)), maxMs - start);
+		if (start >= maxMs) {
+			cut = true;
+			break;
+		}
+		const wanted = Math.max(1, round(s.dur));
+		const dur = Math.min(wanted, maxMs - start);
+		if (dur < wanted) cut = true;
 		timingsMs.push(start - cursor, dur);
 		amplitudes.push(0, s.amp);
-		placed.push({ at: start, dur, amp: s.amp });
 		cursor = start + dur;
 	}
 	const request: EffectRequest = {
@@ -175,27 +180,15 @@ function waveformRequest(
 			? { type: 'waveform', timingsMs, amplitudes, repeat: -1 }
 			: { type: 'waveform', timingsMs, repeat: -1 },
 	};
-	return { request, end: cursor, placed };
+	return { request, end: cursor, cut };
 }
 
 type RequestBase = Pick<EffectRequest, 'id' | 'usage' | 'respectSystemSettings'>;
 
-function toSegmentReport(segs: Segment[], tier: Tier): CompiledSegment[] {
-	return segs.map((s) => ({
-		atMs: s.at,
-		durationMs: s.dur,
-		amplitude: s.amp / 255,
-		tier,
-	}));
-}
-
-function endMs(segments: CompiledSegment[]): number {
-	return round(segments.reduce((m, s) => Math.max(m, s.atMs + s.durationMs), 0));
-}
-
 // ── tiers ─────────────────────────────────────────────────────────────────────────────────────
 
-type Attempt = Omit<CompileReport, 'id'>;
+/** What a tier compiler emits; the report's segments and duration are derived from the steps. */
+type Emitted = Omit<CompileReport, 'id' | 'segments' | 'estimatedMs'>;
 
 type Context = {
 	pattern: Pattern;
@@ -207,7 +200,7 @@ type Context = {
 	base: RequestBase;
 };
 
-function compileEnvelope(cx: Context): Attempt | { fallback: string } {
+function compileEnvelope(cx: Context): Emitted | { fallback: string } {
 	const info = cx.caps.envelopeInfo;
 	if (!cx.caps.envelopeSupported || !info) {
 		return { fallback: 'No envelope support reported; compiled at tier 3' };
@@ -220,7 +213,6 @@ function compileEnvelope(cx: Context): Attempt | { fallback: string } {
 	const freqFor = (sharpness: number) => lo + (hi - lo) * clamp01(sharpness);
 
 	const points: { amplitude: number; frequencyHz: number; durationMs: number }[] = [];
-	const bars: CompiledSegment[] = [];
 	const notes: string[] = [];
 	let t = 0;
 	let lastAmp = 0;
@@ -243,7 +235,6 @@ function compileEnvelope(cx: Context): Attempt | { fallback: string } {
 			remaining -= chunk;
 			const a = remaining > 0 ? from + (amplitude - from) * (1 - remaining / total) : amplitude;
 			points.push({ amplitude: clamp01(a), frequencyHz, durationMs: chunk });
-			bars.push({ atMs: t, durationMs: chunk, amplitude: clamp01(a), tier: 4 });
 			t += chunk;
 		}
 		lastAmp = amplitude;
@@ -305,12 +296,10 @@ function compileEnvelope(cx: Context): Attempt | { fallback: string } {
 	};
 	return {
 		tier: 4,
-		estimatedMs: round(t),
 		mixed: false,
 		notes,
 		steps: [{ atMs: 0, request }],
 		request,
-		segments: bars,
 	};
 }
 
@@ -318,11 +307,10 @@ function sharpnessAt(ev: PatternEvent, x: number): number {
 	return ev.type === 'transient' ? ev.sharpness : levelAt(ev.sharpness, x);
 }
 
-function compilePrimitives(cx: Context): Attempt {
+function compilePrimitives(cx: Context): Emitted {
 	const notes: string[] = [];
-	const segments: CompiledSegment[] = [];
 	type Item =
-		| { kind: 'primitive'; ev: PatternEvent; id: PrimitiveId; scale: number; dropped?: boolean }
+		| { kind: 'primitive'; ev: PatternEvent; id: PrimitiveId; scale: number }
 		| { kind: 'amplitude'; ev: PatternEvent; segs: Segment[] };
 	const items: Item[] = [];
 	let cut = false;
@@ -365,54 +353,17 @@ function compilePrimitives(cx: Context): Attempt {
 	const mixed = items.some((i) => i.kind === 'amplitude');
 	const primitiveItems = items.filter((i) => i.kind === 'primitive');
 
-	// Bars: primitives on the beat, plus any tier-2 segments. A mixed pattern plays one step after
-	// another, so a step that would run past the cap once serialised is dropped here.
-	let cursor = 0;
-	for (const item of items) {
-		if (item.kind === 'primitive') {
-			const start = Math.max(mixed ? round(item.ev.at) : item.ev.at, cursor);
-			const dur = primitiveMs(cx.caps, item.id);
-			if (mixed && start + dur > cx.maxMs) {
-				item.dropped = true;
-				cut = true;
-				continue;
-			}
-			segments.push({
-				atMs: start,
-				durationMs: dur,
-				amplitude: item.scale,
-				tier: 3,
-				label: item.id,
-			});
-			cursor = start + dur;
-		} else if (item.segs.length) {
-			// Playback starts a segment list only once the step before it has ended, and clips it to the cap.
-			const shift = Math.max(round(item.segs[0].at), cursor) - item.segs[0].at;
-			const placed: Segment[] = [];
-			for (const seg of item.segs) {
-				const at = seg.at + shift;
-				if (at >= cx.maxMs) {
-					cut = true;
-					break;
-				}
-				const dur = Math.min(seg.dur, cx.maxMs - at);
-				if (dur < seg.dur) cut = true;
-				placed.push({ ...seg, at, dur });
-			}
-			segments.push(...toSegmentReport(placed, 2));
-			cursor = Math.max(cursor, ...placed.map((seg) => seg.at + seg.dur));
-		}
-	}
-	if (cut) notes.push(`Truncated to ${cx.maxMs} ms`);
-
 	if (!primitiveItems.length) {
 		// Nothing needed a primitive the motor has, so the whole pattern is tier 2.
 		const segs = items.flatMap((i) => (i.kind === 'amplitude' ? i.segs : []));
-		return { ...compileAmplitude({ ...cx, events: [] }, segs), notes, tier: 2 };
+		const amplitude = compileAmplitude({ ...cx, events: [] }, segs);
+		if (cut || amplitude.cut) notes.push(`Truncated to ${cx.maxMs} ms`);
+		return { ...withoutCut(amplitude), notes, tier: 2 };
 	}
 
 	const steps: CompiledStep[] = [];
 	let request: EffectRequest | null = null;
+	let stepsCut = false;
 	if (!mixed) {
 		let end = 0;
 		const comp = primitiveItems.map((item) => {
@@ -424,14 +375,21 @@ function compilePrimitives(cx: Context): Attempt {
 		request = { ...cx.base, effect: { type: 'composition', steps: comp } };
 		steps.push({ atMs: 0, request });
 	} else {
-		notes.push('Mixed: runs as a scheduled step list');
-		// Each step cancels the one before it, so steps start after the previous one ends.
+		// Each step cancels the one before it, so steps start after the previous one ends, and one
+		// that would run past the cap once placed is dropped.
 		let end = 0;
 		for (const item of items) {
+			if (steps.length >= MAX_STEPS) {
+				stepsCut = true;
+				break;
+			}
 			if (item.kind === 'primitive') {
-				if (item.dropped) continue;
 				const start = Math.max(round(item.ev.at), end);
-				if (start >= cx.maxMs) continue;
+				const dur = primitiveMs(cx.caps, item.id);
+				if (start + dur > cx.maxMs) {
+					cut = true;
+					continue;
+				}
 				steps.push({
 					atMs: start,
 					request: {
@@ -442,10 +400,11 @@ function compilePrimitives(cx: Context): Attempt {
 						},
 					},
 				});
-				end = start + primitiveMs(cx.caps, item.id);
+				end = start + dur;
 			} else if (item.segs.length) {
 				const origin = Math.max(round(item.segs[0].at), end);
 				const built = waveformRequest(item.segs, origin, true, cx.base, cx.maxMs);
+				cut = cut || built.cut;
 				if (built.end <= origin) continue;
 				steps.push({ atMs: origin, request: built.request });
 				end = built.end;
@@ -453,48 +412,45 @@ function compilePrimitives(cx: Context): Attempt {
 		}
 	}
 
-	return {
-		tier: 3,
-		estimatedMs: endMs(segments),
-		mixed,
-		notes,
-		steps,
-		request,
-		segments,
-	};
+	if (cut) notes.push(`Truncated to ${cx.maxMs} ms`);
+	if (mixed) notes.push('Mixed: runs as a scheduled step list');
+	if (stepsCut) notes.push(`Truncated to ${MAX_STEPS} steps`);
+
+	return { tier: 3, mixed, notes, steps, request };
 }
 
-function compileAmplitude(cx: Context, given?: Segment[]): Attempt {
+function compileAmplitude(cx: Context, given?: Segment[]): Emitted & { cut: boolean } {
 	const notes: string[] = [];
 	const raw =
 		given ?? cx.events.flatMap((ev) => amplitudeSegments(ev, cx.caps, cx.scale, cx.maxAmp));
-	const { segs, cut } = applyCaps(
+	const capped = applyCaps(
 		raw.sort((a, b) => a.at - b.at),
 		cx.maxMs,
 		cx.maxAmp
 	);
+	const { segs } = capped;
+
+	const built = segs.length ? waveformRequest(segs, 0, true, cx.base, cx.maxMs) : null;
+	const cut = capped.cut || (built?.cut ?? false);
 	if (cut) notes.push(`Truncated to ${cx.maxMs} ms`);
 	notes.push(`${segs.length} one-shot segments, neighbours within ${MERGE_WITHIN} merged`);
 
-	// The report follows what plays: overlapping segments are moved behind the ones before them.
-	const built = segs.length ? waveformRequest(segs, 0, true, cx.base, cx.maxMs) : null;
 	const request = built?.request ?? null;
-	const segments = toSegmentReport(built?.placed ?? [], 2);
 	return {
 		tier: 2,
-		estimatedMs: endMs(segments),
 		mixed: false,
 		notes,
 		steps: request ? [{ atMs: 0, request }] : [],
 		request,
-		segments,
+		cut,
 	};
 }
 
-function compileOnOff(cx: Context): Attempt {
+function compileOnOff(cx: Context): Emitted {
 	const notes: string[] = [];
 	const quiet = compileAmplitude(cx);
-	const source = quiet.segments.map((s) => ({
+	// The amplitude plan as it plays, so the duty cycle follows the serialised segments.
+	const source = placeSteps(quiet.steps, cx.caps).map((s) => ({
 		at: s.atMs,
 		dur: s.durationMs,
 		amp: round(s.amplitude * 255),
@@ -518,18 +474,17 @@ function compileOnOff(cx: Context): Attempt {
 			`${dropped} quiet segment${dropped > 1 ? 's' : ''} under amplitude ${ON_OFF_FLOOR} dropped`
 		);
 	}
-	notes.push(...quiet.notes.filter((n) => n.startsWith('Truncated')));
 
-	const request = on.length ? waveformRequest(on, 0, false, cx.base, cx.maxMs).request : null;
-	const segments = toSegmentReport(on, 1);
+	const built = on.length ? waveformRequest(on, 0, false, cx.base, cx.maxMs) : null;
+	if (quiet.cut || built?.cut) notes.push(`Truncated to ${cx.maxMs} ms`);
+
+	const request = built?.request ?? null;
 	return {
 		tier: 1,
-		estimatedMs: endMs(segments),
 		mixed: false,
 		notes,
 		steps: request ? [{ atMs: 0, request }] : [],
 		request,
-		segments,
 	};
 }
 
@@ -579,7 +534,7 @@ export function compilePattern(
 	};
 
 	const carried: string[] = [];
-	let result: Attempt | null = null;
+	let result: Emitted | null = null;
 	if (target === 4) {
 		const env = compileEnvelope(cx);
 		if ('fallback' in env) carried.push(env.fallback);
@@ -587,9 +542,21 @@ export function compilePattern(
 	}
 	if (!result) {
 		if (target >= 3) result = compilePrimitives(cx);
-		else if (target === 2 && caps.hasAmplitudeControl) result = compileAmplitude(cx);
+		else if (target === 2 && caps.hasAmplitudeControl) result = withoutCut(compileAmplitude(cx));
 		else result = compileOnOff(cx);
 	}
 
-	return { id: pattern.id, ...result, notes: [...carried, ...result.notes] };
+	// The report is read off the steps, so it can only say what the steps play.
+	const segments = placeSteps(result.steps, caps);
+	return {
+		id: pattern.id,
+		...result,
+		notes: [...carried, ...result.notes],
+		estimatedMs: playbackEnd(segments),
+		segments,
+	};
+}
+
+function withoutCut({ cut: _cut, ...emitted }: Emitted & { cut: boolean }): Emitted {
+	return emitted;
 }

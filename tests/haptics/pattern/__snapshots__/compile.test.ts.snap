@@ -79,7 +79,7 @@ exports[`golden reports > bossSlam on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 12,
-      "durationMs": 16.941176470588236,
+      "durationMs": 17,
       "tier": 1,
     },
     {
@@ -103,7 +103,7 @@ exports[`golden reports > bossSlam on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 60,
-      "durationMs": 14.19607843137255,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -127,13 +127,13 @@ exports[`golden reports > bossSlam on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 108,
-      "durationMs": 11.450980392156861,
+      "durationMs": 11,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 120,
-      "durationMs": 10.745098039215685,
+      "durationMs": 11,
       "tier": 1,
     },
     {
@@ -145,13 +145,13 @@ exports[`golden reports > bossSlam on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 144,
-      "durationMs": 9.411764705882353,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 156,
-      "durationMs": 8.705882352941178,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -169,7 +169,7 @@ exports[`golden reports > bossSlam on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 192,
-      "durationMs": 6.666666666666666,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -567,7 +567,7 @@ exports[`golden reports > bossSlam on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 12,
-      "durationMs": 16.941176470588236,
+      "durationMs": 17,
       "tier": 1,
     },
     {
@@ -591,7 +591,7 @@ exports[`golden reports > bossSlam on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 60,
-      "durationMs": 14.19607843137255,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -615,13 +615,13 @@ exports[`golden reports > bossSlam on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 108,
-      "durationMs": 11.450980392156861,
+      "durationMs": 11,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 120,
-      "durationMs": 10.745098039215685,
+      "durationMs": 11,
       "tier": 1,
     },
     {
@@ -633,13 +633,13 @@ exports[`golden reports > bossSlam on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 144,
-      "durationMs": 9.411764705882353,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 156,
-      "durationMs": 8.705882352941178,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -657,7 +657,7 @@ exports[`golden reports > bossSlam on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 192,
-      "durationMs": 6.666666666666666,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -1198,7 +1198,7 @@ exports[`golden reports > bossSlam on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 12,
-      "durationMs": 16.941176470588236,
+      "durationMs": 17,
       "tier": 1,
     },
     {
@@ -1222,7 +1222,7 @@ exports[`golden reports > bossSlam on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 60,
-      "durationMs": 14.19607843137255,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -1246,13 +1246,13 @@ exports[`golden reports > bossSlam on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 108,
-      "durationMs": 11.450980392156861,
+      "durationMs": 11,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 120,
-      "durationMs": 10.745098039215685,
+      "durationMs": 11,
       "tier": 1,
     },
     {
@@ -1264,13 +1264,13 @@ exports[`golden reports > bossSlam on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 144,
-      "durationMs": 9.411764705882353,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 156,
-      "durationMs": 8.705882352941178,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -1288,7 +1288,7 @@ exports[`golden reports > bossSlam on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 192,
-      "durationMs": 6.666666666666666,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -1727,7 +1727,7 @@ exports[`golden reports > bossSlam on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 12,
-      "durationMs": 16.941176470588236,
+      "durationMs": 17,
       "tier": 1,
     },
     {
@@ -1751,7 +1751,7 @@ exports[`golden reports > bossSlam on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 60,
-      "durationMs": 14.19607843137255,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -1775,13 +1775,13 @@ exports[`golden reports > bossSlam on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 108,
-      "durationMs": 11.450980392156861,
+      "durationMs": 11,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 120,
-      "durationMs": 10.745098039215685,
+      "durationMs": 11,
       "tier": 1,
     },
     {
@@ -1793,13 +1793,13 @@ exports[`golden reports > bossSlam on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 144,
-      "durationMs": 9.411764705882353,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 156,
-      "durationMs": 8.705882352941178,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -1817,7 +1817,7 @@ exports[`golden reports > bossSlam on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 192,
-      "durationMs": 6.666666666666666,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -1961,7 +1961,7 @@ exports[`golden reports > bossSlam on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 12,
-      "durationMs": 16.941176470588236,
+      "durationMs": 17,
       "tier": 1,
     },
     {
@@ -1985,7 +1985,7 @@ exports[`golden reports > bossSlam on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 60,
-      "durationMs": 14.19607843137255,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -2009,13 +2009,13 @@ exports[`golden reports > bossSlam on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 108,
-      "durationMs": 11.450980392156861,
+      "durationMs": 11,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 120,
-      "durationMs": 10.745098039215685,
+      "durationMs": 11,
       "tier": 1,
     },
     {
@@ -2027,13 +2027,13 @@ exports[`golden reports > bossSlam on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 144,
-      "durationMs": 9.411764705882353,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 156,
-      "durationMs": 8.705882352941178,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -2051,7 +2051,7 @@ exports[`golden reports > bossSlam on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 192,
-      "durationMs": 6.666666666666666,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -2458,13 +2458,13 @@ exports[`golden reports > creamSoda on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 7.8431372549019605,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 60,
-      "durationMs": 10.980392156862745,
+      "durationMs": 11,
       "tier": 1,
     },
   ],
@@ -2642,13 +2642,13 @@ exports[`golden reports > creamSoda on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 7.8431372549019605,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 60,
-      "durationMs": 10.980392156862745,
+      "durationMs": 11,
       "tier": 1,
     },
   ],
@@ -3040,13 +3040,13 @@ exports[`golden reports > creamSoda on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 7.8431372549019605,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 60,
-      "durationMs": 10.980392156862745,
+      "durationMs": 11,
       "tier": 1,
     },
   ],
@@ -3301,13 +3301,13 @@ exports[`golden reports > creamSoda on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 7.8431372549019605,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 60,
-      "durationMs": 10.980392156862745,
+      "durationMs": 11,
       "tier": 1,
     },
   ],
@@ -3385,13 +3385,13 @@ exports[`golden reports > creamSoda on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 7.8431372549019605,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 60,
-      "durationMs": 10.980392156862745,
+      "durationMs": 11,
       "tier": 1,
     },
   ],
@@ -3668,25 +3668,25 @@ exports[`golden reports > extraLife on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 6.431372549019608,
+      "durationMs": 6,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 10,
-      "durationMs": 7.372549019607844,
+      "durationMs": 7,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 20,
-      "durationMs": 8.235294117647058,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 9.098039215686274,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -3716,7 +3716,7 @@ exports[`golden reports > extraLife on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 80,
-      "durationMs": 13.568627450980394,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -3746,25 +3746,25 @@ exports[`golden reports > extraLife on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 140,
-      "durationMs": 9.098039215686274,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 150,
-      "durationMs": 8.235294117647058,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 160,
-      "durationMs": 7.372549019607844,
+      "durationMs": 7,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 170,
-      "durationMs": 6.431372549019608,
+      "durationMs": 6,
       "tier": 1,
     },
   ],
@@ -4188,25 +4188,25 @@ exports[`golden reports > extraLife on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 6.431372549019608,
+      "durationMs": 6,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 10,
-      "durationMs": 7.372549019607844,
+      "durationMs": 7,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 20,
-      "durationMs": 8.235294117647058,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 9.098039215686274,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -4236,7 +4236,7 @@ exports[`golden reports > extraLife on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 80,
-      "durationMs": 13.568627450980394,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -4266,25 +4266,25 @@ exports[`golden reports > extraLife on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 140,
-      "durationMs": 9.098039215686274,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 150,
-      "durationMs": 8.235294117647058,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 160,
-      "durationMs": 7.372549019607844,
+      "durationMs": 7,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 170,
-      "durationMs": 6.431372549019608,
+      "durationMs": 6,
       "tier": 1,
     },
   ],
@@ -4851,25 +4851,25 @@ exports[`golden reports > extraLife on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 6.431372549019608,
+      "durationMs": 6,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 10,
-      "durationMs": 7.372549019607844,
+      "durationMs": 7,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 20,
-      "durationMs": 8.235294117647058,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 9.098039215686274,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -4899,7 +4899,7 @@ exports[`golden reports > extraLife on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 80,
-      "durationMs": 13.568627450980394,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -4929,25 +4929,25 @@ exports[`golden reports > extraLife on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 140,
-      "durationMs": 9.098039215686274,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 150,
-      "durationMs": 8.235294117647058,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 160,
-      "durationMs": 7.372549019607844,
+      "durationMs": 7,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 170,
-      "durationMs": 6.431372549019608,
+      "durationMs": 6,
       "tier": 1,
     },
   ],
@@ -5412,25 +5412,25 @@ exports[`golden reports > extraLife on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 6.431372549019608,
+      "durationMs": 6,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 10,
-      "durationMs": 7.372549019607844,
+      "durationMs": 7,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 20,
-      "durationMs": 8.235294117647058,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 9.098039215686274,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -5460,7 +5460,7 @@ exports[`golden reports > extraLife on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 80,
-      "durationMs": 13.568627450980394,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -5490,25 +5490,25 @@ exports[`golden reports > extraLife on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 140,
-      "durationMs": 9.098039215686274,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 150,
-      "durationMs": 8.235294117647058,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 160,
-      "durationMs": 7.372549019607844,
+      "durationMs": 7,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 170,
-      "durationMs": 6.431372549019608,
+      "durationMs": 6,
       "tier": 1,
     },
   ],
@@ -5636,25 +5636,25 @@ exports[`golden reports > extraLife on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 6.431372549019608,
+      "durationMs": 6,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 10,
-      "durationMs": 7.372549019607844,
+      "durationMs": 7,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 20,
-      "durationMs": 8.235294117647058,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 9.098039215686274,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -5684,7 +5684,7 @@ exports[`golden reports > extraLife on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 80,
-      "durationMs": 13.568627450980394,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -5714,25 +5714,25 @@ exports[`golden reports > extraLife on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 140,
-      "durationMs": 9.098039215686274,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 150,
-      "durationMs": 8.235294117647058,
+      "durationMs": 8,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 160,
-      "durationMs": 7.372549019607844,
+      "durationMs": 7,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 170,
-      "durationMs": 6.431372549019608,
+      "durationMs": 6,
       "tier": 1,
     },
   ],
@@ -7001,19 +7001,19 @@ exports[`golden reports > hurt on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 56,
-      "durationMs": 10.509803921568627,
+      "durationMs": 11,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 68,
-      "durationMs": 8.941176470588236,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 80,
-      "durationMs": 7.294117647058823,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -7334,7 +7334,7 @@ exports[`golden reports > hurt on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 15.686274509803921,
+      "durationMs": 16,
       "tier": 1,
     },
     {
@@ -7358,19 +7358,19 @@ exports[`golden reports > hurt on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 56,
-      "durationMs": 10.509803921568627,
+      "durationMs": 11,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 68,
-      "durationMs": 8.941176470588236,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 80,
-      "durationMs": 7.294117647058823,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -7894,19 +7894,19 @@ exports[`golden reports > hurt on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 56,
-      "durationMs": 10.509803921568627,
+      "durationMs": 11,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 68,
-      "durationMs": 8.941176470588236,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 80,
-      "durationMs": 7.294117647058823,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -8311,19 +8311,19 @@ exports[`golden reports > hurt on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 56,
-      "durationMs": 10.509803921568627,
+      "durationMs": 11,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 68,
-      "durationMs": 8.941176470588236,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 80,
-      "durationMs": 7.294117647058823,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -8456,19 +8456,19 @@ exports[`golden reports > hurt on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 56,
-      "durationMs": 10.509803921568627,
+      "durationMs": 11,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 68,
-      "durationMs": 8.941176470588236,
+      "durationMs": 9,
       "tier": 1,
     },
     {
       "amplitude": 1,
       "atMs": 80,
-      "durationMs": 7.294117647058823,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -8830,7 +8830,7 @@ exports[`golden reports > jump on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 7.8431372549019605,
+      "durationMs": 8,
       "tier": 1,
     },
   ],
@@ -8966,7 +8966,7 @@ exports[`golden reports > jump on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 7.8431372549019605,
+      "durationMs": 8,
       "tier": 1,
     },
   ],
@@ -9213,7 +9213,7 @@ exports[`golden reports > jump on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 7.8431372549019605,
+      "durationMs": 8,
       "tier": 1,
     },
   ],
@@ -9388,7 +9388,7 @@ exports[`golden reports > jump on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 7.8431372549019605,
+      "durationMs": 8,
       "tier": 1,
     },
   ],
@@ -9452,7 +9452,7 @@ exports[`golden reports > jump on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 7.8431372549019605,
+      "durationMs": 8,
       "tier": 1,
     },
   ],
@@ -9662,7 +9662,7 @@ exports[`golden reports > levelCleared on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 6.666666666666666,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -9674,7 +9674,7 @@ exports[`golden reports > levelCleared on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 50,
-      "durationMs": 9.333333333333334,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -9716,7 +9716,7 @@ exports[`golden reports > levelCleared on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 130,
-      "durationMs": 12.549019607843137,
+      "durationMs": 13,
       "tier": 1,
     },
   ],
@@ -10077,7 +10077,7 @@ exports[`golden reports > levelCleared on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 6.666666666666666,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -10089,7 +10089,7 @@ exports[`golden reports > levelCleared on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 50,
-      "durationMs": 9.333333333333334,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -10131,7 +10131,7 @@ exports[`golden reports > levelCleared on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 130,
-      "durationMs": 12.549019607843137,
+      "durationMs": 13,
       "tier": 1,
     },
   ],
@@ -10687,7 +10687,7 @@ exports[`golden reports > levelCleared on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 6.666666666666666,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -10699,7 +10699,7 @@ exports[`golden reports > levelCleared on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 50,
-      "durationMs": 9.333333333333334,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -10741,7 +10741,7 @@ exports[`golden reports > levelCleared on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 130,
-      "durationMs": 12.549019607843137,
+      "durationMs": 13,
       "tier": 1,
     },
   ],
@@ -11160,7 +11160,7 @@ exports[`golden reports > levelCleared on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 6.666666666666666,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -11172,7 +11172,7 @@ exports[`golden reports > levelCleared on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 50,
-      "durationMs": 9.333333333333334,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -11214,7 +11214,7 @@ exports[`golden reports > levelCleared on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 130,
-      "durationMs": 12.549019607843137,
+      "durationMs": 13,
       "tier": 1,
     },
   ],
@@ -11335,7 +11335,7 @@ exports[`golden reports > levelCleared on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 30,
-      "durationMs": 6.666666666666666,
+      "durationMs": 7,
       "tier": 1,
     },
     {
@@ -11347,7 +11347,7 @@ exports[`golden reports > levelCleared on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 50,
-      "durationMs": 9.333333333333334,
+      "durationMs": 9,
       "tier": 1,
     },
     {
@@ -11389,7 +11389,7 @@ exports[`golden reports > levelCleared on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 130,
-      "durationMs": 12.549019607843137,
+      "durationMs": 13,
       "tier": 1,
     },
   ],
@@ -12572,7 +12572,7 @@ exports[`golden reports > stomp on budgetAmplitude at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 14.03921568627451,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -12718,7 +12718,7 @@ exports[`golden reports > stomp on envelopeDevice at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 14.03921568627451,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -12975,7 +12975,7 @@ exports[`golden reports > stomp on midRange at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 14.03921568627451,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -13160,7 +13160,7 @@ exports[`golden reports > stomp on onOffOnly at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 14.03921568627451,
+      "durationMs": 14,
       "tier": 1,
     },
     {
@@ -13234,7 +13234,7 @@ exports[`golden reports > stomp on pixel8Pro at tier 1 1`] = `
     {
       "amplitude": 1,
       "atMs": 0,
-      "durationMs": 14.03921568627451,
+      "durationMs": 14,
       "tier": 1,
     },
     {

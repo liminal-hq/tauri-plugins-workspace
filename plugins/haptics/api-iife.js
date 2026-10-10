@@ -7,6 +7,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
     // (c) Copyright 2026 Liminal HQ, Scott Morris
     // SPDX-License-Identifier: Apache-2.0 OR MIT
     /** The most steps one `play_steps` call may schedule; the plugin rejects longer lists. */
+    const MAX_STEPS = 512;
     const PRIMITIVE_IDS = [
         'tick',
         'low_tick',
@@ -86,6 +87,91 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         if (last > first + 0.05)
             return ev.duration < 150 ? 'quick_rise' : 'slow_rise';
         return 'spin';
+    }
+
+    // Models what the native side plays for a list of compiled steps, for previews and estimates
+    //
+    // (c) Copyright 2026 Liminal HQ, Scott Morris
+    // SPDX-License-Identifier: Apache-2.0 OR MIT
+    /** The segments one step plays, starting `at` ms into the pattern. */
+    function stepSegments(step, caps) {
+        const e = step.request.effect;
+        const out = [];
+        let t = step.atMs;
+        switch (e.type) {
+            case 'composition':
+                for (const s of e.steps) {
+                    t += s.delayMs ?? 0;
+                    const durationMs = primitiveMs(caps, s.primitive);
+                    out.push({
+                        atMs: t,
+                        durationMs,
+                        amplitude: s.scale ?? 1,
+                        tier: 3,
+                        label: s.primitive,
+                    });
+                    t += durationMs;
+                }
+                break;
+            case 'waveform':
+                // Timings alternate off and on. With amplitudes each timing has its own strength; without
+                // them the odd timings are the full-strength "on" phases.
+                e.timingsMs.forEach((durationMs, i) => {
+                    const amp = e.amplitudes ? e.amplitudes[i] : i % 2 === 1 ? 255 : 0;
+                    if (durationMs > 0 && amp > 0) {
+                        out.push({
+                            atMs: t,
+                            durationMs,
+                            amplitude: amp / 255,
+                            tier: e.amplitudes ? 2 : 1,
+                        });
+                    }
+                    t += durationMs;
+                });
+                break;
+            case 'envelopeWaveform':
+                for (const p of e.controlPoints) {
+                    out.push({ atMs: t, durationMs: p.durationMs, amplitude: p.amplitude, tier: 4 });
+                    t += p.durationMs;
+                }
+                break;
+            case 'oneshot':
+                out.push({
+                    atMs: t,
+                    durationMs: e.durationMs,
+                    amplitude: (e.amplitude ?? 255) / 255,
+                    tier: 2,
+                });
+                break;
+        }
+        return out;
+    }
+    /**
+     * Where each bar of a step list plays. A step replaces whatever is still playing when it starts,
+     * so a bar is cut at the start of the step after it.
+     */
+    function placeSteps(steps, caps) {
+        const ordered = steps
+            .map((step, i) => ({ step, i }))
+            .sort((a, b) => a.step.atMs - b.step.atMs || a.i - b.i)
+            .map((x) => x.step);
+        const out = [];
+        ordered.forEach((step, i) => {
+            const next = ordered[i + 1]?.atMs;
+            for (const seg of stepSegments(step, caps)) {
+                if (next === undefined || seg.atMs + seg.durationMs <= next) {
+                    out.push(seg);
+                }
+                else if (seg.atMs < next) {
+                    out.push({ ...seg, durationMs: next - seg.atMs });
+                }
+            }
+        });
+        return out;
+    }
+    /** When the last bar ends, in whole milliseconds. */
+    function playbackEnd(segments) {
+        return Math.round(segments.reduce((m, s) => Math.max(m, s.atMs + s.durationMs), 0));
     }
 
     // Pattern compiler: steps a portable pattern down the five-tier ladder for one device
@@ -183,16 +269,20 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
     function waveformRequest(segs, origin, withAmplitudes, base, maxMs) {
         const timingsMs = [];
         const amplitudes = [];
-        const placed = [];
+        let cut = false;
         let cursor = Math.round(origin);
         for (const s of segs) {
             const start = Math.max(round(s.at), cursor);
-            if (start >= maxMs)
+            if (start >= maxMs) {
+                cut = true;
                 break;
-            const dur = Math.min(Math.max(1, round(s.dur)), maxMs - start);
+            }
+            const wanted = Math.max(1, round(s.dur));
+            const dur = Math.min(wanted, maxMs - start);
+            if (dur < wanted)
+                cut = true;
             timingsMs.push(start - cursor, dur);
             amplitudes.push(0, s.amp);
-            placed.push({ at: start, dur, amp: s.amp });
             cursor = start + dur;
         }
         const request = {
@@ -201,18 +291,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
                 ? { type: 'waveform', timingsMs, amplitudes, repeat: -1 }
                 : { type: 'waveform', timingsMs, repeat: -1 },
         };
-        return { request, end: cursor, placed };
-    }
-    function toSegmentReport(segs, tier) {
-        return segs.map((s) => ({
-            atMs: s.at,
-            durationMs: s.dur,
-            amplitude: s.amp / 255,
-            tier,
-        }));
-    }
-    function endMs(segments) {
-        return round(segments.reduce((m, s) => Math.max(m, s.atMs + s.durationMs), 0));
+        return { request, end: cursor, cut };
     }
     function compileEnvelope(cx) {
         const info = cx.caps.envelopeInfo;
@@ -226,7 +305,6 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         const hi = profile ? profile.maxHz : centre + 40;
         const freqFor = (sharpness) => lo + (hi - lo) * clamp01$1(sharpness);
         const points = [];
-        const bars = [];
         const notes = [];
         let t = 0;
         let lastAmp = 0;
@@ -248,7 +326,6 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
                 remaining -= chunk;
                 const a = remaining > 0 ? from + (amplitude - from) * (1 - remaining / total) : amplitude;
                 points.push({ amplitude: clamp01$1(a), frequencyHz, durationMs: chunk });
-                bars.push({ atMs: t, durationMs: chunk, amplitude: clamp01$1(a), tier: 4 });
                 t += chunk;
             }
             lastAmp = amplitude;
@@ -313,12 +390,10 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         };
         return {
             tier: 4,
-            estimatedMs: round(t),
             mixed: false,
             notes,
             steps: [{ atMs: 0, request }],
             request,
-            segments: bars,
         };
     }
     function sharpnessAt(ev, x) {
@@ -326,7 +401,6 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
     }
     function compilePrimitives(cx) {
         const notes = [];
-        const segments = [];
         const items = [];
         let cut = false;
         // Mirrors the native composition builder, which drops a primitive that would end past the limit.
@@ -362,55 +436,17 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         }
         const mixed = items.some((i) => i.kind === 'amplitude');
         const primitiveItems = items.filter((i) => i.kind === 'primitive');
-        // Bars: primitives on the beat, plus any tier-2 segments. A mixed pattern plays one step after
-        // another, so a step that would run past the cap once serialised is dropped here.
-        let cursor = 0;
-        for (const item of items) {
-            if (item.kind === 'primitive') {
-                const start = Math.max(mixed ? round(item.ev.at) : item.ev.at, cursor);
-                const dur = primitiveMs(cx.caps, item.id);
-                if (mixed && start + dur > cx.maxMs) {
-                    item.dropped = true;
-                    cut = true;
-                    continue;
-                }
-                segments.push({
-                    atMs: start,
-                    durationMs: dur,
-                    amplitude: item.scale,
-                    tier: 3,
-                    label: item.id,
-                });
-                cursor = start + dur;
-            }
-            else if (item.segs.length) {
-                // Playback starts a segment list only once the step before it has ended, and clips it to the cap.
-                const shift = Math.max(round(item.segs[0].at), cursor) - item.segs[0].at;
-                const placed = [];
-                for (const seg of item.segs) {
-                    const at = seg.at + shift;
-                    if (at >= cx.maxMs) {
-                        cut = true;
-                        break;
-                    }
-                    const dur = Math.min(seg.dur, cx.maxMs - at);
-                    if (dur < seg.dur)
-                        cut = true;
-                    placed.push({ ...seg, at, dur });
-                }
-                segments.push(...toSegmentReport(placed, 2));
-                cursor = Math.max(cursor, ...placed.map((seg) => seg.at + seg.dur));
-            }
-        }
-        if (cut)
-            notes.push(`Truncated to ${cx.maxMs} ms`);
         if (!primitiveItems.length) {
             // Nothing needed a primitive the motor has, so the whole pattern is tier 2.
             const segs = items.flatMap((i) => (i.kind === 'amplitude' ? i.segs : []));
-            return { ...compileAmplitude({ ...cx, events: [] }, segs), notes, tier: 2 };
+            const amplitude = compileAmplitude({ ...cx, events: [] }, segs);
+            if (cut || amplitude.cut)
+                notes.push(`Truncated to ${cx.maxMs} ms`);
+            return { ...withoutCut(amplitude), notes, tier: 2 };
         }
         const steps = [];
         let request = null;
+        let stepsCut = false;
         if (!mixed) {
             let end = 0;
             const comp = primitiveItems.map((item) => {
@@ -423,16 +459,21 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
             steps.push({ atMs: 0, request });
         }
         else {
-            notes.push('Mixed: runs as a scheduled step list');
-            // Each step cancels the one before it, so steps start after the previous one ends.
+            // Each step cancels the one before it, so steps start after the previous one ends, and one
+            // that would run past the cap once placed is dropped.
             let end = 0;
             for (const item of items) {
+                if (steps.length >= MAX_STEPS) {
+                    stepsCut = true;
+                    break;
+                }
                 if (item.kind === 'primitive') {
-                    if (item.dropped)
-                        continue;
                     const start = Math.max(round(item.ev.at), end);
-                    if (start >= cx.maxMs)
+                    const dur = primitiveMs(cx.caps, item.id);
+                    if (start + dur > cx.maxMs) {
+                        cut = true;
                         continue;
+                    }
                     steps.push({
                         atMs: start,
                         request: {
@@ -443,11 +484,12 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
                             },
                         },
                     });
-                    end = start + primitiveMs(cx.caps, item.id);
+                    end = start + dur;
                 }
                 else if (item.segs.length) {
                     const origin = Math.max(round(item.segs[0].at), end);
                     const built = waveformRequest(item.segs, origin, true, cx.base, cx.maxMs);
+                    cut = cut || built.cut;
                     if (built.end <= origin)
                         continue;
                     steps.push({ atMs: origin, request: built.request });
@@ -455,41 +497,39 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
                 }
             }
         }
-        return {
-            tier: 3,
-            estimatedMs: endMs(segments),
-            mixed,
-            notes,
-            steps,
-            request,
-            segments,
-        };
+        if (cut)
+            notes.push(`Truncated to ${cx.maxMs} ms`);
+        if (mixed)
+            notes.push('Mixed: runs as a scheduled step list');
+        if (stepsCut)
+            notes.push(`Truncated to ${MAX_STEPS} steps`);
+        return { tier: 3, mixed, notes, steps, request };
     }
     function compileAmplitude(cx, given) {
         const notes = [];
         const raw = given ?? cx.events.flatMap((ev) => amplitudeSegments(ev, cx.caps, cx.scale, cx.maxAmp));
-        const { segs, cut } = applyCaps(raw.sort((a, b) => a.at - b.at), cx.maxMs, cx.maxAmp);
+        const capped = applyCaps(raw.sort((a, b) => a.at - b.at), cx.maxMs, cx.maxAmp);
+        const { segs } = capped;
+        const built = segs.length ? waveformRequest(segs, 0, true, cx.base, cx.maxMs) : null;
+        const cut = capped.cut || (built?.cut ?? false);
         if (cut)
             notes.push(`Truncated to ${cx.maxMs} ms`);
         notes.push(`${segs.length} one-shot segments, neighbours within ${MERGE_WITHIN} merged`);
-        // The report follows what plays: overlapping segments are moved behind the ones before them.
-        const built = segs.length ? waveformRequest(segs, 0, true, cx.base, cx.maxMs) : null;
         const request = built?.request ?? null;
-        const segments = toSegmentReport(built?.placed ?? [], 2);
         return {
             tier: 2,
-            estimatedMs: endMs(segments),
             mixed: false,
             notes,
             steps: request ? [{ atMs: 0, request }] : [],
             request,
-            segments,
+            cut,
         };
     }
     function compileOnOff(cx) {
         const notes = [];
         const quiet = compileAmplitude(cx);
-        const source = quiet.segments.map((s) => ({
+        // The amplitude plan as it plays, so the duty cycle follows the serialised segments.
+        const source = placeSteps(quiet.steps, cx.caps).map((s) => ({
             at: s.atMs,
             dur: s.durationMs,
             amp: round(s.amplitude * 255),
@@ -510,17 +550,16 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         if (dropped) {
             notes.push(`${dropped} quiet segment${dropped > 1 ? 's' : ''} under amplitude ${ON_OFF_FLOOR} dropped`);
         }
-        notes.push(...quiet.notes.filter((n) => n.startsWith('Truncated')));
-        const request = on.length ? waveformRequest(on, 0, false, cx.base, cx.maxMs).request : null;
-        const segments = toSegmentReport(on, 1);
+        const built = on.length ? waveformRequest(on, 0, false, cx.base, cx.maxMs) : null;
+        if (quiet.cut || built?.cut)
+            notes.push(`Truncated to ${cx.maxMs} ms`);
+        const request = built?.request ?? null;
         return {
             tier: 1,
-            estimatedMs: endMs(segments),
             mixed: false,
             notes,
             steps: request ? [{ atMs: 0, request }] : [],
             request,
-            segments,
         };
     }
     // ── entry point ───────────────────────────────────────────────────────────────────────────────
@@ -573,11 +612,22 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
             if (target >= 3)
                 result = compilePrimitives(cx);
             else if (target === 2 && caps.hasAmplitudeControl)
-                result = compileAmplitude(cx);
+                result = withoutCut(compileAmplitude(cx));
             else
                 result = compileOnOff(cx);
         }
-        return { id: pattern.id, ...result, notes: [...carried, ...result.notes] };
+        // The report is read off the steps, so it can only say what the steps play.
+        const segments = placeSteps(result.steps, caps);
+        return {
+            id: pattern.id,
+            ...result,
+            notes: [...carried, ...result.notes],
+            estimatedMs: playbackEnd(segments),
+            segments,
+        };
+    }
+    function withoutCut({ cut: _cut, ...emitted }) {
+        return emitted;
     }
 
     // Per-pattern scheduler for the interrupt, queue, drop-if-busy and coalesce policies
