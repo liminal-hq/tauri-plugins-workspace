@@ -53,6 +53,11 @@ describe('compilePad', () => {
 	it('plays a sharp tap on the light motor for at least the tap length', () => {
 		const r = compilePad(pattern(tap(0, 1, 1)), caps());
 		expect(r.frames).toEqual([{ durationMs: MIN_TAP_MS, heavy: 0, light: 1 }]);
+		expect(r.tier).toBe(1);
+	});
+
+	it('needs tier 2 once a pattern uses both body motors', () => {
+		const r = compilePad(pattern(tap(0, 1, 1), tap(100, 1, 0)), caps());
 		expect(r.tier).toBe(2);
 	});
 
@@ -143,6 +148,7 @@ describe('compilePad', () => {
 		expect(framesTier([{ durationMs: 10, heavy: 0, light: 0 }])).toBe(0);
 		expect(framesTier([{ durationMs: 10, heavy: 0.5, light: 0.5 }])).toBe(1);
 		expect(framesTier([{ durationMs: 10, heavy: 0.5, light: 0.2 }])).toBe(2);
+		expect(framesTier([{ durationMs: 10, heavy: 0.5, light: 0 }])).toBe(1);
 		expect(framesTier([{ durationMs: 10, heavy: 0, light: 0, rightTrigger: 1 }])).toBe(3);
 	});
 });

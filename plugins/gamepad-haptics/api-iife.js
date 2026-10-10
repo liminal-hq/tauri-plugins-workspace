@@ -153,13 +153,18 @@ var __TAURI_PLUGIN_GAMEPAD_HAPTICS__ = (function (exports, core, event) {
         Math.abs((a.leftTrigger ?? 0) - (b.leftTrigger ?? 0)) < SAME_LEVEL &&
         Math.abs((a.rightTrigger ?? 0) - (b.rightTrigger ?? 0)) < SAME_LEVEL;
     const isSilent = (f) => f.heavy === 0 && f.light === 0 && !(f.leftTrigger ?? 0) && !(f.rightTrigger ?? 0);
-    /** The tier a frame list needs, which is what the Rust side reports back as its request tier. */
+    /**
+     * The tier a frame list needs, which is what the Rust side reports back as its request tier: 3 with
+     * triggers, 2 when both body motors are used and differ somewhere, else 1.
+     */
     function framesTier(frames) {
         if (frames.length === 0 || frames.every(isSilent))
             return 0;
         if (frames.some((f) => (f.leftTrigger ?? 0) > 0 || (f.rightTrigger ?? 0) > 0))
             return 3;
-        if (frames.some((f) => f.heavy !== f.light))
+        const heavy = frames.some((f) => f.heavy > 0);
+        const light = frames.some((f) => f.light > 0);
+        if (heavy && light && frames.some((f) => f.heavy !== f.light))
             return 2;
         return 1;
     }

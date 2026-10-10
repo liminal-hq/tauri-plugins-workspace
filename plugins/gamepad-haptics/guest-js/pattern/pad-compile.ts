@@ -31,7 +31,7 @@ export type PadCompileOptions = {
 
 export type PadCompileReport = {
 	frames: MotorFrame[];
-	/** The tier the frames need: 3 with triggers, 2 when the motors differ, 1 otherwise, 0 when empty. */
+	/** The tier the frames need: 3 with triggers, 2 when both motors are used, 1 otherwise, 0 when empty. */
 	tier: Tier;
 	/** Where the frames end, in ms. */
 	estimatedMs: number;
@@ -130,11 +130,16 @@ const near = (a: MotorFrame, b: MotorFrame) =>
 const isSilent = (f: MotorFrame) =>
 	f.heavy === 0 && f.light === 0 && !(f.leftTrigger ?? 0) && !(f.rightTrigger ?? 0);
 
-/** The tier a frame list needs, which is what the Rust side reports back as its request tier. */
+/**
+ * The tier a frame list needs, which is what the Rust side reports back as its request tier: 3 with
+ * triggers, 2 when both body motors are used and differ somewhere, else 1.
+ */
 export function framesTier(frames: MotorFrame[]): Tier {
 	if (frames.length === 0 || frames.every(isSilent)) return 0;
 	if (frames.some((f) => (f.leftTrigger ?? 0) > 0 || (f.rightTrigger ?? 0) > 0)) return 3;
-	if (frames.some((f) => f.heavy !== f.light)) return 2;
+	const heavy = frames.some((f) => f.heavy > 0);
+	const light = frames.some((f) => f.light > 0);
+	if (heavy && light && frames.some((f) => f.heavy !== f.light)) return 2;
 	return 1;
 }
 

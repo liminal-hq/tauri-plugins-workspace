@@ -49,14 +49,17 @@ pub enum Plan {
     },
 }
 
-/// What a pad needs to play a request: 3 for trigger motors, 2 when the body motors differ, else 1.
+/// What a pad needs to play a request: 3 for trigger motors, 2 when both body motors are used and
+/// differ somewhere, else 1. A pattern that only ever drives one motor needs one motor.
 pub fn request_tier(frames: &[Frame]) -> u8 {
     let uses_triggers = frames
         .iter()
         .any(|f| f.left_trigger.unwrap_or(0.0) > 0.0 || f.right_trigger.unwrap_or(0.0) > 0.0);
+    let heavy_used = frames.iter().any(|f| f.heavy > 0.0);
+    let light_used = frames.iter().any(|f| f.light > 0.0);
     if uses_triggers {
         3
-    } else if frames.iter().any(|f| f.heavy != f.light) {
+    } else if heavy_used && light_used && frames.iter().any(|f| f.heavy != f.light) {
         2
     } else {
         1
@@ -282,6 +285,21 @@ mod tests {
         assert_eq!(play.tier, 2);
         assert!(reasons.is_empty());
         assert_eq!(play.frames, vec![frame(50, 0.5, 1.0)]);
+    }
+
+    #[test]
+    fn a_pattern_that_drives_one_motor_is_tier_one() {
+        let (play, _) = played(
+            plan_play(
+                &args(vec![frame(50, 1.0, 0.0)], None),
+                &test_pad(2),
+                &limits(),
+                1.0,
+            )
+            .unwrap(),
+        );
+        assert_eq!(play.tier, 1);
+        assert_eq!(play.frames, vec![frame(50, 1.0, 0.0)]);
     }
 
     #[test]

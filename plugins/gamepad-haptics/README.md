@@ -49,12 +49,12 @@ A pattern is transients (a tap with intensity and sharpness) and continuous even
 
 ### The ladder
 
-| Tier | Plays                                             |
-| ---- | ------------------------------------------------- |
-| 3    | Triggers and both body motors (not yet built)     |
-| 2    | Both body motors, mixed by sharpness              |
-| 1    | One motor, the stronger of the two                |
-| 0    | Nothing; resolves `{ ok: true, tier: 0, reason }` |
+| Tier | Plays                                                                                         |
+| ---- | --------------------------------------------------------------------------------------------- |
+| 3    | Triggers and both body motors (not yet built)                                                 |
+| 2    | Both body motors, mixed by sharpness (a pattern that only ever uses one motor reports tier 1) |
+| 1    | One motor, the stronger of the two                                                            |
+| 0    | Nothing; resolves `{ ok: true, tier: 0, reason }`                                             |
 
 A pad that cannot play never throws. Results report the tier that played and why it was lower.
 

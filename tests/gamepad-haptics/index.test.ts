@@ -81,7 +81,7 @@ describe('createBackend', () => {
 	it('registers a pattern and plays its compiled frames on the first native pad', async () => {
 		const backend = api.createBackend();
 		const report = await backend.register('hit', tap);
-		expect(report.tier).toBe(2);
+		expect(report.tier).toBe(1);
 
 		const res = await backend.trigger('hit');
 		expect(res.target).toBe('gamepad:0');
