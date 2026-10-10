@@ -4,17 +4,34 @@ A collection of Tauri v2 plugins for building privacy-focused, local-first appli
 
 ## Plugins
 
-| Plugin                                               | Description                                                                                                                                            | Platforms                                 |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
-| [`material-you`](plugins/material-you)               | Material You theming support                                                                                                                           | Android                                   |
-| [`phone-haptics`](plugins/phone-haptics)             | Portable haptic patterns with capability reporting and a stepped fallback ladder                                                                       | Android                                   |
-| [`xdg-portal`](plugins/xdg-portal)                   | `xdg-desktop-portal` theming and global shortcuts                                                                                                      | Linux                                     |
-| [`desktop-integration`](plugins/desktop-integration) | X11 window activation and unified global-shortcut binding                                                                                              | Linux                                     |
-| [`system-appearance`](plugins/system-appearance)     | Window titlebar layout and actions, and the appearance preferences (colour scheme, accent, contrast, motion, text scale, icon theme), pushed on change | Linux, Windows, macOS                     |
-| [`os-prefs`](plugins/os-prefs)                       | The user's 12/24-hour clock setting, pushed on change                                                                                                  | Linux, Windows, macOS, Android, iOS       |
-| [`gamepad-haptics`](plugins/gamepad-haptics)         | Rumble for gamepads from one pattern language, plus a web fallback when no native path exists                                                          | Linux (native), web fallback elsewhere    |
-| [`hdmv`](plugins/hdmv)                               | HDMV/Blu-ray menu engine access through libhdmv (not published; install from Git)                                                                      | Windows, Linux, macOS                     |
-| [`window-manager`](plugins/window-manager)           | Compositor window menu and window manager features                                                                                                     | Linux, Windows (partial), macOS (partial) |
+### Appearance and preferences
+
+| Plugin                                           | Description                                                                                                                                            | Platforms                           |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| [`material-you`](plugins/material-you)           | Material You theming support                                                                                                                           | Android                             |
+| [`system-appearance`](plugins/system-appearance) | Window titlebar layout and actions, and the appearance preferences (colour scheme, accent, contrast, motion, text scale, icon theme), pushed on change | Linux, Windows, macOS               |
+| [`os-prefs`](plugins/os-prefs)                   | The user's 12/24-hour clock setting, pushed on change                                                                                                  | Linux, Windows, macOS, Android, iOS |
+
+### Haptics
+
+| Plugin                                       | Description                                                                                   | Platforms                              |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------- |
+| [`phone-haptics`](plugins/phone-haptics)     | Portable haptic patterns with capability reporting and a stepped fallback ladder              | Android                                |
+| [`gamepad-haptics`](plugins/gamepad-haptics) | Rumble for gamepads from one pattern language, plus a web fallback when no native path exists | Linux (native), web fallback elsewhere |
+
+### Desktop integration
+
+| Plugin                                               | Description                                                                         | Platforms                                 |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------- |
+| [`xdg-portal`](plugins/xdg-portal)                   | `xdg-desktop-portal` theming, global shortcuts, notifications, inhibit and open-URI | Linux                                     |
+| [`desktop-integration`](plugins/desktop-integration) | X11 window activation and unified global-shortcut binding                           | Linux                                     |
+| [`window-manager`](plugins/window-manager)           | Compositor window menu and window manager features                                  | Linux, Windows (partial), macOS (partial) |
+
+### Media
+
+| Plugin                 | Description                                                                       | Platforms             |
+| ---------------------- | --------------------------------------------------------------------------------- | --------------------- |
+| [`hdmv`](plugins/hdmv) | HDMV/Blu-ray menu engine access through libhdmv (not published; install from Git) | Windows, Linux, macOS |
 
 ## Installation
 
