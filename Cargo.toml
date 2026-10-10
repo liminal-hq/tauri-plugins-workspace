@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "plugins/material-you",
+  "plugins/haptics",
   "plugins/xdg-portal",
   "plugins/desktop-integration",
   "plugins/system-appearance",
@@ -37,6 +38,9 @@ tracing = "0.1"
 
 # Utilities
 url = "2"
+
+# Testing
+proptest = "1"
 
 [workspace.package]
 edition = "2021"
