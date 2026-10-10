@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EffectRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -20,7 +20,7 @@ pub struct EffectRequest {
     pub effect: Effect,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(
     tag = "type",
     rename_all = "camelCase",
@@ -52,7 +52,7 @@ pub enum Effect {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EnvelopePoint {
     pub amplitude: f32,
@@ -60,7 +60,7 @@ pub struct EnvelopePoint {
     pub duration_ms: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(
     tag = "kind",
     rename_all = "camelCase",
@@ -212,11 +212,34 @@ pub const PRIMITIVE_IDS: [&str; 7] = [
 pub const EFFECT_IDS: [&str; 4] = ["click", "double_click", "tick", "heavy_click"];
 
 /// One request in a compiled pattern, started `at_ms` after `play_steps` is called.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CompiledStep {
     pub at_ms: u64,
     pub request: EffectRequest,
+}
+
+/// What the Rust layer sends the platform for `play`: the request, already validated and capped,
+/// with the duration it may use.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayArgs {
+    pub req: EffectRequest,
+    pub budget_ms: u64,
+}
+
+/// One step of `play_steps` after normalisation, with the duration left after its start offset.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedStep {
+    pub at_ms: u64,
+    pub budget_ms: u64,
+    pub request: EffectRequest,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PlayStepsArgs {
+    pub steps: Vec<PlannedStep>,
 }
 
 /// System-style feedback for the UI lane, which follows the touch-feedback setting.

@@ -16,10 +16,14 @@ mod error;
 #[cfg(target_os = "android")]
 mod mobile;
 mod models;
-#[cfg(not(target_os = "android"))]
+mod normalise;
+#[cfg(test)]
+mod props;
 mod validate;
 
 pub use error::{Error, Result};
+
+use normalise::{merge_reasons, plan_play, plan_steps, Plan, RawControls, TierInfo};
 
 #[cfg(target_os = "android")]
 use tauri::plugin::PluginHandle;
@@ -30,7 +34,6 @@ const PLUGIN_IDENTIFIER: &str = "ca.liminalhq.haptics";
 pub struct HapticsState<R: Runtime> {
     #[allow(dead_code)]
     app: AppHandle<R>,
-    #[allow(dead_code)]
     config: config::Config,
 
     #[cfg(target_os = "android")]
@@ -43,45 +46,65 @@ pub struct HapticsState<R: Runtime> {
 impl<R: Runtime> HapticsState<R> {
     pub fn capabilities(&self) -> Result<models::Capabilities> {
         #[cfg(target_os = "android")]
-        {
-            return self.mobile.capabilities();
-        }
-
+        let mut caps = self.mobile.capabilities()?;
         #[cfg(not(target_os = "android"))]
-        {
-            self.desktop.capabilities()
+        let mut caps = self.desktop.capabilities()?;
+
+        // The configured limits are what requests are held to, so that is what is reported.
+        caps.limits = self.config.limits();
+        Ok(caps)
+    }
+
+    fn tier_info(&self) -> Result<TierInfo> {
+        let caps = self.capabilities()?;
+        Ok(TierInfo {
+            top_tier: caps.top_tier,
+            has_amplitude_control: caps.has_amplitude_control,
+        })
+    }
+
+    /// Validates and caps a request, then hands it to the platform.
+    pub fn play(
+        &self,
+        req: models::EffectRequest,
+        controls: RawControls,
+    ) -> Result<models::PlayResult> {
+        let limits = self.config.limits();
+        match plan_play(req, &controls, &limits, || self.tier_info())? {
+            Plan::Silent(result) => Ok(result),
+            Plan::Forward(args) => {
+                #[cfg(target_os = "android")]
+                let result = self.mobile.play(&args)?;
+                #[cfg(not(target_os = "android"))]
+                let result = self.desktop.play(&args)?;
+                Ok(merge_reasons(args.reasons(), result))
+            }
         }
     }
 
-    pub fn play(&self, req: models::EffectRequest) -> Result<models::PlayResult> {
-        // TODO: apply Rust-side validation/clamping too (belt & suspenders)
-        #[cfg(target_os = "android")]
-        {
-            return self.mobile.play(req);
-        }
-
-        #[cfg(not(target_os = "android"))]
-        {
-            self.desktop.play(req)
-        }
-    }
-
-    pub fn play_steps(&self, steps: Vec<models::CompiledStep>) -> Result<models::PlayResult> {
-        #[cfg(target_os = "android")]
-        {
-            return self.mobile.play_steps(steps);
-        }
-
-        #[cfg(not(target_os = "android"))]
-        {
-            self.desktop.play_steps(steps)
+    /// Validates and caps a step list, then hands it to the platform.
+    pub fn play_steps(
+        &self,
+        steps: Vec<models::CompiledStep>,
+        controls: RawControls,
+    ) -> Result<models::PlayResult> {
+        let limits = self.config.limits();
+        match plan_steps(steps, &controls, &limits, || self.tier_info())? {
+            Plan::Silent(result) => Ok(result),
+            Plan::Forward(args) => {
+                #[cfg(target_os = "android")]
+                let result = self.mobile.play_steps(&args)?;
+                #[cfg(not(target_os = "android"))]
+                let result = self.desktop.play_steps(&args)?;
+                Ok(merge_reasons(args.reasons(), result))
+            }
         }
     }
 
     pub fn ui(&self, kind: models::UiKind) -> Result<models::PlayResult> {
         #[cfg(target_os = "android")]
         {
-            return self.mobile.ui(kind);
+            self.mobile.ui(kind)
         }
 
         #[cfg(not(target_os = "android"))]
@@ -93,7 +116,7 @@ impl<R: Runtime> HapticsState<R> {
     pub fn stop(&self) -> Result<()> {
         #[cfg(target_os = "android")]
         {
-            return self.mobile.stop();
+            self.mobile.stop()
         }
 
         #[cfg(not(target_os = "android"))]

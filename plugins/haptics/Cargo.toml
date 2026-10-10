@@ -33,3 +33,6 @@ tauri-plugin = { workspace = true, features = ["build"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 tauri-plugin = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }

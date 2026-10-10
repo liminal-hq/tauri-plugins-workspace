@@ -5,7 +5,7 @@
 
 use tauri::{command, AppHandle, Runtime};
 
-use crate::{models::*, HapticsExt};
+use crate::{models::*, normalise::RawControls, HapticsExt};
 
 #[command]
 pub fn capabilities<R: Runtime>(app: AppHandle<R>) -> std::result::Result<Capabilities, String> {
@@ -16,16 +16,24 @@ pub fn capabilities<R: Runtime>(app: AppHandle<R>) -> std::result::Result<Capabi
 pub fn play<R: Runtime>(
     app: AppHandle<R>,
     req: EffectRequest,
+    scale: Option<f64>,
+    max_tier: Option<u8>,
 ) -> std::result::Result<PlayResult, String> {
-    app.haptics().play(req).map_err(|e| e.to_string())
+    app.haptics()
+        .play(req, RawControls { scale, max_tier })
+        .map_err(|e| e.to_string())
 }
 
 #[command]
 pub fn play_steps<R: Runtime>(
     app: AppHandle<R>,
     steps: Vec<CompiledStep>,
+    scale: Option<f64>,
+    max_tier: Option<u8>,
 ) -> std::result::Result<PlayResult, String> {
-    app.haptics().play_steps(steps).map_err(|e| e.to_string())
+    app.haptics()
+        .play_steps(steps, RawControls { scale, max_tier })
+        .map_err(|e| e.to_string())
 }
 
 #[command]

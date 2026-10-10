@@ -3,7 +3,9 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use crate::{config::Config, models::*, validate::validate_request, Result};
+use crate::{config::Config, models::*, normalise::Normalised, Result};
+
+const NO_VIBRATOR: &str = "No vibrator on this platform";
 
 pub struct Haptics {
     config: Config,
@@ -15,11 +17,6 @@ impl Haptics {
     }
 
     pub fn capabilities(&self) -> Result<Capabilities> {
-        let limits = Limits {
-            max_duration_ms: self.config.max_duration_ms.unwrap_or(10_000),
-            max_amplitude: u16::from(self.config.max_amplitude.unwrap_or(255)),
-            allow_repeating_waveforms: self.config.allow_repeating_waveforms.unwrap_or(false),
-        };
         let device = DeviceInfo {
             manufacturer: String::new(),
             model: std::env::consts::OS.to_string(),
@@ -30,28 +27,19 @@ impl Haptics {
         } else {
             "desktop"
         };
-        Ok(Capabilities::none(platform, limits, device))
+        Ok(Capabilities::none(platform, self.config.limits(), device))
     }
 
-    pub fn play(&self, req: EffectRequest) -> Result<PlayResult> {
-        validate_request(&req)?;
-        Ok(PlayResult::silent("No vibrator on this platform"))
+    pub fn play(&self, _args: &Normalised<PlayArgs>) -> Result<PlayResult> {
+        Ok(PlayResult::silent(NO_VIBRATOR))
     }
 
-    pub fn play_steps(&self, steps: Vec<CompiledStep>) -> Result<PlayResult> {
-        if steps.is_empty() {
-            return Err(crate::Error::InvalidRequest(
-                "steps cannot be empty".to_string(),
-            ));
-        }
-        for step in &steps {
-            validate_request(&step.request)?;
-        }
-        Ok(PlayResult::silent("No vibrator on this platform"))
+    pub fn play_steps(&self, _args: &Normalised<PlayStepsArgs>) -> Result<PlayResult> {
+        Ok(PlayResult::silent(NO_VIBRATOR))
     }
 
     pub fn ui(&self, _kind: UiKind) -> Result<PlayResult> {
-        Ok(PlayResult::silent("No vibrator on this platform"))
+        Ok(PlayResult::silent(NO_VIBRATOR))
     }
 
     pub fn stop(&self) -> Result<()> {
@@ -67,54 +55,41 @@ mod tests {
         Haptics::new(Config::default())
     }
 
-    #[test]
-    fn play_resolves_at_tier_zero_with_a_reason() {
-        let req: EffectRequest = serde_json::from_value(serde_json::json!({
+    fn click() -> EffectRequest {
+        serde_json::from_value(serde_json::json!({
             "effect": { "type": "predefined", "effectId": "click" }
         }))
-        .expect("deserialize request");
+        .expect("deserialize request")
+    }
 
-        let res = haptics().play(req).expect("play resolves");
+    #[test]
+    fn play_resolves_at_tier_zero_with_a_reason() {
+        let args = Normalised::unchecked(PlayArgs {
+            req: click(),
+            budget_ms: 10_000,
+        });
+
+        let res = haptics().play(&args).expect("play resolves");
         assert_eq!(res.tier, 0);
         assert!(res.downgraded);
-        assert_eq!(res.reason.as_deref(), Some("No vibrator on this platform"));
-    }
-
-    #[test]
-    fn play_rejects_an_invalid_request_like_android() {
-        let req: EffectRequest = serde_json::from_value(serde_json::json!({
-            "effect": { "type": "envelopeWaveform", "controlPoints": [] }
-        }))
-        .expect("deserialize request");
-
-        assert!(matches!(
-            haptics().play(req),
-            Err(crate::Error::InvalidRequest(_))
-        ));
-    }
-
-    #[test]
-    fn play_steps_rejects_an_empty_list_like_android() {
-        assert!(matches!(
-            haptics().play_steps(Vec::new()),
-            Err(crate::Error::InvalidRequest(_))
-        ));
+        assert_eq!(res.reason.as_deref(), Some(NO_VIBRATOR));
     }
 
     #[test]
     fn play_steps_and_ui_resolve_at_tier_zero() {
-        let request: EffectRequest = serde_json::from_value(serde_json::json!({
-            "effect": { "type": "predefined", "effectId": "click" }
-        }))
-        .expect("deserialize request");
-        let steps = haptics()
-            .play_steps(vec![CompiledStep { at_ms: 0, request }])
-            .expect("play_steps resolves");
+        let args = Normalised::unchecked(PlayStepsArgs {
+            steps: vec![PlannedStep {
+                at_ms: 0,
+                budget_ms: 10_000,
+                request: click(),
+            }],
+        });
+        let steps = haptics().play_steps(&args).expect("play_steps resolves");
         assert_eq!(steps.tier, 0);
 
         let ui = haptics().ui(UiKind::Confirm).expect("ui resolves");
         assert_eq!(ui.tier, 0);
-        assert_eq!(ui.reason.as_deref(), Some("No vibrator on this platform"));
+        assert_eq!(ui.reason.as_deref(), Some(NO_VIBRATOR));
     }
 
     #[test]

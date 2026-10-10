@@ -1,0 +1,508 @@
+// Turns a raw request into one a platform can play: validated first, then scaled and capped
+//
+// (c) Copyright 2026 Liminal HQ, Scott Morris
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+use crate::{
+    models::*,
+    validate::{validate_request, validate_steps},
+    Result,
+};
+
+const REASON_SEPARATOR: &str = " · ";
+
+/// The global controls a caller may set: the master scale and a ceiling on the tier that plays.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct RawControls {
+    pub scale: Option<f64>,
+    pub max_tier: Option<u8>,
+}
+
+impl RawControls {
+    /// The master scale, where a missing or non-finite value means full strength.
+    fn scale(&self) -> f64 {
+        match self.scale {
+            Some(s) if s.is_finite() => s.clamp(0.0, 1.0),
+            _ => 1.0,
+        }
+    }
+}
+
+/// What the device can do, which the tier cap needs.
+#[derive(Debug, Clone, Copy)]
+pub struct TierInfo {
+    pub top_tier: u8,
+    pub has_amplitude_control: bool,
+}
+
+/// A value that has been validated and capped, with every change made along the way.
+///
+/// It can only be built here, so a platform implementation cannot be handed raw input.
+#[derive(Debug)]
+pub struct Normalised<T> {
+    // Only the Android bridge forwards the value; the desktop stub just resolves.
+    #[cfg_attr(not(target_os = "android"), allow(dead_code))]
+    value: T,
+    reasons: Vec<String>,
+}
+
+impl<T> Normalised<T> {
+    #[cfg_attr(not(any(target_os = "android", test)), allow(dead_code))]
+    pub fn value(&self) -> &T {
+        &self.value
+    }
+
+    pub fn reasons(&self) -> &[String] {
+        &self.reasons
+    }
+
+    #[cfg(test)]
+    pub(crate) fn unchecked(value: T) -> Self {
+        Self {
+            value,
+            reasons: Vec::new(),
+        }
+    }
+}
+
+/// Either the request resolves without reaching the platform, or this is what to forward.
+#[derive(Debug)]
+pub enum Plan<T> {
+    Silent(PlayResult),
+    Forward(Normalised<T>),
+}
+
+/// The tier a request plays at on a device, before any downgrade the hardware forces.
+pub fn effect_tier(effect: &Effect, info: &TierInfo) -> u8 {
+    match effect {
+        Effect::EnvelopeWaveform { .. } => 4,
+        Effect::Composition { .. } => 3,
+        Effect::Predefined { .. } => info.top_tier.min(3),
+        Effect::Oneshot { .. } | Effect::Waveform { .. } => {
+            if info.has_amplitude_control {
+                2
+            } else {
+                1
+            }
+        }
+    }
+}
+
+/// Applies the master scale to a request's amplitude fields.
+pub fn apply_scale(mut req: EffectRequest, scale: f64) -> EffectRequest {
+    if (scale - 1.0).abs() < f64::EPSILON {
+        return req;
+    }
+    match &mut req.effect {
+        Effect::Oneshot { amplitude, .. } => {
+            let scaled = (f64::from(amplitude.unwrap_or(255)) * scale).round();
+            *amplitude = Some(scaled.max(1.0) as u16);
+        }
+        Effect::Waveform {
+            amplitudes: Some(amplitudes),
+            ..
+        } => {
+            for a in amplitudes.iter_mut() {
+                *a = (f64::from(*a) * scale).round() as u16;
+            }
+        }
+        Effect::Composition { steps } => {
+            for step in steps.iter_mut() {
+                let CompositionStep::Primitive { scale: s, .. } = step;
+                *s = Some((f64::from(s.unwrap_or(1.0)) * scale).clamp(0.0, 1.0) as f32);
+            }
+        }
+        Effect::EnvelopeWaveform { control_points, .. } => {
+            for p in control_points.iter_mut() {
+                p.amplitude = (f64::from(p.amplitude) * scale).clamp(0.0, 1.0) as f32;
+            }
+        }
+        Effect::Waveform { .. } | Effect::Predefined { .. } => {}
+    }
+    req
+}
+
+/// Brings a valid request within the limits, returning what it changed. It never fails: whatever
+/// could not be fixed by shortening was already rejected by validation.
+pub(crate) fn cap_request(
+    mut req: EffectRequest,
+    limits: &Limits,
+    budget_ms: u64,
+) -> (EffectRequest, Vec<String>) {
+    let budget = budget_ms.max(1);
+    let mut reasons = Vec::new();
+    match &mut req.effect {
+        Effect::Oneshot {
+            duration_ms,
+            amplitude,
+        } => {
+            if *duration_ms > budget {
+                *duration_ms = budget;
+                reasons.push(format!("Truncated to {budget} ms"));
+            }
+            if let Some(a) = amplitude {
+                *a = (*a).min(limits.max_amplitude);
+            }
+        }
+        Effect::Waveform {
+            timings_ms,
+            amplitudes,
+            repeat,
+        } => {
+            if matches!(repeat, Some(r) if *r >= 0) && !limits.allow_repeating_waveforms {
+                *repeat = Some(-1);
+                reasons.push("Repeat ignored: allowRepeatingWaveforms is false".to_string());
+            }
+            let total: u64 = timings_ms.iter().fold(0, |t, v| t.saturating_add(*v));
+            if total > budget {
+                cap_timings(timings_ms, budget);
+                reasons.push(format!("Truncated to {budget} ms"));
+            }
+            if let Some(amplitudes) = amplitudes {
+                for a in amplitudes.iter_mut() {
+                    *a = (*a).min(limits.max_amplitude);
+                }
+            }
+        }
+        Effect::Predefined { .. }
+        | Effect::Composition { .. }
+        | Effect::EnvelopeWaveform { .. } => {}
+    }
+    (req, reasons)
+}
+
+/// Shortens `timings` so they add up to at most `budget`, zeroing everything after the cut.
+fn cap_timings(timings: &mut [u64], budget: u64) {
+    let mut total: u64 = 0;
+    for timing in timings.iter_mut() {
+        let remaining = budget.saturating_sub(total);
+        *timing = (*timing).min(remaining);
+        total += *timing;
+    }
+}
+
+fn push_unique(reasons: &mut Vec<String>, reason: String) {
+    if !reasons.contains(&reason) {
+        reasons.push(reason);
+    }
+}
+
+/// Validates a `play` request, then applies the controls and the limits.
+///
+/// Validation runs on the request as it was sent, so neither a zero scale nor a tier cap can hide
+/// an invalid request, and scaling can never turn one into a valid one. `tier_info` is only called
+/// when a tier cap is set.
+pub fn plan_play(
+    req: EffectRequest,
+    controls: &RawControls,
+    limits: &Limits,
+    tier_info: impl FnOnce() -> Result<TierInfo>,
+) -> Result<Plan<PlayArgs>> {
+    validate_request(&req, limits.max_duration_ms)?;
+
+    let scale = controls.scale();
+    if scale == 0.0 {
+        return Ok(Plan::Silent(PlayResult::silent(
+            "Master scale is 0, so nothing plays",
+        )));
+    }
+    if let Some(max_tier) = controls.max_tier {
+        if effect_tier(&req.effect, &tier_info()?) > max_tier {
+            return Ok(Plan::Silent(PlayResult::silent(&format!(
+                "Capped at tier {max_tier} by setMaxTier"
+            ))));
+        }
+    }
+
+    let (req, reasons) = cap_request(apply_scale(req, scale), limits, limits.max_duration_ms);
+    Ok(Plan::Forward(Normalised {
+        value: PlayArgs {
+            req,
+            budget_ms: limits.max_duration_ms,
+        },
+        reasons,
+    }))
+}
+
+/// Validates a `play_steps` list, then applies the controls and gives each step the duration left
+/// after its start offset.
+pub fn plan_steps(
+    steps: Vec<CompiledStep>,
+    controls: &RawControls,
+    limits: &Limits,
+    tier_info: impl FnOnce() -> Result<TierInfo>,
+) -> Result<Plan<PlayStepsArgs>> {
+    validate_steps(&steps, limits)?;
+
+    let scale = controls.scale();
+    if scale == 0.0 {
+        return Ok(Plan::Silent(PlayResult::silent(
+            "Master scale is 0, so nothing plays",
+        )));
+    }
+    if let Some(max_tier) = controls.max_tier {
+        let info = tier_info()?;
+        if steps
+            .iter()
+            .any(|s| effect_tier(&s.request.effect, &info) > max_tier)
+        {
+            return Ok(Plan::Silent(PlayResult::silent(&format!(
+                "Capped at tier {max_tier} by setMaxTier"
+            ))));
+        }
+    }
+
+    let mut reasons = Vec::new();
+    let planned = steps
+        .into_iter()
+        .map(|step| {
+            let budget_ms = limits.max_duration_ms - step.at_ms;
+            let (request, changes) =
+                cap_request(apply_scale(step.request, scale), limits, budget_ms);
+            for reason in changes {
+                push_unique(&mut reasons, reason);
+            }
+            PlannedStep {
+                at_ms: step.at_ms,
+                budget_ms,
+                request,
+            }
+        })
+        .collect();
+
+    Ok(Plan::Forward(Normalised {
+        value: PlayStepsArgs { steps: planned },
+        reasons,
+    }))
+}
+
+/// Adds what the Rust layer changed to the platform's result, but only when something played, so a
+/// silent result keeps the reason the platform gave.
+pub fn merge_reasons(rust: &[String], mut native: PlayResult) -> PlayResult {
+    if rust.is_empty() || native.tier == 0 {
+        return native;
+    }
+    let mut merged: Vec<String> = Vec::new();
+    for reason in rust {
+        push_unique(&mut merged, reason.clone());
+    }
+    if let Some(existing) = &native.reason {
+        for reason in existing.split(REASON_SEPARATOR) {
+            push_unique(&mut merged, reason.to_string());
+        }
+    }
+    let joined = merged.join(REASON_SEPARATOR);
+    native.downgraded = true;
+    native.reason = Some(joined.clone());
+    native.downgrade_reason = Some(joined);
+    native
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn request(effect: serde_json::Value) -> EffectRequest {
+        serde_json::from_value(serde_json::json!({ "effect": effect })).expect("deserialize")
+    }
+
+    fn limits() -> Limits {
+        Limits {
+            max_duration_ms: 1_000,
+            max_amplitude: 255,
+            allow_repeating_waveforms: false,
+        }
+    }
+
+    fn device() -> Result<TierInfo> {
+        Ok(TierInfo {
+            top_tier: 4,
+            has_amplitude_control: true,
+        })
+    }
+
+    fn forwarded(plan: Plan<PlayArgs>) -> Normalised<PlayArgs> {
+        match plan {
+            Plan::Forward(n) => n,
+            Plan::Silent(r) => panic!("expected a forwarded request, got silent: {:?}", r.reason),
+        }
+    }
+
+    #[test]
+    fn a_one_shot_is_truncated_to_the_limit_and_says_so() {
+        let req = request(serde_json::json!({ "type": "oneshot", "durationMs": 5_000 }));
+        let n = forwarded(plan_play(req, &RawControls::default(), &limits(), device).unwrap());
+        assert!(matches!(
+            n.value().req.effect,
+            Effect::Oneshot {
+                duration_ms: 1_000,
+                ..
+            }
+        ));
+        assert_eq!(n.reasons(), ["Truncated to 1000 ms"]);
+    }
+
+    #[test]
+    fn repeat_is_dropped_unless_the_config_allows_it() {
+        let req =
+            request(serde_json::json!({ "type": "waveform", "timingsMs": [10, 10], "repeat": 0 }));
+        let n =
+            forwarded(plan_play(req.clone(), &RawControls::default(), &limits(), device).unwrap());
+        assert!(matches!(
+            n.value().req.effect,
+            Effect::Waveform {
+                repeat: Some(-1),
+                ..
+            }
+        ));
+        assert_eq!(
+            n.reasons(),
+            ["Repeat ignored: allowRepeatingWaveforms is false"]
+        );
+
+        let allowed = Limits {
+            allow_repeating_waveforms: true,
+            ..limits()
+        };
+        let n = forwarded(plan_play(req, &RawControls::default(), &allowed, device).unwrap());
+        assert!(matches!(
+            n.value().req.effect,
+            Effect::Waveform {
+                repeat: Some(0),
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn a_waveform_is_cut_at_the_budget_and_the_rest_zeroed() {
+        let req =
+            request(serde_json::json!({ "type": "waveform", "timingsMs": [600, 300, 600, 50] }));
+        let n = forwarded(plan_play(req, &RawControls::default(), &limits(), device).unwrap());
+        match &n.value().req.effect {
+            Effect::Waveform { timings_ms, .. } => assert_eq!(timings_ms, &[600, 300, 100, 0]),
+            _ => panic!("expected a waveform"),
+        }
+    }
+
+    #[test]
+    fn invalid_input_rejects_whatever_the_controls_are() {
+        let bad = request(serde_json::json!({ "type": "envelopeWaveform", "controlPoints": [] }));
+        for controls in [
+            RawControls {
+                scale: Some(0.0),
+                max_tier: None,
+            },
+            RawControls {
+                scale: Some(0.5),
+                max_tier: None,
+            },
+            RawControls {
+                scale: None,
+                max_tier: Some(1),
+            },
+        ] {
+            assert!(plan_play(bad.clone(), &controls, &limits(), device).is_err());
+        }
+    }
+
+    #[test]
+    fn scaling_cannot_make_an_invalid_amplitude_valid() {
+        let bad =
+            request(serde_json::json!({ "type": "oneshot", "durationMs": 20, "amplitude": 0 }));
+        let controls = RawControls {
+            scale: Some(0.5),
+            max_tier: None,
+        };
+        assert!(plan_play(bad, &controls, &limits(), device).is_err());
+    }
+
+    #[test]
+    fn a_zero_scale_and_a_tier_cap_resolve_silently() {
+        let click = request(serde_json::json!({ "type": "predefined", "effectId": "click" }));
+        let zero = RawControls {
+            scale: Some(0.0),
+            max_tier: None,
+        };
+        match plan_play(click, &zero, &limits(), device).unwrap() {
+            Plan::Silent(r) => assert_eq!(
+                r.reason.as_deref(),
+                Some("Master scale is 0, so nothing plays")
+            ),
+            Plan::Forward(_) => panic!("expected silent"),
+        }
+
+        let composition = request(serde_json::json!({
+            "type": "composition", "steps": [{ "kind": "primitive", "primitive": "click" }]
+        }));
+        let capped = RawControls {
+            scale: None,
+            max_tier: Some(2),
+        };
+        match plan_play(composition, &capped, &limits(), device).unwrap() {
+            Plan::Silent(r) => {
+                assert_eq!(r.reason.as_deref(), Some("Capped at tier 2 by setMaxTier"))
+            }
+            Plan::Forward(_) => panic!("expected silent"),
+        }
+    }
+
+    #[test]
+    fn the_master_scale_rounds_like_the_guest_did() {
+        let req =
+            request(serde_json::json!({ "type": "oneshot", "durationMs": 20, "amplitude": 200 }));
+        let controls = RawControls {
+            scale: Some(0.5),
+            max_tier: None,
+        };
+        let n = forwarded(plan_play(req, &controls, &limits(), device).unwrap());
+        assert!(matches!(
+            n.value().req.effect,
+            Effect::Oneshot {
+                amplitude: Some(100),
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn each_step_gets_what_is_left_after_its_offset() {
+        let steps = vec![CompiledStep {
+            at_ms: 990,
+            request: request(serde_json::json!({ "type": "oneshot", "durationMs": 50 })),
+        }];
+        match plan_steps(steps, &RawControls::default(), &limits(), device).unwrap() {
+            Plan::Forward(n) => {
+                let step = &n.value().steps[0];
+                assert_eq!(step.budget_ms, 10);
+                assert!(matches!(
+                    step.request.effect,
+                    Effect::Oneshot {
+                        duration_ms: 10,
+                        ..
+                    }
+                ));
+                assert_eq!(n.reasons(), ["Truncated to 10 ms"]);
+            }
+            Plan::Silent(_) => panic!("expected forwarded steps"),
+        }
+    }
+
+    #[test]
+    fn rust_reasons_join_the_platform_reason_only_when_something_played() {
+        let rust = vec!["Truncated to 10 ms".to_string()];
+
+        let mut played = PlayResult::silent("Device lacks amplitude control");
+        played.tier = 1;
+        let merged = merge_reasons(&rust, played);
+        assert_eq!(
+            merged.reason.as_deref(),
+            Some("Truncated to 10 ms · Device lacks amplitude control")
+        );
+        assert_eq!(merged.reason, merged.downgrade_reason);
+
+        let silent = PlayResult::silent("No vibrator on this platform");
+        let kept = merge_reasons(&rust, silent);
+        assert_eq!(kept.reason.as_deref(), Some("No vibrator on this platform"));
+    }
+}

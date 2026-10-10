@@ -39,6 +39,9 @@ tracing = "0.1"
 # Utilities
 url = "2"
 
+# Testing
+proptest = "1"
+
 [workspace.package]
 edition = "2021"
 authors = ["Liminal HQ Contributors"]

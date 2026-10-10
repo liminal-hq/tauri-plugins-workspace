@@ -5,14 +5,9 @@
 
 use tauri::{plugin::PluginHandle, Runtime};
 
-use crate::{models::*, Result};
+use crate::{models::*, normalise::Normalised, Result};
 
 pub struct Haptics<R: Runtime>(pub PluginHandle<R>);
-
-#[derive(serde::Serialize)]
-struct PlayStepsArgs {
-    steps: Vec<CompiledStep>,
-}
 
 #[derive(serde::Serialize)]
 struct UiArgs {
@@ -26,15 +21,15 @@ impl<R: Runtime> Haptics<R> {
             .map_err(|e| crate::Error::MobilePluginInvoke(e.to_string()))
     }
 
-    pub fn play(&self, req: EffectRequest) -> Result<PlayResult> {
+    pub fn play(&self, args: &Normalised<PlayArgs>) -> Result<PlayResult> {
         self.0
-            .run_mobile_plugin("play", req)
+            .run_mobile_plugin("play", args.value())
             .map_err(|e| crate::Error::MobilePluginInvoke(e.to_string()))
     }
 
-    pub fn play_steps(&self, steps: Vec<CompiledStep>) -> Result<PlayResult> {
+    pub fn play_steps(&self, args: &Normalised<PlayStepsArgs>) -> Result<PlayResult> {
         self.0
-            .run_mobile_plugin("play_steps", PlayStepsArgs { steps })
+            .run_mobile_plugin("play_steps", args.value())
             .map_err(|e| crate::Error::MobilePluginInvoke(e.to_string()))
     }
 

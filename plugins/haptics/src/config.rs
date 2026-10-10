@@ -5,6 +5,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::models::Limits;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
@@ -26,6 +28,17 @@ pub struct Config {
 pub struct AndroidConfig {
     pub foreground_audio_usage: Option<String>,
     pub background_audio_usage: Option<String>,
+}
+
+impl Config {
+    /// The limits requests are held to, with the same floors the Android plugin applies.
+    pub fn limits(&self) -> Limits {
+        Limits {
+            max_duration_ms: self.max_duration_ms.unwrap_or(10_000).max(1),
+            max_amplitude: u16::from(self.max_amplitude.unwrap_or(255).clamp(1, 255)),
+            allow_repeating_waveforms: self.allow_repeating_waveforms.unwrap_or(false),
+        }
+    }
 }
 
 impl Default for Config {
