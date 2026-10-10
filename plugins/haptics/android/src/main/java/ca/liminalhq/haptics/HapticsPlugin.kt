@@ -544,9 +544,11 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
           val eff = if (hasAmplitude) {
             VibrationEffect.createWaveform(capped, amps, safeRepeat)
           } else {
-            // Downgrade: non-zero amplitudes become full on; use timings-only
+            // Downgrade: non-zero amplitudes become the default strength. The timings-only overload
+            // would start with an off phase, so the amplitude layout is kept instead.
             reasons.add("Device lacks amplitude control")
-            VibrationEffect.createWaveform(capped, safeRepeat)
+            val onOff = IntArray(amps.size) { if (amps[it] > 0) VibrationEffect.DEFAULT_AMPLITUDE else 0 }
+            VibrationEffect.createWaveform(capped, onOff, safeRepeat)
           }
           Built(eff, if (hasAmplitude) 2 else 1, total, reasons)
         } else {

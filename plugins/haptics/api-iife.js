@@ -326,6 +326,9 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
         const segments = [];
         const items = [];
         let cut = false;
+        // Mirrors the native composition builder, which drops a primitive that would end past the limit.
+        let primitiveEnd = 0;
+        let primitiveTotal = 0;
         for (const ev of cx.events) {
             if (ev.at >= cx.maxMs) {
                 cut = true;
@@ -334,6 +337,14 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
             const wanted = pickPrimitive(ev);
             const resolved = resolvePrimitive(cx.caps, wanted);
             if (resolved) {
+                const dur = primitiveMs(cx.caps, resolved.id);
+                const delayMs = Math.max(0, round(ev.at - primitiveEnd));
+                if (primitiveTotal + delayMs + dur > cx.maxMs) {
+                    cut = true;
+                    continue;
+                }
+                primitiveTotal += delayMs + dur;
+                primitiveEnd = Math.max(primitiveEnd, ev.at) + dur;
                 const level = ev.type === 'transient' ? ev.intensity : peak(ev.intensity);
                 items.push({ kind: 'primitive', ev, id: resolved.id, scale: clamp01$1(level * cx.scale) });
                 if (resolved.note)
@@ -365,8 +376,12 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
                 });
                 cursor = start + dur;
             }
-            else {
-                segments.push(...toSegmentReport(item.segs, 2));
+            else if (item.segs.length) {
+                // Playback starts a segment list only once the step before it has ended.
+                const shift = Math.max(0, cursor - item.segs[0].at);
+                const placed = item.segs.map((seg) => ({ ...seg, at: seg.at + shift }));
+                segments.push(...toSegmentReport(placed, 2));
+                cursor = Math.max(cursor, ...placed.map((seg) => seg.at + seg.dur));
             }
         }
         if (!primitiveItems.length) {

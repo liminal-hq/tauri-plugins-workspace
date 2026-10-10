@@ -110,6 +110,27 @@ describe('mixed patterns', () => {
 		expect(r.mixed).toBe(true);
 		expect(r.steps.map((s) => s.atMs)).toEqual([0, 120]);
 	});
+
+	it('reports a duration that includes the primitive serialised after a segment', () => {
+		const caps = {
+			...midRange,
+			primitives: {
+				...midRange.primitives,
+				spin: { supported: false, durationMs: null },
+				quick_rise: { supported: false, durationMs: null },
+			},
+		};
+		const overlap: Pattern = {
+			format: PATTERN_FORMAT,
+			events: [
+				{ type: 'continuous', at: 0, duration: 120, intensity: 0.6, sharpness: 0.5 },
+				{ type: 'transient', at: 50, intensity: 0.8, sharpness: 0.8 },
+			],
+		};
+		const r = compilePattern(overlap, caps);
+		expect(r.estimatedMs).toBeGreaterThan(120);
+		expect(Math.max(...r.segments.map((s) => s.atMs + s.durationMs))).toBe(r.estimatedMs);
+	});
 });
 
 describe('limits after serialisation', () => {
@@ -128,6 +149,22 @@ describe('limits after serialisation', () => {
 		const effect = compilePattern(dense, caps, { tier: 2 }).request?.effect;
 		const total = effect?.type === 'waveform' ? effect.timingsMs.reduce((a, b) => a + b, 0) : 0;
 		expect(total).toBeLessThanOrEqual(200);
+	});
+
+	it('drops a primitive that would end past the duration cap and says so', () => {
+		const late: Pattern = {
+			format: PATTERN_FORMAT,
+			events: [
+				{ type: 'transient', at: 0, intensity: 0.8, sharpness: 0.8 },
+				{ type: 'transient', at: 95, intensity: 0.8, sharpness: 0.8 },
+			],
+		};
+		const caps = { ...pixel8Pro, limits: { ...pixel8Pro.limits, maxDurationMs: 100 } };
+		const r = compilePattern(late, caps);
+		const effect = r.request?.effect;
+		expect(effect?.type === 'composition' ? effect.steps : []).toHaveLength(1);
+		expect(r.notes).toContain('Truncated to 100 ms');
+		expect(r.estimatedMs).toBeLessThanOrEqual(100);
 	});
 
 	it('treats a non-finite scale as full strength', () => {
