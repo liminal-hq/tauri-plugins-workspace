@@ -44,6 +44,8 @@ struct PadSpec {
     reason: Option<String>,
     #[serde(default)]
     light_binary: bool,
+    #[serde(default)]
+    weak_heavy: bool,
 }
 
 #[derive(Deserialize)]
@@ -82,6 +84,7 @@ fn the_corpus_agrees_with_the_rust_rules() {
         let mut pad = test_pad(spec.top_tier);
         pad.reason = spec.reason;
         pad.light_binary = spec.light_binary;
+        pad.weak_heavy = spec.weak_heavy;
         let result = plan_play(
             &case.args,
             &pad,

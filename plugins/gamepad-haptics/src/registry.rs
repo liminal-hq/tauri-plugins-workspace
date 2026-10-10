@@ -35,6 +35,7 @@ fn info(pad: &DiscoveredPad, slot: u32, backend: &str) -> PadInfo {
         motors: pad.motors,
         triggers: pad.triggers,
         light_binary: pad.light_binary,
+        weak_heavy: pad.weak_heavy,
         top_tier: pad.top_tier,
         reason: pad.reason.clone(),
         backend: backend.to_string(),
@@ -141,6 +142,7 @@ pub(crate) mod tests {
             motors: 2,
             triggers: false,
             light_binary: false,
+            weak_heavy: false,
             top_tier: 2,
             reason: None,
         }

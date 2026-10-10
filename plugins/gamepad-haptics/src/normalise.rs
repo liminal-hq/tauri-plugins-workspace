@@ -243,6 +243,85 @@ pub fn shape_binary_light(frames: &[Frame], min_pulse_ms: u64, max_total_ms: u64
     out
 }
 
+/// The shortest heavy pulse a weak heavy motor needs, and the strength below which it applies.
+pub const MIN_HEAVY_PULSE_MS: u64 = 90;
+pub const HEAVY_FLOOR_BELOW: f64 = 0.7;
+
+/// Lengthens short, soft heavy-motor pulses for a pad whose heavy motor cannot spin up for them.
+/// A run of frames with the heavy motor on, shorter than `min_pulse_ms` and never reaching
+/// `below`, keeps its last heavy level into the silent heavy time after it until it is long
+/// enough. The other motors and the timing of everything else are unchanged. A pulse at the end
+/// extends the frames, up to `max_total_ms`.
+pub fn lengthen_soft_heavy(
+    frames: &[Frame],
+    min_pulse_ms: u64,
+    below: f64,
+    max_total_ms: u64,
+) -> Vec<Frame> {
+    // Work in cells so a frame can be split where the pulse ends.
+    let mut cells: Vec<Frame> = Vec::new();
+    for frame in frames {
+        let mut left = frame.duration_ms;
+        while left > 0 {
+            let step = left.min(CELL_MS);
+            left -= step;
+            cells.push(Frame {
+                duration_ms: step,
+                ..frame.clone()
+            });
+        }
+    }
+
+    let mut i = 0;
+    while i < cells.len() {
+        if cells[i].heavy == 0.0 {
+            i += 1;
+            continue;
+        }
+        let mut peak = 0.0_f64;
+        let mut length = 0;
+        while i < cells.len() && cells[i].heavy > 0.0 {
+            peak = peak.max(cells[i].heavy);
+            length += cells[i].duration_ms;
+            i += 1;
+        }
+        if length >= min_pulse_ms || peak >= below {
+            continue;
+        }
+        let level = cells[i - 1].heavy;
+        while length < min_pulse_ms && i < cells.len() && cells[i].heavy == 0.0 {
+            cells[i].heavy = level;
+            length += cells[i].duration_ms;
+            i += 1;
+        }
+        if length < min_pulse_ms && i == cells.len() {
+            let total: u64 = cells.iter().map(|c| c.duration_ms).sum();
+            let extra = (min_pulse_ms - length).min(max_total_ms.saturating_sub(total));
+            if extra > 0 {
+                let template = cells[cells.len() - 1].clone();
+                cells.push(Frame {
+                    duration_ms: extra,
+                    heavy: level,
+                    light: 0.0,
+                    left_trigger: template.left_trigger.map(|_| 0.0),
+                    right_trigger: template.right_trigger.map(|_| 0.0),
+                });
+                // The added tail is part of this pulse, not a new one.
+                i = cells.len();
+            }
+        }
+    }
+
+    let mut out: Vec<Frame> = Vec::new();
+    for cell in cells {
+        match out.last_mut() {
+            Some(last) if same_levels(last, &cell) => last.duration_ms += cell.duration_ms,
+            _ => out.push(cell),
+        }
+    }
+    out
+}
+
 fn same_levels(a: &Frame, b: &Frame) -> bool {
     a.heavy == b.heavy
         && a.light == b.light
@@ -277,6 +356,20 @@ pub fn plan_play(
     let mut frames = args.frames.clone();
     apply_scale(&mut frames, scale);
     downgrade(&mut frames, pad.top_tier, &mut reasons);
+    if pad.weak_heavy {
+        let lengthened = lengthen_soft_heavy(
+            &frames,
+            MIN_HEAVY_PULSE_MS,
+            HEAVY_FLOOR_BELOW,
+            limits.max_duration_ms,
+        );
+        if lengthened != frames {
+            reasons.push(
+                "Heavy motor needs a longer pulse, so short soft taps were lengthened".to_string(),
+            );
+            frames = lengthened;
+        }
+    }
     if pad.light_binary && pad.top_tier >= 2 {
         let shaped = shape_binary_light(&frames, MIN_LIGHT_PULSE_MS, limits.max_duration_ms);
         if shaped != frames {
@@ -338,6 +431,7 @@ pub(crate) fn test_pad(top_tier: u8) -> PadInfo {
         motors: if top_tier >= 2 { 2 } else { 1 },
         triggers: top_tier >= 3,
         light_binary: false,
+        weak_heavy: false,
         top_tier,
         reason: None,
         backend: "mock".into(),
@@ -631,6 +725,95 @@ mod tests {
             assert_eq!(shaped.unwrap().heavy, f.heavy);
             at += 50;
         }
+    }
+
+    fn weak_heavy_pad() -> PadInfo {
+        PadInfo {
+            weak_heavy: true,
+            ..test_pad(2)
+        }
+    }
+
+    fn wide() -> Limits {
+        Limits {
+            max_duration_ms: 3_000,
+            max_continuous_ms: 2_000,
+        }
+    }
+
+    #[test]
+    fn a_short_soft_heavy_tap_is_lengthened_into_the_silence_after_it() {
+        let frames = vec![frame(60, 0.6, 0.0), frame(200, 0.0, 0.0)];
+        let (play, reasons) =
+            played(plan_play(&args(frames, None), &weak_heavy_pad(), &wide(), 1.0).unwrap());
+        assert_eq!(play.frames, vec![frame(90, 0.6, 0.0), frame(170, 0.0, 0.0)]);
+        assert_eq!(reasons.len(), 1);
+    }
+
+    #[test]
+    fn strong_or_long_heavy_taps_and_other_pads_are_left_alone() {
+        for frames in [
+            vec![frame(60, 1.0, 0.0), frame(200, 0.0, 0.0)],
+            vec![frame(90, 0.6, 0.0), frame(200, 0.0, 0.0)],
+        ] {
+            let (play, reasons) = played(
+                plan_play(&args(frames.clone(), None), &weak_heavy_pad(), &wide(), 1.0).unwrap(),
+            );
+            assert_eq!(play.frames, frames);
+            assert!(reasons.is_empty());
+        }
+        let frames = vec![frame(60, 0.6, 0.0), frame(200, 0.0, 0.0)];
+        let (play, _) =
+            played(plan_play(&args(frames.clone(), None), &test_pad(2), &wide(), 1.0).unwrap());
+        assert_eq!(play.frames, frames);
+    }
+
+    #[test]
+    fn a_soft_heavy_tap_at_the_end_extends_the_pattern_within_the_limit() {
+        let (play, _) = played(
+            plan_play(
+                &args(vec![frame(60, 0.6, 0.0)], None),
+                &weak_heavy_pad(),
+                &wide(),
+                1.0,
+            )
+            .unwrap(),
+        );
+        assert_eq!(play.frames, vec![frame(90, 0.6, 0.0)]);
+        let tight = Limits {
+            max_duration_ms: 70,
+            max_continuous_ms: 70,
+        };
+        let (play, _) = played(
+            plan_play(
+                &args(vec![frame(60, 0.6, 0.0)], None),
+                &weak_heavy_pad(),
+                &tight,
+                1.0,
+            )
+            .unwrap(),
+        );
+        assert_eq!(play.frames, vec![frame(70, 0.6, 0.0)]);
+    }
+
+    #[test]
+    fn lengthening_keeps_the_light_motor_and_stops_at_the_next_heavy_pulse() {
+        let frames = vec![
+            frame(60, 0.6, 0.0),
+            frame(10, 0.0, 1.0),
+            frame(10, 0.0, 0.0),
+            frame(100, 0.5, 0.0),
+        ];
+        let out = lengthen_soft_heavy(&frames, MIN_HEAVY_PULSE_MS, HEAVY_FLOOR_BELOW, 3_000);
+        assert_eq!(
+            out,
+            vec![
+                frame(60, 0.6, 0.0),
+                frame(10, 0.6, 1.0),
+                frame(10, 0.6, 0.0),
+                frame(100, 0.5, 0.0)
+            ]
+        );
     }
 
     #[test]

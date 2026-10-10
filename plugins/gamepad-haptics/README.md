@@ -111,6 +111,8 @@ The plugin opens `/dev/input/event*` for writing. On most desktops the logged-in
 
 DualShock 3 pads use the `hid-sony` driver, whose light motor only switches on and off, and which needs about 100 ms to spin up. For a pad like that (`lightBinary: true` in `PadInfo`) the plugin shapes the light motor: a short strong tap becomes one full 100 ms pulse, an in-between level becomes pulses of at least 100 ms in proportion to the level, and a level too faint to fill a pulse is dropped. A pulse that runs past the end of a pattern extends it, within `maxDurationMs`. The heavy motor and all other timing are unchanged, and a result that was shaped says so in its `reason`.
 
+DualShock 4 pads (`weakHeavy: true`) have a heavy motor that does not spin up for a short soft tap: 60 ms at 0.6 is not felt, while 90 ms at 0.6 and 60 ms at 1.0 are. For those pads a heavy pulse shorter than 90 ms that never reaches 0.7 is lengthened to 90 ms into the silent heavy time after it, or past the end within `maxDurationMs`, and the result says so in its `reason`.
+
 A pad that appears is sent a stop first, because some pads keep the last rumble they were given after a cable is pulled.
 
 Hints saved from a pad's name or GUID do not survive a switch between USB and Bluetooth (the name and GUID differ); the serial (the pad's Bluetooth address) is the same on both, so prefer `{ vendorId, productId, serial }`. WebKitGTK reports a pad's Web `id` without vendor and product ids, so `resolvePad` matches it by name there.

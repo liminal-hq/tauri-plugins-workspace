@@ -141,6 +141,26 @@
 			}
 		},
 		{
+			"name": "short-soft-heavy-tap-on-a-weak-heavy-motor-is-lengthened",
+			"pad": { "topTier": 2, "weakHeavy": true },
+			"args": {
+				"padId": "gamepad:0",
+				"frames": [
+					{ "durationMs": 60, "heavy": 0.5, "light": 0 },
+					{ "durationMs": 140, "heavy": 0, "light": 0 }
+				]
+			},
+			"expect": {
+				"ok": {
+					"tier": 1,
+					"frames": [
+						{ "durationMs": 90, "heavy": 0.5, "light": 0 },
+						{ "durationMs": 110, "heavy": 0, "light": 0 }
+					]
+				}
+			}
+		},
+		{
 			"name": "dead-pad-is-silent-with-its-reason",
 			"pad": { "topTier": 0, "reason": "No write access to /dev/input/event3" },
 			"args": { "padId": "gamepad:0", "frames": [{ "durationMs": 10, "heavy": 1, "light": 1 }] },

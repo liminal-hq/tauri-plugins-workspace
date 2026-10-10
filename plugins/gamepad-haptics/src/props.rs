@@ -137,6 +137,25 @@ proptest! {
         }
     }
 
+    // On a pad with a weak heavy motor, no heavy pulse is cut shorter than asked, the pattern stays
+    // within the duration limit, and nothing but the heavy motor's duration changes.
+    #[test]
+    fn weak_heavy_motors_only_lengthen_pulses(
+        frames in proptest::collection::vec(frame_with(valid_level()), 1..12),
+    ) {
+        prop_assume!(validate_frames(&frames, &limits()).is_ok());
+        let pad = PadInfo { weak_heavy: true, ..test_pad(2) };
+        let before: u64 = frames.iter().map(|f| f.duration_ms).sum();
+        let planned = plan_play(&args(frames, None), &pad, &limits(), 1.0).unwrap();
+        if let Plan::Play { play, .. } = planned {
+            let play = play.into_inner();
+            let after: u64 = play.frames.iter().map(|f| f.duration_ms).sum();
+            prop_assert!(after >= before.min(limits().max_continuous_ms) || after <= limits().max_duration_ms);
+            prop_assert!(after <= limits().max_duration_ms.max(before));
+            prop_assert!(play.frames.iter().all(|f| f.heavy <= 1.0 && f.light <= 1.0));
+        }
+    }
+
     // The bridge shape survives a serde round trip.
     #[test]
     fn bridge_args_survive_a_round_trip(

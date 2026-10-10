@@ -32,6 +32,8 @@ pub struct DiscoveredPad {
     pub triggers: bool,
     /// The light motor only switches on and off.
     pub light_binary: bool,
+    /// The heavy motor cannot spin up for a short soft tap.
+    pub weak_heavy: bool,
     pub top_tier: u8,
     /// Why the pad cannot play, when `top_tier` is 0.
     pub reason: Option<String>,

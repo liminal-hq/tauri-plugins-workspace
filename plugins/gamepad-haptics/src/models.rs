@@ -37,6 +37,10 @@ pub struct PadInfo {
     /// in-between strengths.
     #[serde(default)]
     pub light_binary: bool,
+    /// Whether the heavy motor cannot spin up for a short soft tap. The plugin then lengthens such
+    /// taps into the silence after them.
+    #[serde(default)]
+    pub weak_heavy: bool,
     /// The highest tier this pad can play: 0 none, 1 single motor, 2 dual motor, 3 triggers.
     pub top_tier: u8,
     /// Why the pad cannot play, when `top_tier` is 0.

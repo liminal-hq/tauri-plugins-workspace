@@ -21,6 +21,8 @@ export interface PadInfo {
 	triggers: boolean;
 	/** The light motor only switches on and off, so the plugin pulses it to approximate strengths. */
 	lightBinary: boolean;
+	/** The heavy motor cannot spin up for a short soft tap, so the plugin lengthens such taps. */
+	weakHeavy: boolean;
 	topTier: Tier;
 	reason?: string;
 	backend: string;

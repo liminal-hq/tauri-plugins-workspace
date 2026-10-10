@@ -108,6 +108,7 @@ pub fn inspect(path: &Path) -> Option<Found> {
             motors: 2,
             triggers: false,
             light_binary: light_motor_is_binary(id.vendor(), id.product()),
+            weak_heavy: heavy_motor_is_weak(id.vendor(), id.product()),
             top_tier,
             reason,
         },
@@ -144,6 +145,13 @@ pub fn light_motor_is_binary(vendor: u16, product: u16) -> bool {
     (vendor, product) == (0x054c, 0x0268)
 }
 
+/// Pads whose heavy motor does not spin up for a short soft tap: a DualShock 4 felt nothing from
+/// 60 ms at 0.6 but felt 90 ms at 0.6 and 60 ms at 1.0.
+pub fn heavy_motor_is_weak(vendor: u16, product: u16) -> bool {
+    // DualShock 4, first and second revisions.
+    vendor == 0x054c && matches!(product, 0x05c4 | 0x09cc)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -173,6 +181,13 @@ mod tests {
             stable_key(0x54c, 0x268, None, None, path),
             "054c:0268:/dev/input/event5"
         );
+    }
+
+    #[test]
+    fn the_dualshock_4_has_a_weak_heavy_motor_and_the_dualshock_3_does_not() {
+        assert!(heavy_motor_is_weak(0x054c, 0x05c4));
+        assert!(heavy_motor_is_weak(0x054c, 0x09cc));
+        assert!(!heavy_motor_is_weak(0x054c, 0x0268));
     }
 
     #[test]
