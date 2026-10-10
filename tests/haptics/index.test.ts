@@ -204,23 +204,24 @@ describe('review fixes', () => {
 		expect(commands().filter((c) => c.endsWith('|play'))).toHaveLength(0);
 	});
 
-	it('plays nothing at a master scale of 0, for raw plays and patterns alike', async () => {
+	it('plays no pattern at a master scale of 0', async () => {
 		api.setMasterScale(0);
 		await api.register('zero', { ...click });
 		const pattern = await api.trigger('zero');
-		const raw = await api.play({ effect: { type: 'oneshot', durationMs: 50, amplitude: 200 } });
 		expect(pattern.tier).toBe(0);
-		expect(raw.tier).toBe(0);
 		expect(commands().filter((c) => c.endsWith('|play'))).toHaveLength(0);
 	});
 
-	it('plays no steps at a master scale of 0', async () => {
+	it('leaves a zero master scale for the plugin to apply to raw plays and steps', async () => {
 		api.setMasterScale(0);
-		const res = await api.playSteps([
-			{ atMs: 0, request: { effect: { type: 'oneshot', durationMs: 20, amplitude: 200 } } },
-		]);
-		expect(res.tier).toBe(0);
-		expect(commands().filter((c) => c.endsWith('|play_steps'))).toHaveLength(0);
+		const request = { effect: { type: 'oneshot', durationMs: 20, amplitude: 200 } } as const;
+		await api.play({ ...request });
+		await api.playSteps([{ atMs: 0, request: { ...request } }]);
+		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play', { req: request, scale: 0 });
+		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play_steps', {
+			steps: [{ atMs: 0, request }],
+			scale: 0,
+		});
 	});
 
 	it('treats a non-finite trigger scale as full strength', async () => {
@@ -249,29 +250,19 @@ describe('raw play', () => {
 		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play', { req: oneShot });
 	});
 
-	it('applies the master scale to amplitudes', async () => {
+	it('forwards the master scale and leaves the request as it was sent', async () => {
 		api.setMasterScale(0.5);
 		await api.play({ ...oneShot });
-		expect(invoke.mock.calls.at(-1)?.[1].req.effect.amplitude).toBe(100);
+		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play', { req: oneShot, scale: 0.5 });
 	});
 
-	it('resolves at tier 0 when the effect is above the max tier', async () => {
-		caps = envelopeDevice;
+	it('forwards the max tier for the plugin to apply', async () => {
 		api.setMaxTier(2);
-		const res = await api.play({
-			effect: {
-				type: 'composition',
-				steps: [{ kind: 'primitive', primitive: 'click' }],
-			},
-		});
-		expect(res).toMatchObject({ ok: true, tier: 0, reason: 'Capped at tier 2 by setMaxTier' });
-		expect(commands().filter((c) => c.endsWith('|play'))).toHaveLength(0);
-	});
-
-	it('still plays an effect at or below the max tier', async () => {
-		api.setMaxTier(3);
 		await api.play({ ...oneShot });
-		expect(commands()).toContain('plugin:haptics|play');
+		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play', { req: oneShot, maxTier: 2 });
+		api.setMaxTier(null);
+		await api.play({ ...oneShot });
+		expect(invoke).toHaveBeenLastCalledWith('plugin:haptics|play', { req: oneShot });
 	});
 });
 
@@ -289,34 +280,25 @@ describe('native errors', () => {
 });
 
 describe('playSteps', () => {
-	it('resolves at tier 0 when a step is above the max tier', async () => {
-		caps = envelopeDevice;
-		api.setMaxTier(2);
-		const res = await api.playSteps([
-			{
-				atMs: 0,
-				request: {
-					effect: { type: 'composition', steps: [{ kind: 'primitive', primitive: 'click' }] },
-				},
-			},
-		]);
-		expect(res).toMatchObject({ ok: true, tier: 0, reason: 'Capped at tier 2 by setMaxTier' });
-		expect(commands()).not.toContain('plugin:haptics|play_steps');
+	const step = {
+		atMs: 0,
+		request: { effect: { type: 'oneshot', durationMs: 20, amplitude: 200 } },
+	} as const;
+
+	it('forwards the steps unchanged with the global controls', async () => {
+		api.setMasterScale(0.5);
+		api.setMaxTier(3);
+		await api.playSteps([{ ...step }]);
+		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play_steps', {
+			steps: [step],
+			scale: 0.5,
+			maxTier: 3,
+		});
 	});
 
-	it('applies the master scale to every step and sends them to native', async () => {
-		api.setMasterScale(0.5);
-		await api.playSteps([
-			{ atMs: 0, request: { effect: { type: 'oneshot', durationMs: 20, amplitude: 200 } } },
-			{ atMs: 80, request: { effect: { type: 'oneshot', durationMs: 20, amplitude: 100 } } },
-		]);
-		const [cmd, args] = invoke.mock.calls.at(-1) ?? [];
-		expect(cmd).toBe('plugin:haptics|play_steps');
-		expect(
-			args.steps.map(
-				(s: { request: { effect: { amplitude: number } } }) => s.request.effect.amplitude
-			)
-		).toEqual([100, 50]);
+	it('sends no controls when none are set', async () => {
+		await api.playSteps([{ ...step }]);
+		expect(invoke).toHaveBeenCalledWith('plugin:haptics|play_steps', { steps: [step] });
 	});
 });
 

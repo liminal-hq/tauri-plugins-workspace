@@ -242,77 +242,21 @@ function withNotes(res: PlayResult, report: CompileReport, caps: Capabilities): 
 
 // ── raw ───────────────────────────────────────────────────────────────────────────────────────
 
-function effectTier(req: EffectRequest, caps: Capabilities): Tier {
-	switch (req.effect.type) {
-		case 'envelopeWaveform':
-			return 4;
-		case 'composition':
-			return 3;
-		case 'predefined':
-			return Math.min(caps.topTier, 3) as Tier;
-		default:
-			return caps.hasAmplitudeControl ? 2 : 1;
-	}
-}
-
-/** Applies the master scale to a raw request's amplitude fields. */
-function scaled(req: EffectRequest): EffectRequest {
-	if (masterScale === 1) return req;
-	const e = req.effect;
-	switch (e.type) {
-		case 'oneshot': {
-			// An amplitude outside 1..255 is left for the native check to reject, not scaled into range.
-			const given = e.amplitude;
-			if (given !== undefined && !(Number.isInteger(given) && given >= 1 && given <= 255))
-				return req;
-			return {
-				...req,
-				effect: { ...e, amplitude: Math.max(1, Math.round((given ?? 255) * masterScale)) },
-			};
-		}
-		case 'waveform':
-			if (!e.amplitudes) return req;
-			return {
-				...req,
-				effect: { ...e, amplitudes: e.amplitudes.map((a) => Math.round(a * masterScale)) },
-			};
-		case 'composition':
-			return {
-				...req,
-				effect: {
-					...e,
-					steps: e.steps.map((s) => ({ ...s, scale: clamp01((s.scale ?? 1) * masterScale) })),
-				},
-			};
-		case 'envelopeWaveform':
-			return {
-				...req,
-				effect: {
-					...e,
-					controlPoints: e.controlPoints.map((p) => ({
-						...p,
-						amplitude: clamp01(p.amplitude * masterScale),
-					})),
-				},
-			};
-		default:
-			return req;
-	}
+/** The global controls the Rust layer applies after it has validated a raw request. */
+function controls(): { scale?: number; maxTier?: Tier } {
+	return {
+		...(masterScale !== 1 ? { scale: masterScale } : {}),
+		...(maxTier !== null ? { maxTier } : {}),
+	};
 }
 
 /**
- * The raw escape hatch: no compiler, no policies. It still applies the plugin limits, the master
- * scale and the `setMaxTier` cap, which resolves a request above the cap at tier 0.
+ * The raw escape hatch: no compiler, no policies. The request goes to the plugin as it is. The
+ * plugin validates it first, then applies the plugin limits, the master scale and the `setMaxTier`
+ * cap, which resolves a request above the cap at tier 0.
  */
-export async function play(req: EffectRequest): Promise<PlayResult> {
-	if (masterScale === 0) return silent('Master scale is 0, so nothing plays');
-	if (maxTier !== null) {
-		const caps = await capabilities();
-		if (effectTier(req, caps) > maxTier) {
-			return silent(`Capped at tier ${maxTier} by setMaxTier`);
-		}
-	}
-	return sendPlay(scaled(req));
+export function play(req: EffectRequest): Promise<PlayResult> {
+	return sendPlay(req, controls());
 }
 
 /**
@@ -328,24 +272,23 @@ async function invalidInput<T>(call: Promise<T>): Promise<T> {
 	}
 }
 
-function sendPlay(req: EffectRequest): Promise<PlayResult> {
-	return invalidInput(invoke<PlayResult>('plugin:haptics|play', { req }));
+function sendPlay(
+	req: EffectRequest,
+	global: { scale?: number; maxTier?: Tier } = {}
+): Promise<PlayResult> {
+	return invalidInput(invoke<PlayResult>('plugin:haptics|play', { req, ...global }));
 }
 
-function sendSteps(steps: CompiledStep[]): Promise<PlayResult> {
-	return invalidInput(invoke<PlayResult>('plugin:haptics|play_steps', { steps }));
+function sendSteps(
+	steps: CompiledStep[],
+	global: { scale?: number; maxTier?: Tier } = {}
+): Promise<PlayResult> {
+	return invalidInput(invoke<PlayResult>('plugin:haptics|play_steps', { steps, ...global }));
 }
 
 /** Plays `{ atMs, request }` steps scheduled natively from one start time. */
-export async function playSteps(steps: CompiledStep[]): Promise<PlayResult> {
-	if (masterScale === 0) return silent('Master scale is 0, so nothing plays');
-	if (maxTier !== null) {
-		const caps = await capabilities();
-		if (steps.some((s) => effectTier(s.request, caps) > maxTier!)) {
-			return silent(`Capped at tier ${maxTier} by setMaxTier`);
-		}
-	}
-	return sendSteps(steps.map((s) => ({ ...s, request: scaled(s.request) })));
+export function playSteps(steps: CompiledStep[]): Promise<PlayResult> {
+	return sendSteps(steps, controls());
 }
 
 // ── UI lane ───────────────────────────────────────────────────────────────────────────────────
