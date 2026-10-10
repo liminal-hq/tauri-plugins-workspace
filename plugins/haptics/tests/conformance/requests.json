@@ -448,6 +448,77 @@
 			"expect": {
 				"error": "steps[1]: durationMs must be positive"
 			}
+		},
+		{
+			"name": "waveform-all-zero-amplitudes-is-silent",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "waveform",
+					"timingsMs": [0, 100],
+					"amplitudes": [0, 0]
+				}
+			},
+			"expect": {
+				"ok": {
+					"silent": "Nothing in this request has any strength, so nothing plays"
+				}
+			}
+		},
+		{
+			"name": "waveform-scaled-to-zero-is-silent",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "waveform",
+					"timingsMs": [0, 100],
+					"amplitudes": [0, 1]
+				}
+			},
+			"controls": {
+				"scale": 0.4
+			},
+			"expect": {
+				"ok": {
+					"silent": "Nothing in this request has any strength, so nothing plays"
+				}
+			}
+		},
+		{
+			"name": "waveform-with-only-off-phases-is-silent",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "waveform",
+					"timingsMs": [100, 0]
+				}
+			},
+			"expect": {
+				"ok": {
+					"silent": "Nothing in this request has any strength, so nothing plays"
+				}
+			}
+		},
+		{
+			"name": "composition-with-zero-scale-is-silent",
+			"command": "play",
+			"request": {
+				"effect": {
+					"type": "composition",
+					"steps": [
+						{
+							"kind": "primitive",
+							"primitive": "click",
+							"scale": 0
+						}
+					]
+				}
+			},
+			"expect": {
+				"ok": {
+					"silent": "Nothing in this request has any strength, so nothing plays"
+				}
+			}
 		}
 	]
 }

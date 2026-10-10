@@ -181,6 +181,43 @@ fn cap_timings(timings: &mut [u64], budget: u64) {
     }
 }
 
+const NO_STRENGTH: &str = "Nothing in this request has any strength, so nothing plays";
+
+/// Whether a capped request would leave the motor idle, however long it runs: every amplitude,
+/// scale or control point is zero, or the only non-zero timings are off phases.
+fn plays_nothing(effect: &Effect) -> bool {
+    match effect {
+        Effect::Waveform {
+            timings_ms,
+            amplitudes: Some(amplitudes),
+            ..
+        } => !timings_ms
+            .iter()
+            .zip(amplitudes)
+            .any(|(timing, amplitude)| *timing > 0 && *amplitude > 0),
+        Effect::Waveform {
+            timings_ms,
+            amplitudes: None,
+            ..
+        } => !timings_ms
+            .iter()
+            .skip(1)
+            .step_by(2)
+            .any(|timing| *timing > 0),
+        Effect::Composition { steps } => {
+            !steps.is_empty()
+                && steps.iter().all(|step| {
+                    let CompositionStep::Primitive { scale, .. } = step;
+                    matches!(scale, Some(s) if *s <= 0.0)
+                })
+        }
+        Effect::EnvelopeWaveform { control_points, .. } => {
+            control_points.iter().all(|point| point.amplitude <= 0.0)
+        }
+        Effect::Oneshot { .. } | Effect::Predefined { .. } => false,
+    }
+}
+
 fn push_unique(reasons: &mut Vec<String>, reason: String) {
     if !reasons.contains(&reason) {
         reasons.push(reason);
@@ -215,6 +252,9 @@ pub fn plan_play(
     }
 
     let (req, reasons) = cap_request(apply_scale(req, scale), limits, limits.max_duration_ms);
+    if plays_nothing(&req.effect) {
+        return Ok(Plan::Silent(PlayResult::silent(NO_STRENGTH)));
+    }
     Ok(Plan::Forward(Normalised {
         value: PlayArgs {
             req,
@@ -253,7 +293,7 @@ pub fn plan_steps(
     }
 
     let mut reasons = Vec::new();
-    let planned = steps
+    let planned: Vec<PlannedStep> = steps
         .into_iter()
         .map(|step| {
             let budget_ms = limits.max_duration_ms - step.at_ms;
@@ -268,7 +308,12 @@ pub fn plan_steps(
                 request,
             }
         })
+        // A step that would leave the motor idle is not scheduled.
+        .filter(|step| !plays_nothing(&step.request.effect))
         .collect();
+    if planned.is_empty() {
+        return Ok(Plan::Silent(PlayResult::silent(NO_STRENGTH)));
+    }
 
     Ok(Plan::Forward(Normalised {
         value: PlayStepsArgs { steps: planned },
@@ -462,6 +507,72 @@ mod tests {
                 amplitude: Some(100),
                 ..
             }
+        ));
+    }
+
+    #[test]
+    fn a_request_with_no_strength_resolves_silently() {
+        let silent = |effect: serde_json::Value, scale: Option<f64>| {
+            let controls = RawControls {
+                scale,
+                max_tier: None,
+            };
+            match plan_play(request(effect), &controls, &limits(), device).unwrap() {
+                Plan::Silent(r) => r.reason,
+                Plan::Forward(_) => None,
+            }
+        };
+        let reason = Some(NO_STRENGTH.to_string());
+        let waveform = serde_json::json!({
+            "type": "waveform", "timingsMs": [0, 100], "amplitudes": [0, 0]
+        });
+        assert_eq!(silent(waveform, None), reason);
+        let rounds_to_zero = serde_json::json!({
+            "type": "waveform", "timingsMs": [0, 100], "amplitudes": [0, 1]
+        });
+        assert_eq!(silent(rounds_to_zero, Some(0.4)), reason);
+        let off_only = serde_json::json!({ "type": "waveform", "timingsMs": [100, 0] });
+        assert_eq!(silent(off_only, None), reason);
+        let composition = serde_json::json!({
+            "type": "composition", "steps": [{ "kind": "primitive", "primitive": "click", "scale": 0.0 }]
+        });
+        assert_eq!(silent(composition, None), reason);
+        let playable = serde_json::json!({
+            "type": "waveform", "timingsMs": [0, 100], "amplitudes": [0, 200]
+        });
+        assert_eq!(silent(playable, None), None);
+    }
+
+    #[test]
+    fn steps_with_no_strength_are_left_out() {
+        let step = |at_ms: u64, effect: serde_json::Value| CompiledStep {
+            at_ms,
+            request: request(effect),
+        };
+        let quiet =
+            serde_json::json!({ "type": "waveform", "timingsMs": [0, 50], "amplitudes": [0, 0] });
+        let click = serde_json::json!({ "type": "predefined", "effectId": "click" });
+
+        match plan_steps(
+            vec![step(0, quiet.clone()), step(20, click)],
+            &RawControls::default(),
+            &limits(),
+            device,
+        )
+        .unwrap()
+        {
+            Plan::Forward(n) => assert_eq!(n.value().steps.len(), 1),
+            Plan::Silent(_) => panic!("expected one scheduled step"),
+        }
+        assert!(matches!(
+            plan_steps(
+                vec![step(0, quiet)],
+                &RawControls::default(),
+                &limits(),
+                device
+            )
+            .unwrap(),
+            Plan::Silent(_)
         ));
     }
 
