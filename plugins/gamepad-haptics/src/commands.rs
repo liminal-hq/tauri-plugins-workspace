@@ -16,6 +16,12 @@ pub(crate) async fn capabilities<R: Runtime>(app: AppHandle<R>) -> Result<Capabi
     app.gamepad_haptics().capabilities()
 }
 
+/// Buzzes one pad so the player can tell which it is.
+#[command]
+pub(crate) async fn identify<R: Runtime>(app: AppHandle<R>, pad_id: String) -> Result<PlayResult> {
+    app.gamepad_haptics().identify(&pad_id)
+}
+
 #[command]
 pub(crate) async fn list_pads<R: Runtime>(app: AppHandle<R>) -> Result<Vec<PadInfo>> {
     app.gamepad_haptics().list_pads()

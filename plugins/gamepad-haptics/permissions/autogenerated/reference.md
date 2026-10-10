@@ -5,6 +5,7 @@ Default permissions for the gamepad-haptics plugin. Listening to pad connection 
 #### This default permission set includes the following:
 
 - `allow-capabilities`
+- `allow-identify`
 - `allow-list-pads`
 - `allow-play-frames`
 - `allow-stop`
@@ -40,6 +41,32 @@ Enables the capabilities command without any pre-configured scope.
 <td>
 
 Denies the capabilities command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`gamepad-haptics:allow-identify`
+
+</td>
+<td>
+
+Enables the identify command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`gamepad-haptics:deny-identify`
+
+</td>
+<td>
+
+Denies the identify command without any pre-configured scope.
 
 </td>
 </tr>

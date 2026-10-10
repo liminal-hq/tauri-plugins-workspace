@@ -3,7 +3,13 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-const COMMANDS: &[&str] = &["capabilities", "list_pads", "play_frames", "stop"];
+const COMMANDS: &[&str] = &[
+    "capabilities",
+    "identify",
+    "list_pads",
+    "play_frames",
+    "stop",
+];
 
 fn main() {
     tauri_plugin::Builder::new(COMMANDS)

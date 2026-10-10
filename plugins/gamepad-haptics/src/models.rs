@@ -107,3 +107,15 @@ pub struct Capabilities {
     pub limits: Limits,
     pub pads: Vec<PadInfo>,
 }
+
+/// Emitted to the webview when the set of pads changes.
+#[derive(Debug, Clone, PartialEq)]
+pub enum PadEvent {
+    Connected(PadInfo),
+    Changed(PadInfo),
+    Disconnected { id: String, slot: u32 },
+}
+
+pub const CONNECTED_EVENT: &str = "gamepad-haptics://connected";
+pub const CHANGED_EVENT: &str = "gamepad-haptics://changed";
+pub const DISCONNECTED_EVENT: &str = "gamepad-haptics://disconnected";
