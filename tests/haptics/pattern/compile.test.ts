@@ -134,6 +134,30 @@ describe('mixed patterns', () => {
 });
 
 describe('limits after serialisation', () => {
+	it('drops a mixed-pattern primitive that would end past the cap once serialised', () => {
+		const caps = {
+			...midRange,
+			limits: { ...midRange.limits, maxDurationMs: 100 },
+			primitives: {
+				...midRange.primitives,
+				spin: { supported: false, durationMs: null },
+				quick_rise: { supported: false, durationMs: null },
+			},
+		};
+		const overlap: Pattern = {
+			format: PATTERN_FORMAT,
+			events: [
+				{ type: 'continuous', at: 0, duration: 90, intensity: 0.6, sharpness: 0.5 },
+				{ type: 'transient', at: 50, intensity: 0.8, sharpness: 0.8 },
+			],
+		};
+		const r = compilePattern(overlap, caps);
+		expect(r.mixed).toBe(true);
+		expect(r.steps.every((s) => s.request.effect.type === 'waveform')).toBe(true);
+		expect(r.notes).toContain('Truncated to 100 ms');
+		expect(r.estimatedMs).toBeLessThanOrEqual(100);
+	});
+
 	it('clips overlapping segments to the duration cap', () => {
 		const dense: Pattern = {
 			format: PATTERN_FORMAT,

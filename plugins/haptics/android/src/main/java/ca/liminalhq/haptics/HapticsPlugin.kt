@@ -350,7 +350,8 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
         val request = step.getJSObject("request")
           ?: throw IllegalArgumentException("steps[$i]: missing field `request`")
         val prepared = try {
-          prepare(request)
+          // A step may only use what is left of the duration cap after its start offset.
+          prepare(request, maxDur - atMs)
         } catch (e: IllegalArgumentException) {
           throw IllegalArgumentException("steps[$i]: ${e.message}")
         }
@@ -403,7 +404,7 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
   }
 
   /** Turns a request into an effect, or says why nothing will play. Throws for invalid input. */
-  private fun prepare(args: JSObject): Prepared {
+  private fun prepare(args: JSObject, budgetMs: Long = Long.MAX_VALUE): Prepared {
     val effectObj = args.getJSObject("effect") ?: throw IllegalArgumentException("Missing effect payload")
 
     val requested = (args.getString("usage", cfg.defaultUsage ?: "touch") ?: "touch").lowercase()
@@ -431,7 +432,7 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     val maxAmp = (cfg.maxAmplitude ?: 255).coerceIn(1, 255)
-    val maxDur = (cfg.maxDurationMs ?: 10_000).coerceAtLeast(1)
+    val maxDur = minOf((cfg.maxDurationMs ?: 10_000).coerceAtLeast(1), budgetMs).coerceAtLeast(1)
 
     val built = buildEffect(effectObj, vibrator, maxAmp, maxDur, cfg)
     // A request the device cannot play resolves at tier 0 with the reason, never silently.
@@ -594,6 +595,7 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
       }
 
       "envelopeWaveform" -> {
+        validateEnvelopeShape(effectObj)
         if (!envelopeEffectsSupported()) {
           val reason = if (Build.VERSION.SDK_INT < 36) {
             "Envelope requires API 36+ and device support"
@@ -723,16 +725,37 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
   }
 
   /**
+   * The checks that do not depend on the hardware, so an invalid envelope is rejected the same way
+   * on a device that falls back to a tick as on one that plays it.
+   */
+  private fun validateEnvelopeShape(effectObj: JSObject) {
+    val points = getArray(effectObj, "controlPoints", "control_points")
+    if (points.length() == 0) {
+      throw IllegalArgumentException("controlPoints cannot be empty")
+    }
+    for (i in 0 until points.length()) {
+      val p = getObject(points, i)
+      if (!p.present("amplitude")) throw IllegalArgumentException("controlPoints[$i]: missing amplitude")
+      val amplitude = p.getDouble("amplitude").toFloat()
+      if (amplitude.isNaN() || amplitude < 0f || amplitude > 1f) {
+        throw IllegalArgumentException("controlPoints[$i]: amplitude must be within 0..1")
+      }
+      checkFrequency(getDouble(p, "frequencyHz", "frequency_hz", i).toFloat(), null)
+      if (getLong(p, "durationMs", "duration_ms") <= 0) {
+        throw IllegalArgumentException("controlPoints[$i]: durationMs must be positive")
+      }
+    }
+  }
+
+  /**
    * Builds a waveform envelope from `controlPoints` (amplitude 0..1, frequencyHz, durationMs).
    * Validates against device limits so callers get a clear INVALID_EFFECT error.
    */
   private fun buildEnvelopeEffect(effectObj: JSObject, maxDur: Long): VibrationEffect {
     if (Build.VERSION.SDK_INT < 36) throw IllegalStateException("Envelope requires API 36+")
 
+    validateEnvelopeShape(effectObj)
     val points = getArray(effectObj, "controlPoints", "control_points")
-    if (points.length() == 0) {
-      throw IllegalArgumentException("controlPoints cannot be empty")
-    }
 
     val info = vibrator.envelopeEffectInfo
     val profile = vibrator.frequencyProfile
@@ -753,11 +776,7 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
     var total = 0L
     for (i in 0 until points.length()) {
       val p = getObject(points, i)
-      if (!p.present("amplitude")) throw IllegalArgumentException("controlPoints[$i]: missing amplitude")
       val amplitude = p.getDouble("amplitude").toFloat()
-      if (amplitude.isNaN() || amplitude < 0f || amplitude > 1f) {
-        throw IllegalArgumentException("controlPoints[$i]: amplitude must be within 0..1")
-      }
       val freq = checkFrequency(getDouble(p, "frequencyHz", "frequency_hz", i).toFloat(), profile)
       val dur = getLong(p, "durationMs", "duration_ms")
       if (dur < info.minControlPointDurationMillis || dur > info.maxControlPointDurationMillis) {

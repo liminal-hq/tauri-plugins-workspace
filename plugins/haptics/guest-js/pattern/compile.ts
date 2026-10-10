@@ -320,7 +320,7 @@ function compilePrimitives(cx: Context): Attempt {
 	const notes: string[] = [];
 	const segments: CompiledSegment[] = [];
 	type Item =
-		| { kind: 'primitive'; ev: PatternEvent; id: PrimitiveId; scale: number }
+		| { kind: 'primitive'; ev: PatternEvent; id: PrimitiveId; scale: number; dropped?: boolean }
 		| { kind: 'amplitude'; ev: PatternEvent; segs: Segment[] };
 	const items: Item[] = [];
 	let cut = false;
@@ -362,14 +362,19 @@ function compilePrimitives(cx: Context): Attempt {
 
 	const mixed = items.some((i) => i.kind === 'amplitude');
 	const primitiveItems = items.filter((i) => i.kind === 'primitive');
-	if (cut) notes.push(`Truncated to ${cx.maxMs} ms`);
 
-	// Bars: primitives on the beat, plus any tier-2 segments.
+	// Bars: primitives on the beat, plus any tier-2 segments. A mixed pattern plays one step after
+	// another, so a step that would run past the cap once serialised is dropped here.
 	let cursor = 0;
 	for (const item of items) {
 		if (item.kind === 'primitive') {
-			const start = Math.max(item.ev.at, cursor);
+			const start = Math.max(mixed ? round(item.ev.at) : item.ev.at, cursor);
 			const dur = primitiveMs(cx.caps, item.id);
+			if (mixed && start + dur > cx.maxMs) {
+				item.dropped = true;
+				cut = true;
+				continue;
+			}
 			segments.push({
 				atMs: start,
 				durationMs: dur,
@@ -379,13 +384,24 @@ function compilePrimitives(cx: Context): Attempt {
 			});
 			cursor = start + dur;
 		} else if (item.segs.length) {
-			// Playback starts a segment list only once the step before it has ended.
-			const shift = Math.max(0, cursor - item.segs[0].at);
-			const placed = item.segs.map((seg) => ({ ...seg, at: seg.at + shift }));
+			// Playback starts a segment list only once the step before it has ended, and clips it to the cap.
+			const shift = Math.max(round(item.segs[0].at), cursor) - item.segs[0].at;
+			const placed: Segment[] = [];
+			for (const seg of item.segs) {
+				const at = seg.at + shift;
+				if (at >= cx.maxMs) {
+					cut = true;
+					break;
+				}
+				const dur = Math.min(seg.dur, cx.maxMs - at);
+				if (dur < seg.dur) cut = true;
+				placed.push({ ...seg, at, dur });
+			}
 			segments.push(...toSegmentReport(placed, 2));
 			cursor = Math.max(cursor, ...placed.map((seg) => seg.at + seg.dur));
 		}
 	}
+	if (cut) notes.push(`Truncated to ${cx.maxMs} ms`);
 
 	if (!primitiveItems.length) {
 		// Nothing needed a primitive the motor has, so the whole pattern is tier 2.
@@ -411,6 +427,7 @@ function compilePrimitives(cx: Context): Attempt {
 		let end = 0;
 		for (const item of items) {
 			if (item.kind === 'primitive') {
+				if (item.dropped) continue;
 				const start = Math.max(round(item.ev.at), end);
 				if (start >= cx.maxMs) continue;
 				steps.push({
