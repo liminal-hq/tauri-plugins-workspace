@@ -331,7 +331,6 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
     val ready = mutableListOf<Pair<Long, Prepared.Ready>>()
     val reasons = linkedSetOf<String>()
     var tier = 0
-    var end = 0L
     try {
       for (i in 0 until steps.length()) {
         val step = getObject(steps, i)
@@ -352,7 +351,6 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
             ready.add(Pair(atMs, prepared))
             reasons.addAll(prepared.built.reasons)
             tier = maxOf(tier, prepared.built.tier)
-            end = maxOf(end, atMs + prepared.built.estimatedMs)
           }
         }
       }
@@ -375,7 +373,23 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
         }, stepToken, start + atMs)
       }
     }
-    invoke.resolve(playResult(tier, end, reasons.toList()))
+    invoke.resolve(playResult(tier, scheduleEndMs(ready), reasons.toList()))
+  }
+
+  /**
+   * When the step list stops playing. Each step replaces whatever is still playing when it starts,
+   * so an earlier step ends no later than the step after it begins.
+   */
+  private fun scheduleEndMs(ready: List<Pair<Long, Prepared.Ready>>): Long {
+    val ordered = ready.sortedBy { it.first }
+    var end = 0L
+    for ((i, entry) in ordered.withIndex()) {
+      var stepEnd = entry.first + entry.second.built.estimatedMs
+      val next = ordered.getOrNull(i + 1)?.first
+      if (next != null) stepEnd = minOf(stepEnd, next)
+      end = maxOf(end, stepEnd)
+    }
+    return end
   }
 
   /**

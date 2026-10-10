@@ -52,3 +52,6 @@ export type TriggerOptions = {
 
 /** Shortest continuous event, in ms. */
 export const MIN_CONTINUOUS_MS = 20;
+
+/** A transient always plays for at least this long, so it needs that much room before the limit. */
+export const MIN_TRANSIENT_MS = 1;

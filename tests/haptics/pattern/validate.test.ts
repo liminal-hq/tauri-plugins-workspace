@@ -121,6 +121,20 @@ describe('validatePattern', () => {
 		expect(validatePattern(withEvent(event))).toEqual([]);
 	});
 
+	it('gives a transient room to play before the limit', () => {
+		const transient = (at: number) => ({
+			type: 'transient',
+			at,
+			intensity: 0.5,
+			sharpness: 0.5,
+		});
+		expect(messages(withEvent(transient(99)), { maxDurationMs: 100 })).toEqual([]);
+		expect(messages(withEvent(transient(100)), { maxDurationMs: 100 })).toEqual([
+			'events: The pattern runs for 101 ms. The limit is 100 ms; shorten or move events earlier.',
+		]);
+		expect(messages(withEvent(transient(99.6)), { maxDurationMs: 100 })).toHaveLength(1);
+	});
+
 	it('enforces the total length against the configured limit', () => {
 		const event = { type: 'continuous', at: 9_900, duration: 500, intensity: 1, sharpness: 1 };
 		expect(messages(withEvent(event), { maxDurationMs: 10_000 })).toEqual([

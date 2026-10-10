@@ -771,6 +771,8 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
     const PATTERN_FORMAT = 'haptics-lab/pattern@1';
     /** Shortest continuous event, in ms. */
     const MIN_CONTINUOUS_MS = 20;
+    /** A transient always plays for at least this long, so it needs that much room before the limit. */
+    const MIN_TRANSIENT_MS = 1;
 
     // Pattern validation that reports every problem at once, each with a path and a fix
     //
@@ -906,7 +908,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
             if (event.type === 'transient') {
                 checkUnit(event.intensity, `${at}.intensity`, issues);
                 checkUnit(event.sharpness, `${at}.sharpness`, issues);
-                end = Math.max(end, start);
+                end = Math.max(end, start + MIN_TRANSIENT_MS);
             }
             else if (event.type === 'continuous') {
                 if (!isNumber(event.duration)) {
@@ -1208,6 +1210,7 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
     exports.AMPLITUDE_CEILING = AMPLITUDE_CEILING;
     exports.HapticsError = HapticsError;
     exports.MIN_CONTINUOUS_MS = MIN_CONTINUOUS_MS;
+    exports.MIN_TRANSIENT_MS = MIN_TRANSIENT_MS;
     exports.NEIGHBOURS = NEIGHBOURS;
     exports.PATTERN_FORMAT = PATTERN_FORMAT;
     exports.PRIMITIVE_IDS = PRIMITIVE_IDS;

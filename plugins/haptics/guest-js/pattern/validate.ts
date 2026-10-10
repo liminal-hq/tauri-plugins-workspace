@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { MIN_CONTINUOUS_MS, PATTERN_FORMAT } from './types';
+import { MIN_CONTINUOUS_MS, MIN_TRANSIENT_MS, PATTERN_FORMAT } from './types';
 import type { Pattern } from './types';
 
 export type ValidationIssue = {
@@ -154,7 +154,7 @@ export function validatePattern(input: unknown, opts: ValidateOptions = {}): Val
 		if (event.type === 'transient') {
 			checkUnit(event.intensity, `${at}.intensity`, issues);
 			checkUnit(event.sharpness, `${at}.sharpness`, issues);
-			end = Math.max(end, start);
+			end = Math.max(end, start + MIN_TRANSIENT_MS);
 		} else if (event.type === 'continuous') {
 			if (!isNumber(event.duration)) {
 				issues.push({
