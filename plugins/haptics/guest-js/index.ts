@@ -181,7 +181,8 @@ function silent(reason: string, decision?: Decision, tier: Tier = 0): PlayResult
 
 async function playCompiled(report: CompileReport): Promise<PlayResult> {
 	if (report.steps.length === 0) {
-		return silent(report.notes[0] ?? 'Nothing to play', undefined, report.tier);
+		// Nothing is sent to the device, so no tier played.
+		return silent(report.notes[0] ?? 'Nothing to play');
 	}
 	// Compiled output already carries the master scale and the tier cap, so it skips `play()`.
 	if (report.request && report.steps.length === 1) return sendPlay(report.request);

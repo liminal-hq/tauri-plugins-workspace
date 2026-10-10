@@ -1115,7 +1115,8 @@ var __TAURI_PLUGIN_HAPTICS__ = (function (exports, core) {
     }
     async function playCompiled(report) {
         if (report.steps.length === 0) {
-            return silent(report.notes[0] ?? 'Nothing to play', undefined, report.tier);
+            // Nothing is sent to the device, so no tier played.
+            return silent(report.notes[0] ?? 'Nothing to play');
         }
         // Compiled output already carries the master scale and the tier cap, so it skips `play()`.
         if (report.request && report.steps.length === 1)

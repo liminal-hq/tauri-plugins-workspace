@@ -243,6 +243,18 @@ describe('triggers that do not play', () => {
 	});
 });
 
+describe('empty compiled patterns', () => {
+	it('report tier 0 when compilation leaves nothing to play', async () => {
+		await api.register('silent', {
+			format: PATTERN_FORMAT,
+			events: [{ type: 'continuous', at: 0, duration: 40, intensity: 0, sharpness: 0.5 }],
+		});
+		const res = await api.trigger('silent', { tier: 2 });
+		expect(res.tier).toBe(0);
+		expect(commands().filter((c) => c.endsWith('|play'))).toHaveLength(0);
+	});
+});
+
 describe('raw play', () => {
 	const oneShot = { effect: { type: 'oneshot', durationMs: 50, amplitude: 200 } } as const;
 
