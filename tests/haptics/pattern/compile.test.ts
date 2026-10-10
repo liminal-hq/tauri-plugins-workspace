@@ -232,6 +232,33 @@ describe('events with no strength', () => {
 	});
 });
 
+describe('a mixed pattern that loses its primitive', () => {
+	it('reports the tier of what is left', () => {
+		const caps = {
+			...midRange,
+			limits: { ...midRange.limits, maxDurationMs: 100 },
+			primitives: {
+				...midRange.primitives,
+				spin: { supported: false, durationMs: null },
+				quick_rise: { supported: false, durationMs: null },
+			},
+		};
+		const pattern: Pattern = {
+			format: PATTERN_FORMAT,
+			events: [
+				{ type: 'continuous', at: 0, duration: 90, intensity: 0.6, sharpness: 0.5 },
+				{ type: 'transient', at: 50, intensity: 0.8, sharpness: 0.8 },
+			],
+		};
+		const r = compilePattern(pattern, caps, { tier: 3 });
+		expect(r.steps.every((s) => s.request.effect.type === 'waveform')).toBe(true);
+		expect(r.tier).toBe(2);
+		expect(r.mixed).toBe(false);
+		expect(r.notes).toContain('Truncated to 100 ms');
+		expect(r.notes).not.toContain('Mixed: runs as a scheduled step list');
+	});
+});
+
 describe('limits after serialisation', () => {
 	it('reports tier-2 segments where the serialised waveform plays them', () => {
 		const overlap: Pattern = {
@@ -266,7 +293,9 @@ describe('limits after serialisation', () => {
 			],
 		};
 		const r = compilePattern(overlap, caps);
-		expect(r.mixed).toBe(true);
+		// The primitive is dropped, so only the fallback waveform is left to play.
+		expect(r.mixed).toBe(false);
+		expect(r.tier).toBe(2);
 		expect(r.steps.every((s) => s.request.effect.type === 'waveform')).toBe(true);
 		expect(r.notes).toContain('Truncated to 100 ms');
 		expect(r.estimatedMs).toBeLessThanOrEqual(100);

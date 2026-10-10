@@ -424,11 +424,16 @@ function compilePrimitives(cx: Context): Emitted {
 		}
 	}
 
+	// Dropping steps can leave only one kind, so the tier and the mixed flag follow what is emitted.
+	const kinds = new Set(steps.map((s) => s.request.effect.type));
+	const stillMixed = kinds.has('composition') && kinds.has('waveform');
+	const tier: Tier = kinds.has('composition') ? 3 : cx.caps.hasAmplitudeControl ? 2 : 1;
+
 	if (cut) notes.push(`Truncated to ${cx.maxMs} ms`);
-	if (mixed) notes.push('Mixed: runs as a scheduled step list');
+	if (stillMixed) notes.push('Mixed: runs as a scheduled step list');
 	if (stepsCut) notes.push(`Truncated to ${MAX_STEPS} steps`);
 
-	return { tier: 3, mixed, notes, steps, request };
+	return { tier, mixed: stillMixed, notes, steps, request };
 }
 
 function compileAmplitude(cx: Context, given?: Segment[]): Emitted & { cut: boolean } {

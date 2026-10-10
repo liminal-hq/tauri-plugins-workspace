@@ -186,6 +186,28 @@ describe('compiler properties', () => {
 		);
 	});
 
+	it('reports the tier its steps play at', () => {
+		fc.assert(
+			fc.property(compiled, ({ report }) => {
+				if (report.steps.length === 0) return;
+				const effects = report.steps.map((s) => s.request.effect);
+				const expected = effects.some((e) => e.type === 'envelopeWaveform')
+					? 4
+					: effects.some((e) => e.type === 'composition')
+						? 3
+						: effects.every((e) => e.type === 'waveform' && e.amplitudes)
+							? 2
+							: 1;
+				expect(report.tier).toBe(expected);
+				expect(report.mixed).toBe(
+					effects.some((e) => e.type === 'composition') &&
+						effects.some((e) => e.type === 'waveform')
+				);
+			}),
+			options
+		);
+	});
+
 	it('is deterministic', () => {
 		fc.assert(
 			fc.property(compiled, ({ pattern: p, caps, tier: t, scale, report }) => {
