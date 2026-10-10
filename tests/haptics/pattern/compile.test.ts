@@ -202,6 +202,36 @@ describe('mixed patterns without amplitude control', () => {
 	});
 });
 
+describe('events with no strength', () => {
+	const silent: Pattern = {
+		format: PATTERN_FORMAT,
+		events: [
+			{ type: 'transient', at: 0, intensity: 0, sharpness: 0.8 },
+			{ type: 'continuous', at: 40, duration: 60, intensity: 0, sharpness: 0.5 },
+		],
+	};
+
+	it('leaves no steps at any tier', () => {
+		for (const tier of [3, 2, 1] as const) {
+			const r = compilePattern(silent, pixel8Pro, { tier });
+			expect(r.steps, `tier ${tier}`).toEqual([]);
+			expect(r.estimatedMs).toBe(0);
+		}
+	});
+
+	it('drops only the silent primitive from a pattern that has a strong one', () => {
+		const mixed: Pattern = {
+			format: PATTERN_FORMAT,
+			events: [
+				{ type: 'transient', at: 0, intensity: 0, sharpness: 0.8 },
+				{ type: 'transient', at: 50, intensity: 0.8, sharpness: 0.8 },
+			],
+		};
+		const effect = compilePattern(mixed, pixel8Pro, { tier: 3 }).request?.effect;
+		expect(effect?.type === 'composition' ? effect.steps : []).toHaveLength(1);
+	});
+});
+
 describe('limits after serialisation', () => {
 	it('reports tier-2 segments where the serialised waveform plays them', () => {
 		const overlap: Pattern = {

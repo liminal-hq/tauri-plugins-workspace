@@ -585,19 +585,23 @@ class HapticsPlugin(private val activity: Activity) : Plugin(activity) {
       }
 
       "envelopeWaveform" -> {
+        // Whatever this actuator cannot play, whether it lacks envelope support or the request is
+        // outside its limits, steps down to a tick and says why; only invalid input rejects.
+        fun tick(reason: String) = boundedPredefined(
+          VibrationEffect.EFFECT_TICK, PREDEFINED_MS.getValue("tick"), maxDur, minOf(deviceTopTier(), 3),
+          listOf(reason),
+        )
         if (!envelopeEffectsSupported()) {
-          val reason = if (Build.VERSION.SDK_INT < 36) {
-            "Envelope requires API 36+ and device support"
-          } else {
-            "Device does not support envelope effects"
-          }
-          boundedPredefined(
-            VibrationEffect.EFFECT_TICK, PREDEFINED_MS.getValue("tick"), maxDur, minOf(deviceTopTier(), 3),
-            listOf(reason),
+          tick(
+            if (Build.VERSION.SDK_INT < 36) "Envelope requires API 36+ and device support"
+            else "Device does not support envelope effects"
           )
         } else {
-          val eff = buildEnvelopeEffect(effectObj, maxDur)
-          Built(eff, 4, envelopeDurationMs(effectObj))
+          try {
+            Built(buildEnvelopeEffect(effectObj, maxDur), 4, envelopeDurationMs(effectObj))
+          } catch (e: IllegalArgumentException) {
+            tick("Envelope does not fit this actuator (${e.message}); played a tick")
+          }
         }
       }
 

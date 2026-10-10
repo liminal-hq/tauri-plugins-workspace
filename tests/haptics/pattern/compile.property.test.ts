@@ -174,6 +174,18 @@ describe('compiler properties', () => {
 		);
 	});
 
+	it('never emits a primitive step with no strength', () => {
+		fc.assert(
+			fc.property(compiled, ({ report }) => {
+				for (const s of report.steps) {
+					const e = s.request.effect;
+					if (e.type === 'composition') expect(e.steps.every((c) => (c.scale ?? 1) > 0)).toBe(true);
+				}
+			}),
+			options
+		);
+	});
+
 	it('is deterministic', () => {
 		fc.assert(
 			fc.property(compiled, ({ pattern: p, caps, tier: t, scale, report }) => {

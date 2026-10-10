@@ -106,6 +106,7 @@ function amplitudeSegments(
 	if (ev.type === 'transient') {
 		const p = pickPrimitive(ev);
 		const amp = Math.min(maxAmp, round(ev.intensity * scale * AMPLITUDE_CEILING[p]));
+		if (amp <= 0) return [];
 		return [{ at: ev.at, dur: Math.max(MIN_SEGMENT_MS, primitiveMs(caps, p)), amp }];
 	}
 	const soft = mean(ev.sharpness) < 0.4;
@@ -326,6 +327,11 @@ function compilePrimitives(cx: Context): Emitted {
 		const wanted = pickPrimitive(ev);
 		const resolved = resolvePrimitive(cx.caps, wanted);
 		if (resolved) {
+			const level =
+				ev.type === 'transient' ? ev.intensity : peak((ev as ContinuousEvent).intensity);
+			const scale = clamp01(level * cx.scale);
+			// A primitive with no strength plays nothing, so it is left out instead of sent.
+			if (scale === 0) continue;
 			const dur = primitiveMs(cx.caps, resolved.id);
 			const delayMs = Math.max(0, round(ev.at - primitiveEnd));
 			if (primitiveTotal + delayMs + dur > cx.maxMs) {
@@ -334,9 +340,7 @@ function compilePrimitives(cx: Context): Emitted {
 			}
 			primitiveTotal += delayMs + dur;
 			primitiveEnd = Math.max(primitiveEnd, ev.at) + dur;
-			const level =
-				ev.type === 'transient' ? ev.intensity : peak((ev as ContinuousEvent).intensity);
-			items.push({ kind: 'primitive', ev, id: resolved.id, scale: clamp01(level * cx.scale) });
+			items.push({ kind: 'primitive', ev, id: resolved.id, scale });
 			if (resolved.note) notes.push(resolved.note);
 		} else {
 			const capped = applyCaps(
