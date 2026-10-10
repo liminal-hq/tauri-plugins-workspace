@@ -4,20 +4,38 @@ A collection of Tauri v2 plugins for building privacy-focused, local-first appli
 
 ## Plugins
 
-| Plugin                                               | Description                                                                                                                                            | Platforms                                 |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
-| `alarm-manager`                                      | Native alarm scheduling with Android AlarmManager                                                                                                      | Android                                   |
-| [`material-you`](plugins/material-you)               | Material You theming support                                                                                                                           | Android                                   |
-| [`phone-haptics`](plugins/phone-haptics)             | Portable haptic patterns with capability reporting and a stepped fallback ladder                                                                       | Android                                   |
-| `mobile-app-management`                              | Mobile app lifecycle management                                                                                                                        | Android, iOS                              |
-| [`xdg-portal`](plugins/xdg-portal)                   | `xdg-desktop-portal` theming and global shortcuts                                                                                                      | Linux                                     |
-| [`desktop-integration`](plugins/desktop-integration) | X11 window activation and unified global-shortcut binding                                                                                              | Linux                                     |
-| [`system-appearance`](plugins/system-appearance)     | Window titlebar layout and actions, and the appearance preferences (colour scheme, accent, contrast, motion, text scale, icon theme), pushed on change | Linux, Windows, macOS                     |
-| [`os-prefs`](plugins/os-prefs)                       | The user's 12/24-hour clock setting, pushed on change                                                                                                  | Linux, Windows, macOS, Android, iOS       |
-| [`gamepad-haptics`](plugins/gamepad-haptics)         | Rumble for gamepads from one pattern language, plus a web fallback when no native path exists                                                          | Linux (native), web fallback elsewhere    |
-| [`window-manager`](plugins/window-manager)           | Compositor window menu and window manager features                                                                                                     | Linux, Windows (partial), macOS (partial) |
+### Appearance and preferences
+
+| Plugin                                           | Description                                                                                                                                            | Platforms                           |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| [`material-you`](plugins/material-you)           | Material You theming support                                                                                                                           | Android                             |
+| [`system-appearance`](plugins/system-appearance) | Window titlebar layout and actions, and the appearance preferences (colour scheme, accent, contrast, motion, text scale, icon theme), pushed on change | Linux, Windows, macOS               |
+| [`os-prefs`](plugins/os-prefs)                   | The user's 12/24-hour clock setting, pushed on change                                                                                                  | Linux, Windows, macOS, Android, iOS |
+
+### Haptics
+
+| Plugin                                       | Description                                                                                   | Platforms                              |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------- |
+| [`phone-haptics`](plugins/phone-haptics)     | Portable haptic patterns with capability reporting and a stepped fallback ladder              | Android                                |
+| [`gamepad-haptics`](plugins/gamepad-haptics) | Rumble for gamepads from one pattern language, plus a web fallback when no native path exists | Linux (native), web fallback elsewhere |
+
+### Desktop integration
+
+| Plugin                                               | Description                                                                         | Platforms                                 |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------- |
+| [`xdg-portal`](plugins/xdg-portal)                   | `xdg-desktop-portal` theming, global shortcuts, notifications, inhibit and open-URI | Linux                                     |
+| [`desktop-integration`](plugins/desktop-integration) | X11 window activation and unified global-shortcut binding                           | Linux                                     |
+| [`window-manager`](plugins/window-manager)           | Compositor window menu and window manager features                                  | Linux, Windows (partial), macOS (partial) |
+
+### Media
+
+| Plugin                 | Description                                                                       | Platforms             |
+| ---------------------- | --------------------------------------------------------------------------------- | --------------------- |
+| [`hdmv`](plugins/hdmv) | HDMV/Blu-ray menu engine access through libhdmv (not published; install from Git) | Windows, Linux, macOS |
 
 ## Installation
+
+Every plugin is published twice, as a Rust crate `tauri-plugin-<name>` on crates.io and as an npm package `@liminal-hq/plugin-<name>`, except `hdmv`, which needs libhdmv and is installed from Git. The plugin's own README lists its current version, platforms and permissions.
 
 ### From Registry (stable releases)
 
@@ -25,7 +43,7 @@ A collection of Tauri v2 plugins for building privacy-focused, local-first appli
 
 ```toml
 [dependencies]
-tauri-plugin-alarm-manager = "0.1.0"
+tauri-plugin-phone-haptics = "0.1"
 ```
 
 **JavaScript (`package.json`):**
@@ -33,18 +51,22 @@ tauri-plugin-alarm-manager = "0.1.0"
 ```json
 {
 	"dependencies": {
-		"@liminal-hq/plugin-alarm-manager": "^0.1.0"
+		"@liminal-hq/plugin-phone-haptics": "^0.1.0"
 	}
 }
 ```
 
+Pre-1.0 versions treat a minor bump as a breaking change, so `"0.1"` stays on 0.1.x. Use each plugin's current minor version.
+
 ### From Git (development)
+
+Each release is tagged `<plugin>-v<version>` for the crate and `<plugin>-js-v<version>` for the npm package.
 
 **Rust (`Cargo.toml`):**
 
 ```toml
 [dependencies]
-tauri-plugin-alarm-manager = { git = "https://github.com/liminal-hq/tauri-plugins-workspace", tag = "alarm-manager-v0.1.0" }
+tauri-plugin-phone-haptics = { git = "https://github.com/liminal-hq/tauri-plugins-workspace", tag = "phone-haptics-v0.1.0" }
 ```
 
 **JavaScript (`package.json`):**
@@ -52,7 +74,7 @@ tauri-plugin-alarm-manager = { git = "https://github.com/liminal-hq/tauri-plugin
 ```json
 {
 	"dependencies": {
-		"@liminal-hq/plugin-alarm-manager": "github:liminal-hq/tauri-plugins-workspace#alarm-manager-v0.1.0&path:plugins/alarm-manager"
+		"@liminal-hq/plugin-phone-haptics": "github:liminal-hq/tauri-plugins-workspace#phone-haptics-js-v0.1.0&path:plugins/phone-haptics"
 	}
 }
 ```
