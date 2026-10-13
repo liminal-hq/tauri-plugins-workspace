@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The directories the share sheet may expose: the app's cache (Context.getCacheDir) and files (Context.getFilesDir) directories. -->
+<paths>
+    <cache-path name="cache" path="." />
+    <files-path name="files" path="." />
+</paths>

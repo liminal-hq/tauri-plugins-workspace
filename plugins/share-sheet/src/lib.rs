@@ -14,7 +14,17 @@ pub mod models;
 mod share;
 pub mod validate;
 
+#[cfg_attr(not(mobile), allow(dead_code))]
+mod native;
+
+#[cfg(target_os = "android")]
+mod android;
+#[cfg(target_os = "android")]
+use android as platform;
+
+#[cfg(not(target_os = "android"))]
 mod unsupported;
+#[cfg(not(target_os = "android"))]
 use unsupported as platform;
 
 pub use error::{Error, ErrorCode, Result};
