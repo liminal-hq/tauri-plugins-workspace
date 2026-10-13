@@ -1,0 +1,40 @@
+[package]
+name = "tauri-plugin-share-sheet"
+version = "0.0.0"
+description = "Tauri plugin that hands a file or text to the operating system's share sheet"
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+rust-version = { workspace = true }
+repository = { workspace = true }
+build = "build.rs"
+links = "tauri-plugin-share-sheet"
+keywords = ["tauri", "plugin", "share", "share-sheet"]
+categories = ["api-bindings"]
+
+[package.metadata.platforms.support]
+windows = { level = "full", notes = "Shows the Windows share UI through IDataTransferManagerInterop::ShowShareUIForWindow (Windows 10 and later) and reports `unknown`; type-checked for x86_64-pc-windows-msvc, not yet run on Windows" }
+linux = { level = "none", notes = "Linux desktops have no standard share UI (xdg-desktop-portal has no share portal), so every share rejects with `unsupported` and canShare reports false" }
+macos = { level = "full", notes = "Shows NSSharingServicePicker over the calling window and reports `shared` or `cancelled` from its delegate; type-checked for aarch64-apple-darwin, not yet run on macOS" }
+android = { level = "full", notes = "Sends ACTION_SEND through Intent.createChooser with the plugin's own FileProvider and reports `shared` when the chooser names the chosen target, otherwise `unknown`; no permissions" }
+ios = { level = "full", notes = "Presents UIActivityViewController (with an iPad popover anchor) and reports `shared` or `cancelled`; the Swift code has not been compiled or run yet" }
+
+[lib]
+name = "tauri_plugin_share_sheet"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+log = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+ts-rs = "12"
+
+[build-dependencies]
+tauri-plugin = { workspace = true, features = ["build"] }
+
+[dev-dependencies]
+tauri = { workspace = true, features = ["test"] }
+tokio = { workspace = true, features = ["sync", "rt", "macros"] }
