@@ -201,8 +201,9 @@ pub fn resolve_file_within(path: &Path, roots: &[PathBuf]) -> Result<PathBuf> {
     Ok(canonical)
 }
 
-/// Drops the `\\?\` prefix `std::fs::canonicalize` adds on Windows, which the Windows Runtime
-/// storage APIs refuse. `\\?\UNC\server\share` becomes `\\server\share`.
+/// Drops the `\\?\` prefix `std::fs::canonicalize` adds on Windows, so the Windows Runtime
+/// storage APIs get the plain form they document. `\\?\UNC\server\share` becomes
+/// `\\server\share`; other verbatim paths are left alone.
 pub fn strip_verbatim_prefix(path: &Path) -> PathBuf {
     let Some(text) = path.to_str() else {
         return path.to_path_buf();
@@ -225,6 +226,24 @@ pub fn display_name(path: &Path) -> String {
         .map(|name| name.to_string_lossy().into_owned())
         .filter(|name| !name.is_empty())
         .unwrap_or_else(|| "File".to_string())
+}
+
+/// The most characters [`text_title`] keeps from the text.
+pub const TEXT_TITLE_CHARS: usize = 60;
+
+/// A title for shared text on platforms that need one and were not given one: the first
+/// non-empty line, cut to [`TEXT_TITLE_CHARS`] characters with an ellipsis.
+pub fn text_title(text: &str) -> String {
+    let line = text
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty())
+        .unwrap_or("Text");
+    if line.chars().count() <= TEXT_TITLE_CHARS {
+        return line.to_string();
+    }
+    let cut: String = line.chars().take(TEXT_TITLE_CHARS - 1).collect();
+    format!("{}…", cut.trim_end())
 }
 
 #[cfg(test)]
@@ -531,6 +550,21 @@ mod tests {
         );
         assert_eq!(s(r"C:\save.zip"), PathBuf::from(r"C:\save.zip"));
         assert_eq!(s("/tmp/save.zip"), PathBuf::from("/tmp/save.zip"));
+    }
+
+    #[test]
+    fn a_text_title_is_the_first_line_cut_short() {
+        assert_eq!(
+            text_title("\n  Beat level 3!  \nsecond line"),
+            "Beat level 3!"
+        );
+        assert_eq!(text_title("   \n "), "Text");
+        let long = "é".repeat(TEXT_TITLE_CHARS + 10);
+        let title = text_title(&long);
+        assert_eq!(title.chars().count(), TEXT_TITLE_CHARS);
+        assert!(title.ends_with('…'));
+        let exact = "x".repeat(TEXT_TITLE_CHARS);
+        assert_eq!(text_title(&exact), exact);
     }
 
     #[test]
