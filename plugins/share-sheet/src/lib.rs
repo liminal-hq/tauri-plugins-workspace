@@ -22,9 +22,14 @@ mod android;
 #[cfg(target_os = "android")]
 use android as platform;
 
-#[cfg(not(target_os = "android"))]
+#[cfg(target_os = "ios")]
+mod ios;
+#[cfg(target_os = "ios")]
+use ios as platform;
+
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 mod unsupported;
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use unsupported as platform;
 
 pub use error::{Error, ErrorCode, Result};

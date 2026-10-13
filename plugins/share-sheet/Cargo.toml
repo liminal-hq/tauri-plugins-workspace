@@ -32,6 +32,10 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 ts-rs = "12"
 
+# `register_ios_plugin` needs Tauri's `wry` runtime, which every iOS app enables anyway.
+[target.'cfg(target_os = "ios")'.dependencies]
+tauri = { workspace = true, features = ["wry"] }
+
 [build-dependencies]
 tauri-plugin = { workspace = true, features = ["build"] }
 
