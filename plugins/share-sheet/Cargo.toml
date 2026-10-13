@@ -32,6 +32,23 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 ts-rs = "12"
 
+# The same versions Tauri resolves.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", default-features = false, features = [
+  "std",
+  "NSResponder",
+  "NSSharingService",
+  "NSView",
+] }
+objc2-foundation = { version = "0.3", default-features = false, features = [
+  "std",
+  "NSArray",
+  "NSGeometry",
+  "NSString",
+  "NSURL",
+] }
+
 # `register_ios_plugin` needs Tauri's `wry` runtime, which every iOS app enables anyway.
 [target.'cfg(target_os = "ios")'.dependencies]
 tauri = { workspace = true, features = ["wry"] }
