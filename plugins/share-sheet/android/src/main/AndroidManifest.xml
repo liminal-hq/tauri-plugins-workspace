@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The plugin's own FileProvider, which hands one file at a time to the target the person picks.
+  It has its own class and authority, so it never clashes with a provider the app declares.
+  No permissions: the chosen target gets a one-off read grant on the content URI.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <provider
+            android:name="ca.liminalhq.sharesheet.ShareSheetFileProvider"
+            android:authorities="${applicationId}.share-sheet.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/share_sheet_file_paths" />
+        </provider>
+    </application>
+</manifest>

@@ -123,6 +123,14 @@
 			"path": "./plugins/gamepad-haptics",
 			"manager": "javascript"
 		},
+		"share-sheet": {
+			"path": "./plugins/share-sheet",
+			"manager": "rust"
+		},
+		"share-sheet-js": {
+			"path": "./plugins/share-sheet",
+			"manager": "javascript"
+		},
 		"api-example": {
 			"path": "./examples/api/src-tauri",
 			"manager": "rust",

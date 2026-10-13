@@ -76,6 +76,56 @@ jobs:
           echo "- Result: \`${{ steps.rust_tests.outcome }}\`" >> "${GITHUB_STEP_SUMMARY}"
           echo "- Command: \`cargo test --workspace\`" >> "${GITHUB_STEP_SUMMARY}"
 
+  # The Linux jobs above never compile code behind `cfg(target_os = ...)` for other platforms.
+  # This type-checks the share-sheet plugin's native backends for each platform it supports. The
+  # iOS check runs on macOS, where the plugin's build script also compiles its Swift package.
+  check-native-targets:
+    name: check-native-targets (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: android
+            os: ubuntu-latest
+            container: ghcr.io/liminal-hq/tauri-ci-mobile:latest
+            target: aarch64-linux-android
+          - name: ios
+            os: macos-latest
+            target: aarch64-apple-ios
+          - name: macos
+            os: macos-latest
+            target: aarch64-apple-darwin
+          - name: windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Set up Rust toolchain (clippy)
+        uses: ./.github/actions/setup-rust-toolchain
+        with:
+          components: clippy
+      - name: Add the Rust target
+        shell: bash
+        run: rustup target add "${{ matrix.target }}"
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - name: Run Clippy for the target
+        id: target_clippy
+        shell: bash
+        run: cargo clippy -p tauri-plugin-share-sheet --target "${{ matrix.target }}" -- -D warnings
+      - name: Publish results
+        if: always()
+        shell: bash
+        run: |
+          echo "## Native target check (${{ matrix.name }})" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Result: \`${{ steps.target_clippy.outcome }}\`" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Command: \`cargo clippy -p tauri-plugin-share-sheet --target ${{ matrix.target }} -- -D warnings\`" >> "${GITHUB_STEP_SUMMARY}"
+
   test-js:
     runs-on: ubuntu-latest
     steps:
