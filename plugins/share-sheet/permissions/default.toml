@@ -1,0 +1,3 @@
+[default]
+description = "Default permissions for the share-sheet plugin: share a file, share text and ask what can be shared."
+permissions = ["allow-share-file", "allow-share-text", "allow-can-share"]
