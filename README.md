@@ -27,6 +27,12 @@ A collection of Tauri v2 plugins for building privacy-focused, local-first appli
 | [`desktop-integration`](plugins/desktop-integration) | X11 window activation and unified global-shortcut binding                           | Linux                                     |
 | [`window-manager`](plugins/window-manager)           | Compositor window menu and window manager features                                  | Linux, Windows (partial), macOS (partial) |
 
+### Sharing
+
+| Plugin                               | Description                                                | Platforms                                             |
+| ------------------------------------ | ---------------------------------------------------------- | ----------------------------------------------------- |
+| [`share-sheet`](plugins/share-sheet) | Hands a file or text to the operating system's share sheet | Android, iOS, macOS, Windows (not yet run on devices) |
+
 ### Media
 
 | Plugin                 | Description                                                                       | Platforms             |
