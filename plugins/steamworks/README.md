@@ -1,6 +1,6 @@
 # Tauri Plugin Steamworks
 
-Steamworks for Tauri v2 games: player identity, achievements, stats, rich presence, the overlay and Steam Cloud files. One binary can ship inside and outside Steam, because the plugin reports a queryable _unavailable_ state instead of failing when Steam is missing.
+Steamworks for Tauri v2 games: player identity, achievements, stats, rich presence, the overlay, Steam Cloud files, DLC checks, Steam Deck detection and screenshots. One binary can ship inside and outside Steam, because the plugin reports a queryable _unavailable_ state instead of failing when Steam is missing.
 
 ## Highlights
 
@@ -86,20 +86,23 @@ const unlisten = await onAchievementStored(({ id }) => console.log('stored', id)
 
 ### Commands
 
-| Function                                                                                | Notes                                                                                    |
-| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `isAvailable()`, `getStatus()`                                                          | Never reject. The status carries a `reason` when unavailable.                            |
-| `getPlayer()`                                                                           | `steamId` is a decimal string because JavaScript numbers lose 64-bit precision.          |
-| `getAchievement(id)`                                                                    | `{ id, achieved, unlockTime }`.                                                          |
-| `unlockAchievement(id)`                                                                 | Sets the achievement and stores it so Steam shows its notification.                      |
-| `clearAchievement(id)`                                                                  | For development. Needs the `allow-achievements-dev` permission.                          |
-| `indicateProgress(id, current, max)`                                                    | Progress toast for counted achievements. `current` must not exceed `max`.                |
-| `getStat(name, kind = 'int')`, `setStat(name, value, kind?)`                            | `setStat` does not store; call `storeStats()` to batch writes.                           |
-| `storeStats()`                                                                          | Persists pending stat and achievement changes.                                           |
-| `setRichPresence(entries)`, `clearRichPresence()`                                       | The status line friends see. A `null` value removes a key. Needs `allow-presence`.       |
-| `activateOverlay(page)`, `activateOverlayToWebPage(url)`                                | Opens an overlay page, or an `http(s)` address. Needs `allow-overlay`.                   |
-| `cloudWrite(name, data)`, `cloudRead(name)`, `cloudReadText(name)`, `cloudDelete(name)` | Whole-file Steam Cloud access. Needs `allow-cloud`. See [Steam Cloud](#steam-cloud).     |
-| `cloudList()`, `cloudQuota()`, `cloudStatus()`                                          | Files, quota in bytes, and whether the account and app allow Cloud. Needs `allow-cloud`. |
+| Function                                                                                | Notes                                                                                     |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `isAvailable()`, `getStatus()`                                                          | Never reject. The status carries a `reason` when unavailable.                             |
+| `getPlayer()`                                                                           | `steamId` is a decimal string because JavaScript numbers lose 64-bit precision.           |
+| `getAchievement(id)`                                                                    | `{ id, achieved, unlockTime }`.                                                           |
+| `unlockAchievement(id)`                                                                 | Sets the achievement and stores it so Steam shows its notification.                       |
+| `clearAchievement(id)`                                                                  | For development. Needs the `allow-achievements-dev` permission.                           |
+| `indicateProgress(id, current, max)`                                                    | Progress toast for counted achievements. `current` must not exceed `max`.                 |
+| `getStat(name, kind = 'int')`, `setStat(name, value, kind?)`                            | `setStat` does not store; call `storeStats()` to batch writes.                            |
+| `storeStats()`                                                                          | Persists pending stat and achievement changes.                                            |
+| `setRichPresence(entries)`, `clearRichPresence()`                                       | The status line friends see. A `null` value removes a key. Needs `allow-presence`.        |
+| `activateOverlay(page)`, `activateOverlayToWebPage(url)`                                | Opens an overlay page, or an `http(s)` address. Needs `allow-overlay`.                    |
+| `cloudWrite(name, data)`, `cloudRead(name)`, `cloudReadText(name)`, `cloudDelete(name)` | Whole-file Steam Cloud access. Needs `allow-cloud`. See [Steam Cloud](#steam-cloud).      |
+| `cloudList()`, `cloudQuota()`, `cloudStatus()`                                          | Files, quota in bytes, and whether the account and app allow Cloud. Needs `allow-cloud`.  |
+| `getDlc()`, `isDlcInstalled(appId)`                                                     | The app's downloadable content and whether each is installed. Needs `allow-dlc`.          |
+| `getDeviceInfo()`, `isSteamDeck()`                                                      | Whether the app runs on a Steam Deck or in Big Picture mode. Needs `allow-device`.        |
+| `hookScreenshots(hook)`, `triggerScreenshot()`, `addScreenshotToLibrary(path, w, h)`    | Steam screenshot integration. Needs `allow-screenshots`. See [Screenshots](#screenshots). |
 
 `setStat` sends a whole number as an int and a fraction as a float. Pass `kind: 'float'` for a float stat that currently holds a whole number.
 
@@ -153,6 +156,9 @@ Optional, in `tauri.conf.json`:
 | `allow-presence`         | `setRichPresence`, `clearRichPresence`                           | no           |
 | `allow-overlay`          | `activateOverlay`, `activateOverlayToWebPage`                    | no           |
 | `allow-cloud`            | the `cloud*` functions                                           | no           |
+| `allow-dlc`              | `getDlc`, `isDlcInstalled`                                       | no           |
+| `allow-device`           | `getDeviceInfo`, `isSteamDeck`                                   | no           |
+| `allow-screenshots`      | `hookScreenshots`, `triggerScreenshot`, `addScreenshotToLibrary` | no           |
 | `allow-achievements-dev` | `clearAchievement`, so a shipped app cannot wipe player progress | no           |
 
 Individual `allow-<command>` and `deny-<command>` permissions also exist. Sets that reach outside the game, such as presence, overlay and cloud, are never part of `default`.
@@ -213,6 +219,15 @@ await cloudWrite('settings.json', JSON.stringify({ volume: 0.8 }));
 const settings = JSON.parse(await cloudReadText('settings.json'));
 console.log(await cloudList());
 ```
+
+## Screenshots
+
+By default Steam takes screenshots itself (F12 or the overlay), and nothing here is needed. Hooking is for apps whose window Steam cannot capture, such as a webview game on Windows:
+
+1. `hookScreenshots(true)` makes Steam send `screenshot-requested` instead of capturing.
+2. In `onScreenshotRequested`, capture the game, save it as an image file, then call `addScreenshotToLibrary(path, width, height)`.
+
+`addScreenshotToLibrary` accepts only an absolute path to an existing `png`, `jpg`, `jpeg` or `tga` file, so the webview cannot make Steam read other files. If the overlay-surface plugin already hooks screenshots and captures them, leave `hookScreenshots` alone; both would answer the same request.
 
 ## Steam overlay
 

@@ -319,6 +319,18 @@
           "markdownDescription": "Denies the activate_overlay_to_web_page command without any pre-configured scope."
         },
         {
+          "description": "Enables the add_screenshot_to_library command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-add-screenshot-to-library",
+          "markdownDescription": "Enables the add_screenshot_to_library command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the add_screenshot_to_library command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-add-screenshot-to-library",
+          "markdownDescription": "Denies the add_screenshot_to_library command without any pre-configured scope."
+        },
+        {
           "description": "Enables the clear_achievement command without any pre-configured scope.",
           "type": "string",
           "const": "allow-clear-achievement",
@@ -427,6 +439,30 @@
           "markdownDescription": "Denies the get_achievement command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_device_info command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-device-info",
+          "markdownDescription": "Enables the get_device_info command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_device_info command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-device-info",
+          "markdownDescription": "Denies the get_device_info command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_dlc command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-dlc",
+          "markdownDescription": "Enables the get_dlc command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_dlc command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-dlc",
+          "markdownDescription": "Denies the get_dlc command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_player command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-player",
@@ -463,6 +499,18 @@
           "markdownDescription": "Denies the get_status command without any pre-configured scope."
         },
         {
+          "description": "Enables the hook_screenshots command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-hook-screenshots",
+          "markdownDescription": "Enables the hook_screenshots command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the hook_screenshots command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-hook-screenshots",
+          "markdownDescription": "Denies the hook_screenshots command without any pre-configured scope."
+        },
+        {
           "description": "Enables the indicate_achievement_progress command without any pre-configured scope.",
           "type": "string",
           "const": "allow-indicate-achievement-progress",
@@ -485,6 +533,18 @@
           "type": "string",
           "const": "deny-is-available",
           "markdownDescription": "Denies the is_available command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the is_dlc_installed command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-is-dlc-installed",
+          "markdownDescription": "Enables the is_dlc_installed command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the is_dlc_installed command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-is-dlc-installed",
+          "markdownDescription": "Denies the is_dlc_installed command without any pre-configured scope."
         },
         {
           "description": "Enables the set_rich_presence command without any pre-configured scope.",
@@ -521,6 +581,18 @@
           "type": "string",
           "const": "deny-store-stats",
           "markdownDescription": "Denies the store_stats command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the trigger_screenshot command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-trigger-screenshot",
+          "markdownDescription": "Enables the trigger_screenshot command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the trigger_screenshot command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-trigger-screenshot",
+          "markdownDescription": "Denies the trigger_screenshot command without any pre-configured scope."
         },
         {
           "description": "Enables the unlock_achievement command without any pre-configured scope.",
@@ -581,6 +653,24 @@
           "type": "string",
           "const": "allow-cloud",
           "markdownDescription": "Reads, writes, lists and deletes Steam Cloud files, and reads the Cloud quota and status. Prefer Auto-Cloud for save games.\n#### This permission set includes:\n\n- `allow-cloud-write`\n- `allow-cloud-read`\n- `allow-cloud-delete`\n- `allow-cloud-list`\n- `allow-cloud-quota`\n- `allow-cloud-status`"
+        },
+        {
+          "description": "Lists the app's downloadable content and checks whether each is installed.\n#### This permission set includes:\n\n- `allow-get-dlc`\n- `allow-is-dlc-installed`",
+          "type": "string",
+          "const": "allow-dlc",
+          "markdownDescription": "Lists the app's downloadable content and checks whether each is installed.\n#### This permission set includes:\n\n- `allow-get-dlc`\n- `allow-is-dlc-installed`"
+        },
+        {
+          "description": "Reports whether the app runs on a Steam Deck or in Big Picture mode.\n#### This permission set includes:\n\n- `allow-get-device-info`",
+          "type": "string",
+          "const": "allow-device",
+          "markdownDescription": "Reports whether the app runs on a Steam Deck or in Big Picture mode.\n#### This permission set includes:\n\n- `allow-get-device-info`"
+        },
+        {
+          "description": "Hooks Steam screenshots, triggers one, and adds an image file to the player's Steam screenshot library.\n#### This permission set includes:\n\n- `allow-hook-screenshots`\n- `allow-trigger-screenshot`\n- `allow-add-screenshot-to-library`",
+          "type": "string",
+          "const": "allow-screenshots",
+          "markdownDescription": "Hooks Steam screenshots, triggers one, and adds an image file to the player's Steam screenshot library.\n#### This permission set includes:\n\n- `allow-hook-screenshots`\n- `allow-trigger-screenshot`\n- `allow-add-screenshot-to-library`"
         }
       ]
     }

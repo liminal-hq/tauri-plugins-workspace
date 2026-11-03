@@ -24,6 +24,12 @@ const COMMANDS: &[&str] = &[
     "cloud_list",
     "cloud_quota",
     "cloud_status",
+    "get_dlc",
+    "is_dlc_installed",
+    "get_device_info",
+    "hook_screenshots",
+    "trigger_screenshot",
+    "add_screenshot_to_library",
 ];
 
 fn main() {

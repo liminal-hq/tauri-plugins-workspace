@@ -96,7 +96,8 @@ struct SteamBackend {
 impl SteamBackend {
     fn new(ready: Ready, emit: Emit) -> Self {
         use steamworks::{
-            GameOverlayActivated, UserAchievementStored, UserStatsReceived, UserStatsStored,
+            screenshots::ScreenshotRequested, GameOverlayActivated, UserAchievementStored,
+            UserStatsReceived, UserStatsStored,
         };
 
         let client = ready.client;
@@ -123,9 +124,13 @@ impl SteamBackend {
                 max: v.max_progress,
             });
         }));
-        let sink = emit;
+        let sink = emit.clone();
         handles.push(client.register_callback(move |v: GameOverlayActivated| {
             sink(SteamEvent::OverlayToggled { active: v.active });
+        }));
+        let sink = emit;
+        handles.push(client.register_callback(move |_: ScreenshotRequested| {
+            sink(SteamEvent::ScreenshotRequested);
         }));
 
         Self {
@@ -377,6 +382,86 @@ impl SteamworksBackend for SteamBackend {
             account_enabled: storage.is_cloud_enabled_for_account(),
             app_enabled: storage.is_cloud_enabled_for_app(),
         })
+    }
+
+    fn dlc_list(&self) -> crate::Result<Vec<crate::models::DlcInfo>> {
+        let apps = self.client.apps();
+        // SAFETY: the interface pointer stays valid while `self.client` is alive. `name` is a
+        // writable buffer of the length passed, and the out-pointers refer to live locals.
+        let count = unsafe {
+            steamworks_sys::SteamAPI_ISteamApps_GetDLCCount(
+                steamworks_sys::SteamAPI_SteamApps_v009(),
+            )
+        };
+        let mut list = Vec::new();
+        for index in 0..count.max(0) {
+            let mut app_id = 0u32;
+            let mut available = false;
+            let mut name = [0 as std::os::raw::c_char; 256];
+            let found = unsafe {
+                steamworks_sys::SteamAPI_ISteamApps_BGetDLCDataByIndex(
+                    steamworks_sys::SteamAPI_SteamApps_v009(),
+                    index,
+                    &mut app_id,
+                    &mut available,
+                    name.as_mut_ptr(),
+                    name.len() as i32,
+                )
+            };
+            if !found {
+                continue;
+            }
+            // SAFETY: Steam NUL-terminates the name within the buffer.
+            let name = unsafe { std::ffi::CStr::from_ptr(name.as_ptr()) }
+                .to_string_lossy()
+                .into_owned();
+            list.push(crate::models::DlcInfo {
+                app_id,
+                name,
+                available,
+                installed: apps.is_dlc_installed(steamworks::AppId(app_id)),
+            });
+        }
+        Ok(list)
+    }
+
+    fn is_dlc_installed(&self, app_id: u32) -> crate::Result<bool> {
+        Ok(self
+            .client
+            .apps()
+            .is_dlc_installed(steamworks::AppId(app_id)))
+    }
+
+    fn device_info(&self) -> crate::Result<crate::models::DeviceInfo> {
+        let utils = self.client.utils();
+        Ok(crate::models::DeviceInfo {
+            steam_deck: utils.is_steam_running_on_steam_deck(),
+            big_picture: utils.is_steam_in_big_picture_mode(),
+        })
+    }
+
+    fn hook_screenshots(&self, hook: bool) -> crate::Result<()> {
+        self.client.screenshots().hook_screenshots(hook);
+        Ok(())
+    }
+
+    fn trigger_screenshot(&self) -> crate::Result<()> {
+        self.client.screenshots().trigger_screenshot();
+        Ok(())
+    }
+
+    fn add_screenshot(&self, path: &std::path::Path, width: u32, height: u32) -> crate::Result<()> {
+        let too_large = || crate::Error::InvalidRequest("the screenshot is too large".into());
+        self.client
+            .screenshots()
+            .add_screenshot_to_library(
+                path,
+                None,
+                i32::try_from(width).map_err(|_| too_large())?,
+                i32::try_from(height).map_err(|_| too_large())?,
+            )
+            .map(|_| ())
+            .map_err(|e| crate::Error::Steam(e.to_string()))
     }
 }
 

@@ -12,8 +12,8 @@ use crate::{
     backend::{Emit, SteamworksBackend},
     error::{Error, Result},
     models::{
-        Achievement, BackendKind, CloudFile, CloudQuota, CloudStatus, OverlayPage, Player,
-        StatKind, StatValue, SteamEvent,
+        Achievement, BackendKind, CloudFile, CloudQuota, CloudStatus, DeviceInfo, DlcInfo,
+        OverlayPage, Player, StatKind, StatValue, SteamEvent,
     },
 };
 
@@ -30,6 +30,8 @@ pub struct MockConfig {
     pub cloud_quota_bytes: u64,
     /// Reports Steam Cloud as turned off for the app.
     pub cloud_disabled: bool,
+    pub dlc: Vec<DlcInfo>,
+    pub device: DeviceInfo,
 }
 
 impl Default for MockConfig {
@@ -46,6 +48,8 @@ impl Default for MockConfig {
             fail_store: false,
             cloud_quota_bytes: 100 * 1024 * 1024,
             cloud_disabled: false,
+            dlc: Vec::new(),
+            device: DeviceInfo::default(),
         }
     }
 }
@@ -55,16 +59,30 @@ impl Default for MockConfig {
 pub enum Call {
     Unlock(String),
     Clear(String),
-    Progress { id: String, current: u32, max: u32 },
+    Progress {
+        id: String,
+        current: u32,
+        max: u32,
+    },
     SetStat(String, StatValue),
     StoreStats,
     SetRichPresence(BTreeMap<String, Option<String>>),
     ClearRichPresence,
     Overlay(OverlayPage),
     OverlayWebPage(String),
-    CloudWrite { name: String, len: usize },
+    CloudWrite {
+        name: String,
+        len: usize,
+    },
     CloudRead(String),
     CloudDelete(String),
+    HookScreenshots(bool),
+    TriggerScreenshot,
+    AddScreenshot {
+        path: std::path::PathBuf,
+        width: u32,
+        height: u32,
+    },
 }
 
 #[derive(Default)]
@@ -77,6 +95,7 @@ struct State {
     presence: BTreeMap<String, String>,
     /// Cloud file name to contents and write time.
     cloud: BTreeMap<String, (Vec<u8>, i64)>,
+    screenshots_hooked: bool,
     calls: Vec<Call>,
 }
 
@@ -352,6 +371,51 @@ impl SteamworksBackend for MockBackend {
             app_enabled: !self.config.cloud_disabled,
         })
     }
+
+    fn dlc_list(&self) -> Result<Vec<DlcInfo>> {
+        Ok(self.config.dlc.clone())
+    }
+
+    fn is_dlc_installed(&self, app_id: u32) -> Result<bool> {
+        Ok(self
+            .config
+            .dlc
+            .iter()
+            .any(|dlc| dlc.app_id == app_id && dlc.installed))
+    }
+
+    fn device_info(&self) -> Result<DeviceInfo> {
+        Ok(self.config.device)
+    }
+
+    fn hook_screenshots(&self, hook: bool) -> Result<()> {
+        let mut state = self.state();
+        state.screenshots_hooked = hook;
+        state.calls.push(Call::HookScreenshots(hook));
+        Ok(())
+    }
+
+    /// Like Steam, a hooked app is asked to take the screenshot itself.
+    fn trigger_screenshot(&self) -> Result<()> {
+        let hooked = {
+            let mut state = self.state();
+            state.calls.push(Call::TriggerScreenshot);
+            state.screenshots_hooked
+        };
+        if hooked {
+            (self.emit)(SteamEvent::ScreenshotRequested);
+        }
+        Ok(())
+    }
+
+    fn add_screenshot(&self, path: &std::path::Path, width: u32, height: u32) -> Result<()> {
+        self.state().calls.push(Call::AddScreenshot {
+            path: path.to_path_buf(),
+            width,
+            height,
+        });
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -539,6 +603,53 @@ mod tests {
         assert_eq!(mock.cloud_quota().unwrap().available_bytes, 1);
         assert!(mock.cloud_write("b", &[0; 2]).is_err());
         assert_eq!(mock.cloud_quota().unwrap().total_bytes, 10);
+    }
+
+    #[test]
+    fn dlc_and_device_come_from_the_config() {
+        let emit: Emit = Arc::new(|_| {});
+        let mock = MockBackend::new(
+            MockConfig {
+                dlc: vec![
+                    DlcInfo {
+                        app_id: 1,
+                        name: "Owned".into(),
+                        available: true,
+                        installed: true,
+                    },
+                    DlcInfo {
+                        app_id: 2,
+                        name: "Missing".into(),
+                        available: true,
+                        installed: false,
+                    },
+                ],
+                device: DeviceInfo {
+                    steam_deck: true,
+                    big_picture: false,
+                },
+                ..MockConfig::default()
+            },
+            emit,
+        );
+        assert_eq!(mock.dlc_list().unwrap().len(), 2);
+        assert!(mock.is_dlc_installed(1).unwrap());
+        assert!(!mock.is_dlc_installed(2).unwrap());
+        assert!(!mock.is_dlc_installed(3).unwrap());
+        assert!(mock.device_info().unwrap().steam_deck);
+    }
+
+    #[test]
+    fn a_screenshot_request_is_raised_only_while_hooked() {
+        let (mock, events) = fixture(false);
+        mock.trigger_screenshot().unwrap();
+        assert!(events.lock().unwrap().is_empty());
+        mock.hook_screenshots(true).unwrap();
+        mock.trigger_screenshot().unwrap();
+        assert_eq!(
+            events.lock().unwrap().clone(),
+            vec![SteamEvent::ScreenshotRequested]
+        );
     }
 
     #[test]

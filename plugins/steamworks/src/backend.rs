@@ -3,13 +3,13 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, path::Path, sync::Arc};
 
 use crate::{
     error::{Error, Result},
     models::{
-        Achievement, BackendKind, CloudFile, CloudQuota, CloudStatus, OverlayPage, Player,
-        StatKind, StatValue, SteamEvent, UnavailableReason,
+        Achievement, BackendKind, CloudFile, CloudQuota, CloudStatus, DeviceInfo, DlcInfo,
+        OverlayPage, Player, StatKind, StatValue, SteamEvent, UnavailableReason,
     },
 };
 
@@ -40,6 +40,13 @@ pub trait SteamworksBackend: Send + Sync + 'static {
     fn cloud_list(&self) -> Result<Vec<CloudFile>>;
     fn cloud_quota(&self) -> Result<CloudQuota>;
     fn cloud_status(&self) -> Result<CloudStatus>;
+    fn dlc_list(&self) -> Result<Vec<DlcInfo>>;
+    fn is_dlc_installed(&self, app_id: u32) -> Result<bool>;
+    fn device_info(&self) -> Result<DeviceInfo>;
+    fn hook_screenshots(&self, hook: bool) -> Result<()>;
+    fn trigger_screenshot(&self) -> Result<()>;
+    /// The path is already checked: absolute, an existing image file.
+    fn add_screenshot(&self, path: &Path, width: u32, height: u32) -> Result<()>;
 }
 
 /// Answers every call with `Error::Unavailable`.
@@ -117,6 +124,24 @@ impl SteamworksBackend for NullBackend {
         self.fail()
     }
     fn cloud_status(&self) -> Result<CloudStatus> {
+        self.fail()
+    }
+    fn dlc_list(&self) -> Result<Vec<DlcInfo>> {
+        self.fail()
+    }
+    fn is_dlc_installed(&self, _app_id: u32) -> Result<bool> {
+        self.fail()
+    }
+    fn device_info(&self) -> Result<DeviceInfo> {
+        self.fail()
+    }
+    fn hook_screenshots(&self, _hook: bool) -> Result<()> {
+        self.fail()
+    }
+    fn trigger_screenshot(&self) -> Result<()> {
+        self.fail()
+    }
+    fn add_screenshot(&self, _path: &Path, _width: u32, _height: u32) -> Result<()> {
         self.fail()
     }
 }

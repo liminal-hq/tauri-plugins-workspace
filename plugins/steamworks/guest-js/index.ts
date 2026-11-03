@@ -11,6 +11,8 @@ import type {
 	CloudFile,
 	CloudQuota,
 	CloudStatus,
+	DeviceInfo,
+	DlcInfo,
 	OverlayPage,
 	OverlayToggledPayload,
 	Player,
@@ -43,6 +45,7 @@ export const STATS_RECEIVED_EVENT = 'steamworks://stats-received';
 export const STATS_STORED_EVENT = 'steamworks://stats-stored';
 export const ACHIEVEMENT_STORED_EVENT = 'steamworks://achievement-stored';
 export const OVERLAY_TOGGLED_EVENT = 'steamworks://overlay-toggled';
+export const SCREENSHOT_REQUESTED_EVENT = 'steamworks://screenshot-requested';
 
 /** True when Steam initialised, or the in-memory mock is active. Never rejects. */
 export function isAvailable(): Promise<boolean> {
@@ -160,6 +163,46 @@ export function cloudStatus(): Promise<CloudStatus> {
 	return invoke<CloudStatus>(`${PREFIX}cloud_status`);
 }
 
+/** Lists the app's downloadable content and whether each is installed. Needs `allow-dlc`. */
+export function getDlc(): Promise<DlcInfo[]> {
+	return invoke<DlcInfo[]>(`${PREFIX}get_dlc`);
+}
+
+export function isDlcInstalled(appId: number): Promise<boolean> {
+	return invoke<boolean>(`${PREFIX}is_dlc_installed`, { appId });
+}
+
+/** Says whether the app runs on a Steam Deck or in Big Picture mode. Needs `allow-device`. */
+export function getDeviceInfo(): Promise<DeviceInfo> {
+	return invoke<DeviceInfo>(`${PREFIX}get_device_info`);
+}
+
+export async function isSteamDeck(): Promise<boolean> {
+	return (await getDeviceInfo()).steamDeck;
+}
+
+/**
+ * Makes Steam send a `screenshot-requested` event, and leaves the capture to the app, instead of
+ * taking screenshots itself. Do not enable it when an overlay-surface plugin already hooks
+ * screenshots. Needs `allow-screenshots`.
+ */
+export function hookScreenshots(hook: boolean): Promise<void> {
+	return invoke<void>(`${PREFIX}hook_screenshots`, { hook });
+}
+
+/** Asks Steam for a screenshot; when hooked, the app gets `screenshot-requested` instead. */
+export function triggerScreenshot(): Promise<void> {
+	return invoke<void>(`${PREFIX}trigger_screenshot`);
+}
+
+/**
+ * Adds an image the app saved to the player's Steam screenshot library. The path must be absolute
+ * and name an existing `png`, `jpg`, `jpeg` or `tga` file.
+ */
+export function addScreenshotToLibrary(path: string, width: number, height: number): Promise<void> {
+	return invoke<void>(`${PREFIX}add_screenshot_to_library`, { path, width, height });
+}
+
 /** Needs `core:event:default` as well as the plugin's permissions. */
 export function onStatsReceived(
 	handler: (_payload: StatsReceivedPayload) => void
@@ -184,6 +227,11 @@ export function onOverlayToggled(
 	handler: (_payload: OverlayToggledPayload) => void
 ): Promise<UnlistenFn> {
 	return listen<OverlayToggledPayload>(OVERLAY_TOGGLED_EVENT, (e) => handler(e.payload));
+}
+
+/** Fires when Steam asks the app for a screenshot; needs `hookScreenshots(true)`. */
+export function onScreenshotRequested(handler: () => void): Promise<UnlistenFn> {
+	return listen<Record<string, never>>(SCREENSHOT_REQUESTED_EVENT, () => handler());
 }
 
 /** True when a rejection means Steam is not usable, as opposed to a bad id or a failed call. */
