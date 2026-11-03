@@ -105,3 +105,38 @@ fn the_plugin_without_a_backend_choice_degrades_instead_of_failing_setup() {
     let err = app.steamworks().player().unwrap_err().to_string();
     assert!(err.starts_with("unavailable: "), "{err}");
 }
+
+#[test]
+fn rust_code_can_hear_overlay_toggles_through_a_hook() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    let app = app_with(config());
+    let opened = Arc::new(AtomicBool::new(false));
+    let seen = opened.clone();
+    app.steamworks()
+        .on_overlay_toggled(move |active| seen.store(active, Ordering::SeqCst));
+
+    let events = Arc::new(Mutex::new(Vec::<String>::new()));
+    let sink = events.clone();
+    app.listen(tauri_plugin_steamworks::OVERLAY_TOGGLED_EVENT, move |e| {
+        sink.lock().unwrap().push(e.payload().to_string());
+    });
+
+    app.steamworks()
+        .activate_overlay(tauri_plugin_steamworks::OverlayPage::Achievements)
+        .unwrap();
+
+    assert!(opened.load(Ordering::SeqCst));
+    assert_eq!(events.lock().unwrap().as_slice(), [r#"{"active":true}"#]);
+}
+
+#[test]
+fn presence_set_through_the_plugin_state_reaches_the_backend() {
+    let app = app_with(config());
+    let entries = std::collections::BTreeMap::from([(
+        "status".to_string(),
+        Some("Mayor of Fizzton, pop. 12,400".to_string()),
+    )]);
+    app.steamworks().set_rich_presence(&entries).unwrap();
+    app.steamworks().clear_rich_presence().unwrap();
+}

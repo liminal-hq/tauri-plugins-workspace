@@ -3,11 +3,13 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use std::collections::BTreeMap;
+
 use tauri::{command, AppHandle, Runtime};
 
 use crate::{
     error::Result,
-    models::{Achievement, Player, StatKind, StatValue, SteamStatus},
+    models::{Achievement, OverlayPage, Player, StatKind, StatValue, SteamStatus},
     SteamworksExt,
 };
 
@@ -77,4 +79,34 @@ pub(crate) async fn set_stat<R: Runtime>(
 #[command]
 pub(crate) async fn store_stats<R: Runtime>(app: AppHandle<R>) -> Result<()> {
     app.steamworks().store_stats()
+}
+
+/// Sets rich presence keys; a `null` value removes the key.
+#[command]
+pub(crate) async fn set_rich_presence<R: Runtime>(
+    app: AppHandle<R>,
+    entries: BTreeMap<String, Option<String>>,
+) -> Result<()> {
+    app.steamworks().set_rich_presence(&entries)
+}
+
+#[command]
+pub(crate) async fn clear_rich_presence<R: Runtime>(app: AppHandle<R>) -> Result<()> {
+    app.steamworks().clear_rich_presence()
+}
+
+#[command]
+pub(crate) async fn activate_overlay<R: Runtime>(
+    app: AppHandle<R>,
+    page: OverlayPage,
+) -> Result<()> {
+    app.steamworks().activate_overlay(page)
+}
+
+#[command]
+pub(crate) async fn activate_overlay_to_web_page<R: Runtime>(
+    app: AppHandle<R>,
+    url: String,
+) -> Result<()> {
+    app.steamworks().activate_overlay_to_web_page(&url)
 }

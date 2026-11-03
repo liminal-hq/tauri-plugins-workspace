@@ -51,3 +51,17 @@ export interface AchievementStoredPayload {
 	current: number;
 	max: number;
 }
+
+export type OverlayPage =
+	| 'friends'
+	| 'community'
+	| 'players'
+	| 'settings'
+	| 'officialgamegroup'
+	| 'stats'
+	| 'achievements';
+
+export interface OverlayToggledPayload {
+	/** True while the overlay is open. */
+	active: boolean;
+}

@@ -8,6 +8,8 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
 	Achievement,
 	AchievementStoredPayload,
+	OverlayPage,
+	OverlayToggledPayload,
 	Player,
 	StatKind,
 	StatsReceivedPayload,
@@ -20,6 +22,8 @@ export type {
 	Achievement,
 	AchievementStoredPayload,
 	BackendKind,
+	OverlayPage,
+	OverlayToggledPayload,
 	Player,
 	StatKind,
 	StatsReceivedPayload,
@@ -34,6 +38,7 @@ const PREFIX = 'plugin:steamworks|';
 export const STATS_RECEIVED_EVENT = 'steamworks://stats-received';
 export const STATS_STORED_EVENT = 'steamworks://stats-stored';
 export const ACHIEVEMENT_STORED_EVENT = 'steamworks://achievement-stored';
+export const OVERLAY_TOGGLED_EVENT = 'steamworks://overlay-toggled';
 
 /** True when Steam initialised, or the in-memory mock is active. Never rejects. */
 export function isAvailable(): Promise<boolean> {
@@ -87,6 +92,31 @@ export function storeStats(): Promise<void> {
 	return invoke<void>(`${PREFIX}store_stats`);
 }
 
+/**
+ * Sets the rich presence keys friends see. A `null` value removes that key. Steam allows 20 keys of
+ * up to 64 bytes, with values of up to 256 bytes. Needs the `allow-presence` permission.
+ */
+export function setRichPresence(entries: Record<string, string | null>): Promise<void> {
+	return invoke<void>(`${PREFIX}set_rich_presence`, { entries });
+}
+
+export function clearRichPresence(): Promise<void> {
+	return invoke<void>(`${PREFIX}clear_rich_presence`);
+}
+
+/**
+ * Opens a page of the Steam overlay. Needs the `allow-overlay` permission, and Steam's overlay
+ * must be able to hook the window; see the README for Windows.
+ */
+export function activateOverlay(page: OverlayPage): Promise<void> {
+	return invoke<void>(`${PREFIX}activate_overlay`, { page });
+}
+
+/** Opens an `http` or `https` address in the overlay's browser. Needs `allow-overlay`. */
+export function activateOverlayToWebPage(url: string): Promise<void> {
+	return invoke<void>(`${PREFIX}activate_overlay_to_web_page`, { url });
+}
+
 /** Needs `core:event:default` as well as the plugin's permissions. */
 export function onStatsReceived(
 	handler: (_payload: StatsReceivedPayload) => void
@@ -104,6 +134,13 @@ export function onAchievementStored(
 	handler: (_payload: AchievementStoredPayload) => void
 ): Promise<UnlistenFn> {
 	return listen<AchievementStoredPayload>(ACHIEVEMENT_STORED_EVENT, (e) => handler(e.payload));
+}
+
+/** Fires when the Steam overlay opens or closes. */
+export function onOverlayToggled(
+	handler: (_payload: OverlayToggledPayload) => void
+): Promise<UnlistenFn> {
+	return listen<OverlayToggledPayload>(OVERLAY_TOGGLED_EVENT, (e) => handler(e.payload));
 }
 
 /** True when a rejection means Steam is not usable, as opposed to a bad id or a failed call. */

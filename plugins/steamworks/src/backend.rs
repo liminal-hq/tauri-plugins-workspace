@@ -3,12 +3,13 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 
 use crate::{
     error::{Error, Result},
     models::{
-        Achievement, BackendKind, Player, StatKind, StatValue, SteamEvent, UnavailableReason,
+        Achievement, BackendKind, OverlayPage, Player, StatKind, StatValue, SteamEvent,
+        UnavailableReason,
     },
 };
 
@@ -27,6 +28,11 @@ pub trait SteamworksBackend: Send + Sync + 'static {
     fn get_stat(&self, name: &str, kind: StatKind) -> Result<StatValue>;
     fn set_stat(&self, name: &str, value: StatValue) -> Result<()>;
     fn store_stats(&self) -> Result<()>;
+    /// Sets or, with `None`, removes rich presence keys. Inputs are already validated.
+    fn set_rich_presence(&self, entries: &BTreeMap<String, Option<String>>) -> Result<()>;
+    fn clear_rich_presence(&self) -> Result<()>;
+    fn activate_overlay(&self, page: OverlayPage) -> Result<()>;
+    fn activate_overlay_to_web_page(&self, url: &str) -> Result<()>;
 }
 
 /// Answers every call with `Error::Unavailable`.
@@ -74,6 +80,18 @@ impl SteamworksBackend for NullBackend {
         self.fail()
     }
     fn store_stats(&self) -> Result<()> {
+        self.fail()
+    }
+    fn set_rich_presence(&self, _entries: &BTreeMap<String, Option<String>>) -> Result<()> {
+        self.fail()
+    }
+    fn clear_rich_presence(&self) -> Result<()> {
+        self.fail()
+    }
+    fn activate_overlay(&self, _page: OverlayPage) -> Result<()> {
+        self.fail()
+    }
+    fn activate_overlay_to_web_page(&self, _url: &str) -> Result<()> {
         self.fail()
     }
 }

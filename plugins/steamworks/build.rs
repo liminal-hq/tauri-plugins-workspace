@@ -14,6 +14,10 @@ const COMMANDS: &[&str] = &[
     "get_stat",
     "set_stat",
     "store_stats",
+    "set_rich_presence",
+    "clear_rich_presence",
+    "activate_overlay",
+    "activate_overlay_to_web_page",
 ];
 
 fn main() {

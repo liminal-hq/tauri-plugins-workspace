@@ -112,7 +112,11 @@ impl Builder {
                 commands::indicate_achievement_progress,
                 commands::get_stat,
                 commands::set_stat,
-                commands::store_stats
+                commands::store_stats,
+                commands::set_rich_presence,
+                commands::clear_rich_presence,
+                commands::activate_overlay,
+                commands::activate_overlay_to_web_page
             ])
             .setup(move |app, api| {
                 let config = api.config().clone().unwrap_or_default();
@@ -162,6 +166,10 @@ fn emit_event<R: Runtime>(app: &AppHandle<R>, event: SteamEvent) {
         SteamEvent::AchievementStored { id, current, max } => (
             ACHIEVEMENT_STORED_EVENT,
             serde_json::json!({ "id": id, "current": current, "max": max }),
+        ),
+        SteamEvent::OverlayToggled { active } => (
+            OVERLAY_TOGGLED_EVENT,
+            serde_json::json!({ "active": active }),
         ),
     };
     if let Err(e) = app.emit(name, payload) {

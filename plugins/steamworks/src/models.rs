@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 pub const STATS_RECEIVED_EVENT: &str = "steamworks://stats-received";
 pub const STATS_STORED_EVENT: &str = "steamworks://stats-stored";
 pub const ACHIEVEMENT_STORED_EVENT: &str = "steamworks://achievement-stored";
+pub const OVERLAY_TOGGLED_EVENT: &str = "steamworks://overlay-toggled";
 
 /// Which implementation answers the commands.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -120,12 +121,41 @@ impl StatValue {
     }
 }
 
+/// A page of the Steam overlay.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OverlayPage {
+    Friends,
+    Community,
+    Players,
+    Settings,
+    OfficialGameGroup,
+    Stats,
+    Achievements,
+}
+
+impl OverlayPage {
+    /// The dialog name Steam expects.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Friends => "friends",
+            Self::Community => "community",
+            Self::Players => "players",
+            Self::Settings => "settings",
+            Self::OfficialGameGroup => "officialgamegroup",
+            Self::Stats => "stats",
+            Self::Achievements => "achievements",
+        }
+    }
+}
+
 /// Events the backends raise. The plugin turns them into Tauri events.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SteamEvent {
     StatsReceived { success: bool, steam_id: String },
     StatsStored { success: bool },
     AchievementStored { id: String, current: u32, max: u32 },
+    OverlayToggled { active: bool },
 }
 
 #[cfg(test)]
@@ -159,6 +189,24 @@ mod tests {
             serde_json::to_value(off).unwrap(),
             json!({"state": "unavailable", "reason": "steamNotRunning", "message": null})
         );
+    }
+
+    #[test]
+    fn overlay_pages_serialise_as_steam_dialog_names() {
+        for page in [
+            OverlayPage::Friends,
+            OverlayPage::Community,
+            OverlayPage::Players,
+            OverlayPage::Settings,
+            OverlayPage::OfficialGameGroup,
+            OverlayPage::Stats,
+            OverlayPage::Achievements,
+        ] {
+            assert_eq!(
+                serde_json::to_value(page).unwrap(),
+                serde_json::Value::String(page.as_str().to_string())
+            );
+        }
     }
 
     #[test]
