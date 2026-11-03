@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use std::{
+    collections::BTreeMap,
     sync::{Arc, Mutex, MutexGuard, RwLock},
     time::Duration,
 };
@@ -14,7 +15,10 @@ use crate::{
     backend::{Emit, NullBackend, SteamworksBackend},
     config::{clamp_interval, Config, DEFAULT_CALLBACK_INTERVAL},
     error::{Error, Result},
-    models::{Achievement, Player, StatKind, StatValue, SteamStatus, UnavailableReason},
+    models::{
+        Achievement, OverlayPage, Player, StatKind, StatValue, SteamEvent, SteamStatus,
+        UnavailableReason,
+    },
     pump::Pump,
     real::{self, InitOutcome},
 };
@@ -69,10 +73,31 @@ pub(crate) struct StartOptions {
     pub mock: Option<MockConfig>,
 }
 
+type OverlayHook = Arc<dyn Fn(bool) + Send + Sync>;
+
+/// Callbacks registered with [`Steamworks::on_overlay_toggled`].
+#[derive(Default)]
+struct OverlayHooks(Mutex<Vec<OverlayHook>>);
+
+impl OverlayHooks {
+    fn add(&self, hook: OverlayHook) {
+        self.0.lock().unwrap_or_else(|e| e.into_inner()).push(hook);
+    }
+
+    fn notify(&self, active: bool) {
+        // Copy the list first so a hook can register another hook without deadlocking.
+        let hooks: Vec<OverlayHook> = self.0.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        for hook in hooks {
+            hook(active);
+        }
+    }
+}
+
 struct Inner {
     backend: RwLock<Arc<dyn SteamworksBackend>>,
     status: RwLock<SteamStatus>,
     pump: Mutex<Option<Pump>>,
+    overlay_hooks: Arc<OverlayHooks>,
 }
 
 /// Managed state behind the commands. Rust code reaches it through [`crate::SteamworksExt`].
@@ -83,6 +108,16 @@ pub struct Steamworks {
 
 impl Steamworks {
     pub(crate) fn start(options: StartOptions, config: &Config, emit: Emit) -> Self {
+        let overlay_hooks = Arc::new(OverlayHooks::default());
+        let emit: Emit = {
+            let hooks = overlay_hooks.clone();
+            Arc::new(move |event| {
+                if let SteamEvent::OverlayToggled { active } = &event {
+                    hooks.notify(*active);
+                }
+                emit(event);
+            })
+        };
         let interval = clamp_interval(
             options
                 .interval
@@ -106,7 +141,7 @@ impl Steamworks {
                 backend: crate::models::BackendKind::Mock,
                 app_id: backend.app_id(),
             };
-            return Self::from_parts(Arc::new(backend), status, None);
+            return Self::from_parts(Arc::new(backend), status, None, overlay_hooks);
         }
 
         let outcome = match options.preinit {
@@ -120,7 +155,7 @@ impl Steamworks {
                     backend: backend.kind(),
                     app_id: backend.app_id(),
                 };
-                Self::from_parts(backend, status, pump)
+                Self::from_parts(backend, status, pump, overlay_hooks)
             }
             InitOutcome::Unavailable(reason, message) => {
                 if let Some(message) = &message {
@@ -132,6 +167,7 @@ impl Steamworks {
                     Arc::new(NullBackend::new(reason)),
                     SteamStatus::Unavailable { reason, message },
                     None,
+                    overlay_hooks,
                 )
             }
         }
@@ -141,12 +177,14 @@ impl Steamworks {
         backend: Arc<dyn SteamworksBackend>,
         status: SteamStatus,
         pump: Option<Pump>,
+        overlay_hooks: Arc<OverlayHooks>,
     ) -> Self {
         Self {
             inner: Arc::new(Inner {
                 backend: RwLock::new(backend),
                 status: RwLock::new(status),
                 pump: Mutex::new(pump),
+                overlay_hooks,
             }),
         }
     }
@@ -224,6 +262,39 @@ impl Steamworks {
         self.backend().store_stats()
     }
 
+    /// Sets or, with `None`, removes rich presence keys. Steam allows 20 keys of up to 64 bytes
+    /// with values of up to 256 bytes, so larger requests are rejected up front.
+    pub fn set_rich_presence(&self, entries: &BTreeMap<String, Option<String>>) -> Result<()> {
+        check_presence(entries)?;
+        self.backend().set_rich_presence(entries)
+    }
+
+    pub fn clear_rich_presence(&self) -> Result<()> {
+        self.backend().clear_rich_presence()
+    }
+
+    pub fn activate_overlay(&self, page: OverlayPage) -> Result<()> {
+        self.backend().activate_overlay(page)
+    }
+
+    /// Opens a web page in the overlay. Only `http` and `https` addresses are accepted.
+    pub fn activate_overlay_to_web_page(&self, url: &str) -> Result<()> {
+        let parsed = url::Url::parse(url)
+            .map_err(|e| Error::InvalidRequest(format!("not a valid URL: {e}")))?;
+        if !matches!(parsed.scheme(), "http" | "https") {
+            return Err(Error::InvalidRequest(
+                "the overlay opens only http and https addresses".into(),
+            ));
+        }
+        self.backend().activate_overlay_to_web_page(parsed.as_str())
+    }
+
+    /// Calls `hook` with `true` or `false` whenever the Steam overlay opens or closes. Use it to
+    /// pass the change to other integrations, such as an overlay-surface plugin, from Rust.
+    pub fn on_overlay_toggled(&self, hook: impl Fn(bool) + Send + Sync + 'static) {
+        self.inner.overlay_hooks.add(Arc::new(hook));
+    }
+
     /// Stops the pump and drops the Steam client. Later calls report `shutdown`.
     pub fn shutdown(&self) {
         if let Some(mut pump) = self.pump().take() {
@@ -238,6 +309,34 @@ impl Steamworks {
         *self.inner.status.write().unwrap_or_else(|e| e.into_inner()) =
             SteamStatus::unavailable(UnavailableReason::Shutdown);
     }
+}
+
+const MAX_PRESENCE_KEYS: usize = 20;
+const MAX_PRESENCE_KEY_BYTES: usize = 64;
+const MAX_PRESENCE_VALUE_BYTES: usize = 256;
+
+fn check_presence(entries: &BTreeMap<String, Option<String>>) -> Result<()> {
+    if entries.len() > MAX_PRESENCE_KEYS {
+        return Err(Error::InvalidRequest(format!(
+            "rich presence takes at most {MAX_PRESENCE_KEYS} keys"
+        )));
+    }
+    for (key, value) in entries {
+        check_id(key)?;
+        if key.len() > MAX_PRESENCE_KEY_BYTES {
+            return Err(Error::InvalidRequest(format!(
+                "a rich presence key is at most {MAX_PRESENCE_KEY_BYTES} bytes"
+            )));
+        }
+        if let Some(value) = value {
+            if value.contains('\0') || value.len() > MAX_PRESENCE_VALUE_BYTES {
+                return Err(Error::InvalidRequest(format!(
+                    "a rich presence value is at most {MAX_PRESENCE_VALUE_BYTES} bytes and free of NUL"
+                )));
+            }
+        }
+    }
+    Ok(())
 }
 
 fn check_id(id: &str) -> Result<()> {
@@ -342,6 +441,81 @@ mod tests {
             steam.achievement(""),
             Err(Error::InvalidRequest(_))
         ));
+    }
+
+    fn mock_steam() -> (Steamworks, Arc<Mutex<Vec<SteamEvent>>>) {
+        let (emit, events) = emit_sink();
+        let mut opts = options();
+        opts.mock = Some(MockConfig::default());
+        (Steamworks::start(opts, &Config::default(), emit), events)
+    }
+
+    fn entry(key: &str, value: &str) -> BTreeMap<String, Option<String>> {
+        BTreeMap::from([(key.to_string(), Some(value.to_string()))])
+    }
+
+    #[test]
+    fn presence_limits_are_enforced_before_the_backend() {
+        let (steam, _) = mock_steam();
+        steam.set_rich_presence(&entry("status", "Mayor")).unwrap();
+
+        let long_key = "k".repeat(65);
+        assert!(steam.set_rich_presence(&entry(&long_key, "v")).is_err());
+        let long_value = "v".repeat(257);
+        assert!(steam
+            .set_rich_presence(&entry("status", &long_value))
+            .is_err());
+        assert!(steam.set_rich_presence(&entry("", "v")).is_err());
+        assert!(steam.set_rich_presence(&entry("status", "a\0b")).is_err());
+
+        let many: BTreeMap<_, _> = (0..21)
+            .map(|i| (format!("k{i}"), Some("v".to_string())))
+            .collect();
+        assert!(steam.set_rich_presence(&many).is_err());
+        let exactly_max = "v".repeat(256);
+        steam
+            .set_rich_presence(&entry("status", &exactly_max))
+            .unwrap();
+    }
+
+    #[test]
+    fn only_web_addresses_open_in_the_overlay() {
+        let (steam, _) = mock_steam();
+        steam
+            .activate_overlay_to_web_page("https://store.steampowered.com/app/480")
+            .unwrap();
+        for bad in [
+            "file:///etc/passwd",
+            "javascript:alert(1)",
+            "steam://run/480",
+            "not a url",
+        ] {
+            assert!(
+                matches!(
+                    steam.activate_overlay_to_web_page(bad),
+                    Err(Error::InvalidRequest(_))
+                ),
+                "{bad} should be refused"
+            );
+        }
+    }
+
+    #[test]
+    fn overlay_hooks_hear_toggles_and_may_register_more_hooks() {
+        let (steam, events) = mock_steam();
+        let heard = Arc::new(Mutex::new(Vec::new()));
+        let sink = heard.clone();
+        let again = steam.clone();
+        steam.on_overlay_toggled(move |active| {
+            sink.lock().unwrap().push(active);
+            again.on_overlay_toggled(|_| {});
+        });
+        steam.activate_overlay(OverlayPage::Friends).unwrap();
+        assert_eq!(heard.lock().unwrap().clone(), vec![true]);
+        assert!(events
+            .lock()
+            .unwrap()
+            .contains(&SteamEvent::OverlayToggled { active: true }));
     }
 
     #[test]

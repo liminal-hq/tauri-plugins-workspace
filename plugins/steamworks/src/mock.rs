@@ -11,7 +11,7 @@ use std::{
 use crate::{
     backend::{Emit, SteamworksBackend},
     error::{Error, Result},
-    models::{Achievement, BackendKind, Player, StatKind, StatValue, SteamEvent},
+    models::{Achievement, BackendKind, OverlayPage, Player, StatKind, StatValue, SteamEvent},
 };
 
 /// What the fake starts with. Achievements and stats must be declared, as Steam requires.
@@ -49,6 +49,10 @@ pub enum Call {
     Progress { id: String, current: u32, max: u32 },
     SetStat(String, StatValue),
     StoreStats,
+    SetRichPresence(BTreeMap<String, Option<String>>),
+    ClearRichPresence,
+    Overlay(OverlayPage),
+    OverlayWebPage(String),
 }
 
 #[derive(Default)]
@@ -58,6 +62,7 @@ struct State {
     pending: BTreeSet<String>,
     progress: BTreeMap<String, (u32, u32)>,
     stats: BTreeMap<String, StatValue>,
+    presence: BTreeMap<String, String>,
     calls: Vec<Call>,
 }
 
@@ -87,6 +92,11 @@ impl MockBackend {
 
     fn state(&self) -> MutexGuard<'_, State> {
         self.state.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// The rich presence keys currently set.
+    pub fn rich_presence(&self) -> BTreeMap<String, String> {
+        self.state().presence.clone()
     }
 
     /// Every call received so far, oldest first.
@@ -214,6 +224,44 @@ impl SteamworksBackend for MockBackend {
             Err(Error::Steam("the mock was told to fail store_stats".into()))
         }
     }
+
+    fn set_rich_presence(&self, entries: &BTreeMap<String, Option<String>>) -> Result<()> {
+        let mut state = self.state();
+        for (key, value) in entries {
+            match value {
+                Some(value) => {
+                    state.presence.insert(key.clone(), value.clone());
+                }
+                None => {
+                    state.presence.remove(key);
+                }
+            }
+        }
+        state.calls.push(Call::SetRichPresence(entries.clone()));
+        Ok(())
+    }
+
+    fn clear_rich_presence(&self) -> Result<()> {
+        let mut state = self.state();
+        state.presence.clear();
+        state.calls.push(Call::ClearRichPresence);
+        Ok(())
+    }
+
+    /// Like Steam, opening the overlay raises a toggle event.
+    fn activate_overlay(&self, page: OverlayPage) -> Result<()> {
+        self.state().calls.push(Call::Overlay(page));
+        (self.emit)(SteamEvent::OverlayToggled { active: true });
+        Ok(())
+    }
+
+    fn activate_overlay_to_web_page(&self, url: &str) -> Result<()> {
+        self.state()
+            .calls
+            .push(Call::OverlayWebPage(url.to_string()));
+        (self.emit)(SteamEvent::OverlayToggled { active: true });
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -318,6 +366,47 @@ mod tests {
         assert_eq!(
             events.lock().unwrap().clone(),
             vec![SteamEvent::StatsStored { success: false }]
+        );
+    }
+
+    #[test]
+    fn presence_sets_updates_and_removes_keys() {
+        let (mock, _) = fixture(false);
+        let mut entries = BTreeMap::new();
+        entries.insert("status".to_string(), Some("Mayor of Fizzton".to_string()));
+        entries.insert("steam_display".to_string(), Some("#Playing".to_string()));
+        mock.set_rich_presence(&entries).unwrap();
+        assert_eq!(mock.rich_presence().len(), 2);
+        let mut removal = BTreeMap::new();
+        removal.insert("status".to_string(), None);
+        mock.set_rich_presence(&removal).unwrap();
+        assert_eq!(
+            mock.rich_presence().keys().collect::<Vec<_>>(),
+            vec!["steam_display"]
+        );
+        mock.clear_rich_presence().unwrap();
+        assert!(mock.rich_presence().is_empty());
+    }
+
+    #[test]
+    fn opening_the_overlay_raises_a_toggle_event() {
+        let (mock, events) = fixture(false);
+        mock.activate_overlay(OverlayPage::Achievements).unwrap();
+        mock.activate_overlay_to_web_page("https://example.com/")
+            .unwrap();
+        assert_eq!(
+            events.lock().unwrap().clone(),
+            vec![
+                SteamEvent::OverlayToggled { active: true },
+                SteamEvent::OverlayToggled { active: true }
+            ]
+        );
+        assert_eq!(
+            mock.calls(),
+            vec![
+                Call::Overlay(OverlayPage::Achievements),
+                Call::OverlayWebPage("https://example.com/".into())
+            ]
         );
     }
 

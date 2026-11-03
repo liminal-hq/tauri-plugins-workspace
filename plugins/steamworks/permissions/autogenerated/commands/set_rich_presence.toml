@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-set-rich-presence"
+description = "Enables the set_rich_presence command without any pre-configured scope."
+commands.allow = ["set_rich_presence"]
+
+[[permission]]
+identifier = "deny-set-rich-presence"
+description = "Denies the set_rich_presence command without any pre-configured scope."
+commands.deny = ["set_rich_presence"]

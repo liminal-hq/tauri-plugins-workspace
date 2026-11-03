@@ -1,6 +1,6 @@
 # Tauri Plugin Steamworks
 
-Steamworks for Tauri v2 games: player identity, achievements and stats today, with presence, overlay and cloud files planned. One binary can ship inside and outside Steam, because the plugin reports a queryable _unavailable_ state instead of failing when Steam is missing.
+Steamworks for Tauri v2 games: player identity, achievements, stats, rich presence and the overlay, with cloud files planned. One binary can ship inside and outside Steam, because the plugin reports a queryable _unavailable_ state instead of failing when Steam is missing.
 
 ## Highlights
 
@@ -86,16 +86,18 @@ const unlisten = await onAchievementStored(({ id }) => console.log('stored', id)
 
 ### Commands
 
-| Function                                                     | Notes                                                                           |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| `isAvailable()`, `getStatus()`                               | Never reject. The status carries a `reason` when unavailable.                   |
-| `getPlayer()`                                                | `steamId` is a decimal string because JavaScript numbers lose 64-bit precision. |
-| `getAchievement(id)`                                         | `{ id, achieved, unlockTime }`.                                                 |
-| `unlockAchievement(id)`                                      | Sets the achievement and stores it so Steam shows its notification.             |
-| `clearAchievement(id)`                                       | For development. Needs the `allow-achievements-dev` permission.                 |
-| `indicateProgress(id, current, max)`                         | Progress toast for counted achievements. `current` must not exceed `max`.       |
-| `getStat(name, kind = 'int')`, `setStat(name, value, kind?)` | `setStat` does not store; call `storeStats()` to batch writes.                  |
-| `storeStats()`                                               | Persists pending stat and achievement changes.                                  |
+| Function                                                     | Notes                                                                              |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `isAvailable()`, `getStatus()`                               | Never reject. The status carries a `reason` when unavailable.                      |
+| `getPlayer()`                                                | `steamId` is a decimal string because JavaScript numbers lose 64-bit precision.    |
+| `getAchievement(id)`                                         | `{ id, achieved, unlockTime }`.                                                    |
+| `unlockAchievement(id)`                                      | Sets the achievement and stores it so Steam shows its notification.                |
+| `clearAchievement(id)`                                       | For development. Needs the `allow-achievements-dev` permission.                    |
+| `indicateProgress(id, current, max)`                         | Progress toast for counted achievements. `current` must not exceed `max`.          |
+| `getStat(name, kind = 'int')`, `setStat(name, value, kind?)` | `setStat` does not store; call `storeStats()` to batch writes.                     |
+| `storeStats()`                                               | Persists pending stat and achievement changes.                                     |
+| `setRichPresence(entries)`, `clearRichPresence()`            | The status line friends see. A `null` value removes a key. Needs `allow-presence`. |
+| `activateOverlay(page)`, `activateOverlayToWebPage(url)`     | Opens an overlay page, or an `http(s)` address. Needs `allow-overlay`.             |
 
 `setStat` sends a whole number as an int and a fraction as a float. Pass `kind: 'float'` for a float stat that currently holds a whole number.
 
@@ -146,9 +148,11 @@ Optional, in `tauri.conf.json`:
 | `allow-player-info`      | `isAvailable`, `getStatus`, `getPlayer`                          | yes          |
 | `allow-achievements`     | `getAchievement`, `unlockAchievement`, `indicateProgress`        | yes          |
 | `allow-stats`            | `getStat`, `setStat`, `storeStats`                               | yes          |
+| `allow-presence`         | `setRichPresence`, `clearRichPresence`                           | no           |
+| `allow-overlay`          | `activateOverlay`, `activateOverlayToWebPage`                    | no           |
 | `allow-achievements-dev` | `clearAchievement`, so a shipped app cannot wipe player progress | no           |
 
-Individual `allow-<command>` and `deny-<command>` permissions also exist. Later releases add `allow-presence`, `allow-overlay` and `allow-cloud` sets that are never part of `default`.
+Individual `allow-<command>` and `deny-<command>` permissions also exist. Later releases add an `allow-cloud` set that is never part of `default` either.
 
 ## Testing without Steam
 
@@ -191,4 +195,22 @@ This plugin is `Apache-2.0 OR MIT` and contains no Steamworks SDK code or binari
 
 ## Steam overlay
 
-The overlay is not part of this release. On Windows the Steam overlay cannot hook a WebView2 window by itself; a later release documents using this plugin's `preinit` with a separate overlay-surface plugin.
+Rich presence needs nothing special. The overlay is best-effort, because on Windows it cannot hook a WebView2 window by itself: WebView2 renders in separate processes, so the game process never presents a frame for Steam's injected overlay to attach to. The separate [`tauri-plugin-steam-overlay-surface`](https://github.com/PSG-Team/tauri-steam-overlay-surface) plugin works around that with a transparent, click-through window that presents empty frames for Steam to draw on. This plugin does not reimplement that; it works alongside it.
+
+To use both:
+
+1. Initialise Steam before the Tauri builder with `preinit`, and build this plugin from the result with `Builder::from_preinit`. The overlay surface requires Steam to be initialised first, and a second `steamworks::Client` must not be created.
+2. Add the overlay-surface plugin. It requires Tauri's `unstable` feature and Windows.
+3. Forward overlay toggles to it from Rust. This plugin already registers Steam's overlay callback and runs the callback pump, so the surface plugin needs neither:
+
+```rust
+use tauri_plugin_steamworks::SteamworksExt;
+
+// in the Tauri builder's setup
+let handle = app.handle().clone();
+app.steamworks().on_overlay_toggled(move |active| {
+    tauri_plugin_steam_overlay_surface::on_overlay_activated(&handle, active);
+});
+```
+
+Follow the overlay-surface README for its other requirements, such as forwarding Shift+Tab from the webview. On other platforms `activateOverlay` works as Steam provides it. In all cases `onOverlayToggled` in the webview reports when the overlay opens and closes.

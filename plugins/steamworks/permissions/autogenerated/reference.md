@@ -20,6 +20,58 @@ Default permissions for the steamworks plugin: player info, achievements and sta
 <tr>
 <td>
 
+`steamworks:allow-activate-overlay`
+
+</td>
+<td>
+
+Enables the activate_overlay command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-activate-overlay`
+
+</td>
+<td>
+
+Denies the activate_overlay command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-activate-overlay-to-web-page`
+
+</td>
+<td>
+
+Enables the activate_overlay_to_web_page command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-activate-overlay-to-web-page`
+
+</td>
+<td>
+
+Denies the activate_overlay_to_web_page command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `steamworks:allow-clear-achievement`
 
 </td>
@@ -39,6 +91,32 @@ Enables the clear_achievement command without any pre-configured scope.
 <td>
 
 Denies the clear_achievement command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-clear-rich-presence`
+
+</td>
+<td>
+
+Enables the clear_rich_presence command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-clear-rich-presence`
+
+</td>
+<td>
+
+Denies the clear_rich_presence command without any pre-configured scope.
 
 </td>
 </tr>
@@ -202,6 +280,32 @@ Denies the is_available command without any pre-configured scope.
 <tr>
 <td>
 
+`steamworks:allow-set-rich-presence`
+
+</td>
+<td>
+
+Enables the set_rich_presence command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-set-rich-presence`
+
+</td>
+<td>
+
+Denies the set_rich_presence command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `steamworks:allow-set-stat`
 
 </td>
@@ -325,6 +429,32 @@ Re-locks achievements. Meant for development builds, so a shipped app cannot wip
 <td>
 
 Reads, writes and stores stats.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-presence`
+
+</td>
+<td>
+
+Sets and clears rich presence, the status line friends see.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-overlay`
+
+</td>
+<td>
+
+Opens Steam overlay pages and web pages.
 
 </td>
 </tr>

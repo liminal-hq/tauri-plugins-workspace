@@ -95,7 +95,9 @@ struct SteamBackend {
 #[cfg(steam_sdk)]
 impl SteamBackend {
     fn new(ready: Ready, emit: Emit) -> Self {
-        use steamworks::{UserAchievementStored, UserStatsReceived, UserStatsStored};
+        use steamworks::{
+            GameOverlayActivated, UserAchievementStored, UserStatsReceived, UserStatsStored,
+        };
 
         let client = ready.client;
         let mut handles = Vec::new();
@@ -113,13 +115,17 @@ impl SteamBackend {
                 success: v.result.is_ok(),
             });
         }));
-        let sink = emit;
+        let sink = emit.clone();
         handles.push(client.register_callback(move |v: UserAchievementStored| {
             sink(SteamEvent::AchievementStored {
                 id: v.achievement_name,
                 current: v.current_progress,
                 max: v.max_progress,
             });
+        }));
+        let sink = emit;
+        handles.push(client.register_callback(move |v: GameOverlayActivated| {
+            sink(SteamEvent::OverlayToggled { active: v.active });
         }));
 
         Self {
@@ -227,5 +233,35 @@ impl SteamworksBackend for SteamBackend {
             .user_stats()
             .store_stats()
             .map_err(|()| crate::Error::Steam("Steam refused to store stats".into()))
+    }
+
+    fn set_rich_presence(
+        &self,
+        entries: &std::collections::BTreeMap<String, Option<String>>,
+    ) -> crate::Result<()> {
+        let friends = self.client.friends();
+        for (key, value) in entries {
+            if !friends.set_rich_presence(key, value.as_deref()) {
+                return Err(crate::Error::Steam(format!(
+                    "Steam refused the rich presence key `{key}`"
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    fn clear_rich_presence(&self) -> crate::Result<()> {
+        self.client.friends().clear_rich_presence();
+        Ok(())
+    }
+
+    fn activate_overlay(&self, page: crate::models::OverlayPage) -> crate::Result<()> {
+        self.client.friends().activate_game_overlay(page.as_str());
+        Ok(())
+    }
+
+    fn activate_overlay_to_web_page(&self, url: &str) -> crate::Result<()> {
+        self.client.friends().activate_game_overlay_to_web_page(url);
+        Ok(())
     }
 }

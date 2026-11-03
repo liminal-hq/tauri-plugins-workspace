@@ -53,6 +53,34 @@ describe('commands', () => {
 	});
 });
 
+describe('presence and overlay', () => {
+	it('sends presence entries, with null removing a key', async () => {
+		invoke.mockResolvedValue(undefined);
+		await api.setRichPresence({ status: 'Mayor of Fizzton', connect: null });
+		await api.clearRichPresence();
+		expect(invoke.mock.calls).toEqual([
+			[
+				'plugin:steamworks|set_rich_presence',
+				{ entries: { status: 'Mayor of Fizzton', connect: null } },
+			],
+			['plugin:steamworks|clear_rich_presence', {}],
+		]);
+	});
+
+	it('opens overlay pages and web pages', async () => {
+		invoke.mockResolvedValue(undefined);
+		await api.activateOverlay('achievements');
+		await api.activateOverlayToWebPage('https://store.steampowered.com/app/480');
+		expect(invoke.mock.calls).toEqual([
+			['plugin:steamworks|activate_overlay', { page: 'achievements' }],
+			[
+				'plugin:steamworks|activate_overlay_to_web_page',
+				{ url: 'https://store.steampowered.com/app/480' },
+			],
+		]);
+	});
+});
+
 describe('stats', () => {
 	it('sends whole numbers as ints and fractions as floats by default', async () => {
 		invoke.mockResolvedValue(undefined);
@@ -100,5 +128,6 @@ describe('events', () => {
 		expect(api.STATS_RECEIVED_EVENT).toBe('steamworks://stats-received');
 		expect(api.STATS_STORED_EVENT).toBe('steamworks://stats-stored');
 		expect(api.ACHIEVEMENT_STORED_EVENT).toBe('steamworks://achievement-stored');
+		expect(api.OVERLAY_TOGGLED_EVENT).toBe('steamworks://overlay-toggled');
 	});
 });
