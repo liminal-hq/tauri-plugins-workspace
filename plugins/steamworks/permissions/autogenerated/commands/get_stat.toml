@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-get-stat"
+description = "Enables the get_stat command without any pre-configured scope."
+commands.allow = ["get_stat"]
+
+[[permission]]
+identifier = "deny-get-stat"
+description = "Denies the get_stat command without any pre-configured scope."
+commands.deny = ["get_stat"]

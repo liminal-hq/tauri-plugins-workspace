@@ -1,0 +1,55 @@
+[package]
+name = "tauri-plugin-steamworks"
+version = "0.1.0"
+description = "Tauri plugin that wraps the Steamworks SDK for achievements, stats, rich presence and cloud files, and reports itself unavailable outside Steam"
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+rust-version = { workspace = true }
+repository = { workspace = true }
+build = "build.rs"
+links = "tauri-plugin-steamworks"
+keywords = ["tauri", "plugin", "steam", "steamworks", "achievements"]
+categories = ["api-bindings", "game-development"]
+# The crate name is taken on crates.io by an unrelated project, so this crate is consumed by git or path.
+publish = false
+
+[package.metadata.platforms.support]
+linux = { level = "partial", notes = "Needs the `steam` cargo feature and a running Steam client; otherwise reports itself unavailable" }
+windows = { level = "partial", notes = "Needs the `steam` cargo feature and a running Steam client; otherwise reports itself unavailable" }
+macos = { level = "partial", notes = "Needs the `steam` cargo feature and a running Steam client; otherwise reports itself unavailable" }
+android = { level = "none", notes = "Stub that always reports itself unavailable" }
+ios = { level = "none", notes = "Stub that always reports itself unavailable" }
+
+[lib]
+name = "tauri_plugin_steamworks"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[features]
+default = []
+# Links the Steamworks SDK. Enable it only from the Steam distribution channel of an app.
+steam = ["dep:steamworks", "dep:steamworks-sys"]
+# Compiles the in-memory fake backend so tests run without Steam.
+mock = []
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+steamworks = { version = "=0.13.1", optional = true }
+# The raw binding is needed for calls steamworks does not wrap; same version steamworks uses.
+steamworks-sys = { version = "=0.13.0", optional = true }
+
+[dev-dependencies]
+tauri = { workspace = true, features = ["test"] }
+
+[build-dependencies]
+tauri-plugin = { workspace = true, features = ["build"] }
+
+[[test]]
+name = "mock_plugin"
+required-features = ["mock"]

@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-store-stats"
+description = "Enables the store_stats command without any pre-configured scope."
+commands.allow = ["store_stats"]
+
+[[permission]]
+identifier = "deny-store-stats"
+description = "Denies the store_stats command without any pre-configured scope."
+commands.deny = ["store_stats"]

@@ -14,10 +14,16 @@ A collection of Tauri v2 plugins for building privacy-focused, local-first appli
 
 ### Haptics
 
-| Plugin                                       | Description                                                                                   | Platforms                              |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------- |
-| [`phone-haptics`](plugins/phone-haptics)     | Portable haptic patterns with capability reporting and a stepped fallback ladder              | Android                                |
-| [`gamepad-haptics`](plugins/gamepad-haptics) | Rumble for gamepads from one pattern language, plus a web fallback when no native path exists | Linux (native), web fallback elsewhere |
+| Plugin                                   | Description                                                                      | Platforms |
+| ---------------------------------------- | -------------------------------------------------------------------------------- | --------- |
+| [`phone-haptics`](plugins/phone-haptics) | Portable haptic patterns with capability reporting and a stepped fallback ladder | Android   |
+
+### Gaming
+
+| Plugin                                       | Description                                                                                                                                  | Platforms                                                 |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| [`gamepad-haptics`](plugins/gamepad-haptics) | Rumble for gamepads from one pattern language, plus a web fallback when no native path exists                                                | Linux (native), web fallback elsewhere                    |
+| [`steamworks`](plugins/steamworks)           | Steamworks identity, achievements and stats, with a mock backend and a graceful unavailable state (not published to crates.io; use from Git) | Linux, Windows, macOS (needs Steam); stub on Android, iOS |
 
 ### Desktop integration
 
@@ -35,7 +41,7 @@ A collection of Tauri v2 plugins for building privacy-focused, local-first appli
 
 ## Installation
 
-Every plugin is published twice, as a Rust crate `tauri-plugin-<name>` on crates.io and as an npm package `@liminal-hq/plugin-<name>`, except `hdmv`, which needs libhdmv and is installed from Git. The plugin's own README lists its current version, platforms and permissions.
+Every plugin is published twice, as a Rust crate `tauri-plugin-<name>` on crates.io and as an npm package `@liminal-hq/plugin-<name>`, except `hdmv`, which needs libhdmv, and the Rust crate of `steamworks`, whose name is taken on crates.io; both are installed from Git. The plugin's own README lists its current version, platforms and permissions.
 
 ### From Registry (stable releases)
 

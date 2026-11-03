@@ -1,0 +1,3 @@
+[default]
+description = "Default permissions for the steamworks plugin: player info, achievements and stats. Clearing achievements, and anything added later such as presence, overlay and cloud files, is granted separately. Listening to events also needs the core event permission (`core:event:default`)."
+permissions = ["allow-player-info", "allow-achievements", "allow-stats"]
