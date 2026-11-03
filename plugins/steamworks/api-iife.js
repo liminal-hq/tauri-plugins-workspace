@@ -13,6 +13,8 @@ var __TAURI_PLUGIN_STEAMWORKS__ = (function (exports, core, event) {
     const ACHIEVEMENT_STORED_EVENT = 'steamworks://achievement-stored';
     const OVERLAY_TOGGLED_EVENT = 'steamworks://overlay-toggled';
     const SCREENSHOT_REQUESTED_EVENT = 'steamworks://screenshot-requested';
+    const LOBBY_CHAT_UPDATE_EVENT = 'steamworks://lobby-chat-update';
+    const LOBBY_DATA_UPDATE_EVENT = 'steamworks://lobby-data-update';
     /** True when Steam initialised, or the in-memory mock is active. Never rejects. */
     function isAvailable() {
         return core.invoke(`${PREFIX}is_available`);
@@ -141,6 +143,92 @@ var __TAURI_PLUGIN_STEAMWORKS__ = (function (exports, core, event) {
     function addScreenshotToLibrary(path, width, height) {
         return core.invoke(`${PREFIX}add_screenshot_to_library`, { path, width, height });
     }
+    /**
+     * Creates a lobby and resolves with its ID. Steam allows 1 to 250 members. Lobby calls need
+     * `allow-lobbies`.
+     */
+    function createLobby(kind, maxMembers) {
+        return core.invoke(`${PREFIX}create_lobby`, { kind, maxMembers });
+    }
+    /** Joins a lobby and resolves with its ID. Rejects when the lobby is full, closed or unknown. */
+    function joinLobby(id) {
+        return core.invoke(`${PREFIX}join_lobby`, { id });
+    }
+    /** Lists open public lobbies using Steam's default search. */
+    function listLobbies() {
+        return core.invoke(`${PREFIX}list_lobbies`);
+    }
+    function leaveLobby(id) {
+        return core.invoke(`${PREFIX}leave_lobby`, { id });
+    }
+    function getLobby(id) {
+        return core.invoke(`${PREFIX}get_lobby`, { id });
+    }
+    /** Sets a lobby data key, or removes it with `null`. Only the lobby owner can change data. */
+    function setLobbyData(id, key, value) {
+        return core.invoke(`${PREFIX}set_lobby_data`, { id, key, value });
+    }
+    /** Opens or closes a lobby to new members. Only the lobby owner can change it. */
+    function setLobbyJoinable(id, joinable) {
+        return core.invoke(`${PREFIX}set_lobby_joinable`, { id, joinable });
+    }
+    /** Lists the Workshop items the player is subscribed to. Needs `allow-workshop`. */
+    function getWorkshopItems() {
+        return core.invoke(`${PREFIX}get_workshop_items`);
+    }
+    function subscribeWorkshopItem(id) {
+        return core.invoke(`${PREFIX}subscribe_workshop_item`, { id });
+    }
+    function unsubscribeWorkshopItem(id) {
+        return core.invoke(`${PREFIX}unsubscribe_workshop_item`, { id });
+    }
+    /** Starts or prioritises a download. Resolves with whether Steam accepted the request. */
+    function downloadWorkshopItem(id, highPriority = false) {
+        return core.invoke(`${PREFIX}download_workshop_item`, { id, highPriority });
+    }
+    /**
+     * Starts Steam Input; call it once before the other input functions. Needs `allow-input` and an
+     * action manifest configured for the app in Steamworks. Steam updates input whenever callbacks run,
+     * so a short `callbackIntervalMs` makes input more responsive.
+     */
+    function inputInit() {
+        return core.invoke(`${PREFIX}input_init`);
+    }
+    function getInputControllers() {
+        return core.invoke(`${PREFIX}get_input_controllers`);
+    }
+    /** Looks up an action set from the app's action manifest and resolves with its handle. */
+    function getInputActionSet(name) {
+        return core.invoke(`${PREFIX}get_input_action_set`, { name });
+    }
+    function activateInputActionSet(controller, actionSet) {
+        return core.invoke(`${PREFIX}activate_input_action_set`, { controller, actionSet });
+    }
+    /** Looks up a digital or analog action from the action manifest and resolves with its handle. */
+    function getInputAction(kind, name) {
+        return core.invoke(`${PREFIX}get_input_action`, { kind, name });
+    }
+    function getDigitalActionState(controller, action) {
+        return core.invoke(`${PREFIX}get_digital_action_state`, { controller, action });
+    }
+    function getAnalogActionState(controller, action) {
+        return core.invoke(`${PREFIX}get_analog_action_state`, { controller, action });
+    }
+    /**
+     * Resolves with the PNG of the first button bound to an action on a controller, for showing
+     * prompts such as "Press (A)". Wrap it with `new Blob([bytes], { type: 'image/png' })` for an
+     * image URL. Rejects when the action has no button bound.
+     */
+    async function getInputGlyph(controller, actionSet, kind, action, size = 'medium') {
+        const data = await core.invoke(`${PREFIX}get_input_glyph`, {
+            controller,
+            actionSet,
+            kind,
+            action,
+            size,
+        });
+        return new Uint8Array(data);
+    }
     /** Needs `core:event:default` as well as the plugin's permissions. */
     function onStatsReceived(handler) {
         return event.listen(STATS_RECEIVED_EVENT, (e) => handler(e.payload));
@@ -159,6 +247,14 @@ var __TAURI_PLUGIN_STEAMWORKS__ = (function (exports, core, event) {
     function onScreenshotRequested(handler) {
         return event.listen(SCREENSHOT_REQUESTED_EVENT, () => handler());
     }
+    /** Fires when a lobby member joins, leaves or is removed. */
+    function onLobbyChatUpdate(handler) {
+        return event.listen(LOBBY_CHAT_UPDATE_EVENT, (e) => handler(e.payload));
+    }
+    /** Fires when lobby data, or a member's data in a lobby, changes. */
+    function onLobbyDataUpdate(handler) {
+        return event.listen(LOBBY_DATA_UPDATE_EVENT, (e) => handler(e.payload));
+    }
     /** True when a rejection means Steam is not usable, as opposed to a bad id or a failed call. */
     function isUnavailableError(error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -166,10 +262,13 @@ var __TAURI_PLUGIN_STEAMWORKS__ = (function (exports, core, event) {
     }
 
     exports.ACHIEVEMENT_STORED_EVENT = ACHIEVEMENT_STORED_EVENT;
+    exports.LOBBY_CHAT_UPDATE_EVENT = LOBBY_CHAT_UPDATE_EVENT;
+    exports.LOBBY_DATA_UPDATE_EVENT = LOBBY_DATA_UPDATE_EVENT;
     exports.OVERLAY_TOGGLED_EVENT = OVERLAY_TOGGLED_EVENT;
     exports.SCREENSHOT_REQUESTED_EVENT = SCREENSHOT_REQUESTED_EVENT;
     exports.STATS_RECEIVED_EVENT = STATS_RECEIVED_EVENT;
     exports.STATS_STORED_EVENT = STATS_STORED_EVENT;
+    exports.activateInputActionSet = activateInputActionSet;
     exports.activateOverlay = activateOverlay;
     exports.activateOverlayToWebPage = activateOverlayToWebPage;
     exports.addScreenshotToLibrary = addScreenshotToLibrary;
@@ -182,28 +281,48 @@ var __TAURI_PLUGIN_STEAMWORKS__ = (function (exports, core, event) {
     exports.cloudReadText = cloudReadText;
     exports.cloudStatus = cloudStatus;
     exports.cloudWrite = cloudWrite;
+    exports.createLobby = createLobby;
+    exports.downloadWorkshopItem = downloadWorkshopItem;
     exports.getAchievement = getAchievement;
+    exports.getAnalogActionState = getAnalogActionState;
     exports.getDeviceInfo = getDeviceInfo;
+    exports.getDigitalActionState = getDigitalActionState;
     exports.getDlc = getDlc;
+    exports.getInputAction = getInputAction;
+    exports.getInputActionSet = getInputActionSet;
+    exports.getInputControllers = getInputControllers;
+    exports.getInputGlyph = getInputGlyph;
+    exports.getLobby = getLobby;
     exports.getPlayer = getPlayer;
     exports.getStat = getStat;
     exports.getStatus = getStatus;
+    exports.getWorkshopItems = getWorkshopItems;
     exports.hookScreenshots = hookScreenshots;
     exports.indicateProgress = indicateProgress;
+    exports.inputInit = inputInit;
     exports.isAvailable = isAvailable;
     exports.isDlcInstalled = isDlcInstalled;
     exports.isSteamDeck = isSteamDeck;
     exports.isUnavailableError = isUnavailableError;
+    exports.joinLobby = joinLobby;
+    exports.leaveLobby = leaveLobby;
+    exports.listLobbies = listLobbies;
     exports.onAchievementStored = onAchievementStored;
+    exports.onLobbyChatUpdate = onLobbyChatUpdate;
+    exports.onLobbyDataUpdate = onLobbyDataUpdate;
     exports.onOverlayToggled = onOverlayToggled;
     exports.onScreenshotRequested = onScreenshotRequested;
     exports.onStatsReceived = onStatsReceived;
     exports.onStatsStored = onStatsStored;
+    exports.setLobbyData = setLobbyData;
+    exports.setLobbyJoinable = setLobbyJoinable;
     exports.setRichPresence = setRichPresence;
     exports.setStat = setStat;
     exports.storeStats = storeStats;
+    exports.subscribeWorkshopItem = subscribeWorkshopItem;
     exports.triggerScreenshot = triggerScreenshot;
     exports.unlockAchievement = unlockAchievement;
+    exports.unsubscribeWorkshopItem = unsubscribeWorkshopItem;
 
     return exports;
 

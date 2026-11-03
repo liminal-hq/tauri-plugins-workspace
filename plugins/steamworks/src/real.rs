@@ -85,9 +85,14 @@ pub(crate) fn start(
 }
 
 #[cfg(steam_sdk)]
+mod social;
+
+#[cfg(steam_sdk)]
 struct SteamBackend {
     client: steamworks::Client,
     app_id: u32,
+    /// Set once Steam Input has started.
+    input_ready: std::sync::atomic::AtomicBool,
     /// Dropping a handle unregisters its callback, so they live as long as the backend.
     _callbacks: std::sync::Mutex<Vec<steamworks::CallbackHandle>>,
 }
@@ -95,9 +100,11 @@ struct SteamBackend {
 #[cfg(steam_sdk)]
 impl SteamBackend {
     fn new(ready: Ready, emit: Emit) -> Self {
+        use crate::lobby::LobbyMemberChange;
         use steamworks::{
-            screenshots::ScreenshotRequested, GameOverlayActivated, UserAchievementStored,
-            UserStatsReceived, UserStatsStored,
+            screenshots::ScreenshotRequested, ChatMemberStateChange, GameOverlayActivated,
+            LobbyChatUpdate, LobbyDataUpdate, UserAchievementStored, UserStatsReceived,
+            UserStatsStored,
         };
 
         let client = ready.client;
@@ -128,14 +135,38 @@ impl SteamBackend {
         handles.push(client.register_callback(move |v: GameOverlayActivated| {
             sink(SteamEvent::OverlayToggled { active: v.active });
         }));
-        let sink = emit;
+        let sink = emit.clone();
         handles.push(client.register_callback(move |_: ScreenshotRequested| {
             sink(SteamEvent::ScreenshotRequested);
+        }));
+        let sink = emit.clone();
+        handles.push(client.register_callback(move |v: LobbyChatUpdate| {
+            sink(SteamEvent::LobbyChatUpdate {
+                lobby_id: v.lobby.raw().to_string(),
+                user_changed: v.user_changed.raw().to_string(),
+                making_change: v.making_change.raw().to_string(),
+                change: match v.member_state_change {
+                    ChatMemberStateChange::Entered => LobbyMemberChange::Entered,
+                    ChatMemberStateChange::Left => LobbyMemberChange::Left,
+                    ChatMemberStateChange::Disconnected => LobbyMemberChange::Disconnected,
+                    ChatMemberStateChange::Kicked => LobbyMemberChange::Kicked,
+                    ChatMemberStateChange::Banned => LobbyMemberChange::Banned,
+                },
+            });
+        }));
+        let sink = emit;
+        handles.push(client.register_callback(move |v: LobbyDataUpdate| {
+            sink(SteamEvent::LobbyDataUpdate {
+                lobby_id: v.lobby.raw().to_string(),
+                member_id: v.member.raw().to_string(),
+                success: v.success,
+            });
         }));
 
         Self {
             client,
             app_id: ready.app_id,
+            input_ready: std::sync::atomic::AtomicBool::new(false),
             _callbacks: std::sync::Mutex::new(handles),
         }
     }

@@ -100,3 +100,69 @@ export interface DeviceInfo {
 	/** Whether Steam is in Big Picture mode. */
 	bigPicture: boolean;
 }
+
+export type LobbyKind = 'private' | 'friendsOnly' | 'public' | 'invisible';
+
+/** A snapshot of a lobby. Steam IDs are decimal strings, because JavaScript numbers lose precision. */
+export interface LobbyInfo {
+	id: string;
+	owner: string;
+	members: string[];
+	memberLimit: number | null;
+	data: Record<string, string>;
+}
+
+export type LobbyMemberChange = 'entered' | 'left' | 'disconnected' | 'kicked' | 'banned';
+
+export interface LobbyChatUpdatePayload {
+	lobbyId: string;
+	userChanged: string;
+	makingChange: string;
+	change: LobbyMemberChange;
+}
+
+export interface LobbyDataUpdatePayload {
+	lobbyId: string;
+	/** The lobby's own ID when the lobby data changed, or a member's ID when their data did. */
+	memberId: string;
+	success: boolean;
+}
+
+/** A Workshop item the player is subscribed to. */
+export interface WorkshopItem {
+	/** The published file ID as a decimal string. */
+	id: string;
+	subscribed: boolean;
+	installed: boolean;
+	needsUpdate: boolean;
+	downloading: boolean;
+	installPath: string | null;
+	sizeOnDisk: number | null;
+	/** Unix time the installed copy was last updated. */
+	timestamp: number | null;
+}
+
+export interface InputController {
+	/** The controller handle as a decimal string. */
+	handle: string;
+	/** The controller family, such as `steamDeck`, `ps5` or `xboxOne`. */
+	kind: string;
+}
+
+export type ActionKind = 'digital' | 'analog';
+
+export type GlyphSize = 'small' | 'medium' | 'large';
+
+export interface DigitalActionState {
+	/** Whether the action is bound in the active action set. */
+	active: boolean;
+	pressed: boolean;
+}
+
+export interface AnalogActionState {
+	active: boolean;
+	x: number;
+	y: number;
+	/** How the action is bound, such as `joystickMove` or `trigger`. */
+	mode: string;
+}

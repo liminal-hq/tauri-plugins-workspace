@@ -5,6 +5,8 @@
 
 use std::collections::BTreeMap;
 
+pub(crate) mod social;
+
 use tauri::{command, AppHandle, Runtime};
 
 use crate::{

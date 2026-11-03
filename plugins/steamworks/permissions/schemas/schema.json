@@ -295,6 +295,18 @@
       "type": "string",
       "oneOf": [
         {
+          "description": "Enables the activate_input_action_set command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-activate-input-action-set",
+          "markdownDescription": "Enables the activate_input_action_set command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the activate_input_action_set command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-activate-input-action-set",
+          "markdownDescription": "Denies the activate_input_action_set command without any pre-configured scope."
+        },
+        {
           "description": "Enables the activate_overlay command without any pre-configured scope.",
           "type": "string",
           "const": "allow-activate-overlay",
@@ -427,6 +439,30 @@
           "markdownDescription": "Denies the cloud_write command without any pre-configured scope."
         },
         {
+          "description": "Enables the create_lobby command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-lobby",
+          "markdownDescription": "Enables the create_lobby command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the create_lobby command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-lobby",
+          "markdownDescription": "Denies the create_lobby command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the download_workshop_item command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-download-workshop-item",
+          "markdownDescription": "Enables the download_workshop_item command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the download_workshop_item command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-download-workshop-item",
+          "markdownDescription": "Denies the download_workshop_item command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_achievement command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-achievement",
@@ -437,6 +473,18 @@
           "type": "string",
           "const": "deny-get-achievement",
           "markdownDescription": "Denies the get_achievement command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_analog_action_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-analog-action-state",
+          "markdownDescription": "Enables the get_analog_action_state command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_analog_action_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-analog-action-state",
+          "markdownDescription": "Denies the get_analog_action_state command without any pre-configured scope."
         },
         {
           "description": "Enables the get_device_info command without any pre-configured scope.",
@@ -451,6 +499,18 @@
           "markdownDescription": "Denies the get_device_info command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_digital_action_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-digital-action-state",
+          "markdownDescription": "Enables the get_digital_action_state command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_digital_action_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-digital-action-state",
+          "markdownDescription": "Denies the get_digital_action_state command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_dlc command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-dlc",
@@ -461,6 +521,66 @@
           "type": "string",
           "const": "deny-get-dlc",
           "markdownDescription": "Denies the get_dlc command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_input_action command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-input-action",
+          "markdownDescription": "Enables the get_input_action command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_input_action command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-input-action",
+          "markdownDescription": "Denies the get_input_action command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_input_action_set command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-input-action-set",
+          "markdownDescription": "Enables the get_input_action_set command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_input_action_set command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-input-action-set",
+          "markdownDescription": "Denies the get_input_action_set command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_input_controllers command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-input-controllers",
+          "markdownDescription": "Enables the get_input_controllers command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_input_controllers command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-input-controllers",
+          "markdownDescription": "Denies the get_input_controllers command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_input_glyph command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-input-glyph",
+          "markdownDescription": "Enables the get_input_glyph command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_input_glyph command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-input-glyph",
+          "markdownDescription": "Denies the get_input_glyph command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_lobby command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-lobby",
+          "markdownDescription": "Enables the get_lobby command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_lobby command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-lobby",
+          "markdownDescription": "Denies the get_lobby command without any pre-configured scope."
         },
         {
           "description": "Enables the get_player command without any pre-configured scope.",
@@ -499,6 +619,18 @@
           "markdownDescription": "Denies the get_status command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_workshop_items command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-workshop-items",
+          "markdownDescription": "Enables the get_workshop_items command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_workshop_items command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-workshop-items",
+          "markdownDescription": "Denies the get_workshop_items command without any pre-configured scope."
+        },
+        {
           "description": "Enables the hook_screenshots command without any pre-configured scope.",
           "type": "string",
           "const": "allow-hook-screenshots",
@@ -523,6 +655,18 @@
           "markdownDescription": "Denies the indicate_achievement_progress command without any pre-configured scope."
         },
         {
+          "description": "Enables the input_init command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-input-init",
+          "markdownDescription": "Enables the input_init command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the input_init command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-input-init",
+          "markdownDescription": "Denies the input_init command without any pre-configured scope."
+        },
+        {
           "description": "Enables the is_available command without any pre-configured scope.",
           "type": "string",
           "const": "allow-is-available",
@@ -545,6 +689,66 @@
           "type": "string",
           "const": "deny-is-dlc-installed",
           "markdownDescription": "Denies the is_dlc_installed command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the join_lobby command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-join-lobby",
+          "markdownDescription": "Enables the join_lobby command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the join_lobby command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-join-lobby",
+          "markdownDescription": "Denies the join_lobby command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the leave_lobby command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-leave-lobby",
+          "markdownDescription": "Enables the leave_lobby command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the leave_lobby command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-leave-lobby",
+          "markdownDescription": "Denies the leave_lobby command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_lobbies command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-lobbies",
+          "markdownDescription": "Enables the list_lobbies command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_lobbies command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-lobbies",
+          "markdownDescription": "Denies the list_lobbies command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_lobby_data command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-lobby-data",
+          "markdownDescription": "Enables the set_lobby_data command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_lobby_data command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-lobby-data",
+          "markdownDescription": "Denies the set_lobby_data command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_lobby_joinable command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-lobby-joinable",
+          "markdownDescription": "Enables the set_lobby_joinable command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_lobby_joinable command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-lobby-joinable",
+          "markdownDescription": "Denies the set_lobby_joinable command without any pre-configured scope."
         },
         {
           "description": "Enables the set_rich_presence command without any pre-configured scope.",
@@ -583,6 +787,18 @@
           "markdownDescription": "Denies the store_stats command without any pre-configured scope."
         },
         {
+          "description": "Enables the subscribe_workshop_item command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-subscribe-workshop-item",
+          "markdownDescription": "Enables the subscribe_workshop_item command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the subscribe_workshop_item command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-subscribe-workshop-item",
+          "markdownDescription": "Denies the subscribe_workshop_item command without any pre-configured scope."
+        },
+        {
           "description": "Enables the trigger_screenshot command without any pre-configured scope.",
           "type": "string",
           "const": "allow-trigger-screenshot",
@@ -605,6 +821,18 @@
           "type": "string",
           "const": "deny-unlock-achievement",
           "markdownDescription": "Denies the unlock_achievement command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the unsubscribe_workshop_item command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-unsubscribe-workshop-item",
+          "markdownDescription": "Enables the unsubscribe_workshop_item command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the unsubscribe_workshop_item command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-unsubscribe-workshop-item",
+          "markdownDescription": "Denies the unsubscribe_workshop_item command without any pre-configured scope."
         },
         {
           "description": "Default permissions for the steamworks plugin: player info, achievements and stats. Clearing achievements, and anything added later such as presence, overlay and cloud files, is granted separately. Listening to events also needs the core event permission (`core:event:default`).\n#### This default permission set includes:\n\n- `allow-player-info`\n- `allow-achievements`\n- `allow-stats`",
@@ -671,6 +899,24 @@
           "type": "string",
           "const": "allow-screenshots",
           "markdownDescription": "Hooks Steam screenshots, triggers one, and adds an image file to the player's Steam screenshot library.\n#### This permission set includes:\n\n- `allow-hook-screenshots`\n- `allow-trigger-screenshot`\n- `allow-add-screenshot-to-library`"
+        },
+        {
+          "description": "Creates, joins, lists, reads and changes Steam lobbies.\n#### This permission set includes:\n\n- `allow-create-lobby`\n- `allow-join-lobby`\n- `allow-list-lobbies`\n- `allow-leave-lobby`\n- `allow-get-lobby`\n- `allow-set-lobby-data`\n- `allow-set-lobby-joinable`",
+          "type": "string",
+          "const": "allow-lobbies",
+          "markdownDescription": "Creates, joins, lists, reads and changes Steam lobbies.\n#### This permission set includes:\n\n- `allow-create-lobby`\n- `allow-join-lobby`\n- `allow-list-lobbies`\n- `allow-leave-lobby`\n- `allow-get-lobby`\n- `allow-set-lobby-data`\n- `allow-set-lobby-joinable`"
+        },
+        {
+          "description": "Lists, subscribes to, unsubscribes from and downloads Steam Workshop items.\n#### This permission set includes:\n\n- `allow-get-workshop-items`\n- `allow-subscribe-workshop-item`\n- `allow-unsubscribe-workshop-item`\n- `allow-download-workshop-item`",
+          "type": "string",
+          "const": "allow-workshop",
+          "markdownDescription": "Lists, subscribes to, unsubscribes from and downloads Steam Workshop items.\n#### This permission set includes:\n\n- `allow-get-workshop-items`\n- `allow-subscribe-workshop-item`\n- `allow-unsubscribe-workshop-item`\n- `allow-download-workshop-item`"
+        },
+        {
+          "description": "Starts Steam Input and reads controllers, action sets, action state and button glyphs.\n#### This permission set includes:\n\n- `allow-input-init`\n- `allow-get-input-controllers`\n- `allow-get-input-action-set`\n- `allow-activate-input-action-set`\n- `allow-get-input-action`\n- `allow-get-digital-action-state`\n- `allow-get-analog-action-state`\n- `allow-get-input-glyph`",
+          "type": "string",
+          "const": "allow-input",
+          "markdownDescription": "Starts Steam Input and reads controllers, action sets, action state and button glyphs.\n#### This permission set includes:\n\n- `allow-input-init`\n- `allow-get-input-controllers`\n- `allow-get-input-action-set`\n- `allow-activate-input-action-set`\n- `allow-get-input-action`\n- `allow-get-digital-action-state`\n- `allow-get-analog-action-state`\n- `allow-get-input-glyph`"
         }
       ]
     }

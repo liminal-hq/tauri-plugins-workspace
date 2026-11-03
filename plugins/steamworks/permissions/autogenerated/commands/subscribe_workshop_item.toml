@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-subscribe-workshop-item"
+description = "Enables the subscribe_workshop_item command without any pre-configured scope."
+commands.allow = ["subscribe_workshop_item"]
+
+[[permission]]
+identifier = "deny-subscribe-workshop-item"
+description = "Denies the subscribe_workshop_item command without any pre-configured scope."
+commands.deny = ["subscribe_workshop_item"]

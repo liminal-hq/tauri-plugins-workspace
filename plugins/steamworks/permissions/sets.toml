@@ -62,3 +62,40 @@ permissions = [
   "allow-trigger-screenshot",
   "allow-add-screenshot-to-library",
 ]
+
+[[set]]
+identifier = "allow-lobbies"
+description = "Creates, joins, lists, reads and changes Steam lobbies."
+permissions = [
+  "allow-create-lobby",
+  "allow-join-lobby",
+  "allow-list-lobbies",
+  "allow-leave-lobby",
+  "allow-get-lobby",
+  "allow-set-lobby-data",
+  "allow-set-lobby-joinable",
+]
+
+[[set]]
+identifier = "allow-workshop"
+description = "Lists, subscribes to, unsubscribes from and downloads Steam Workshop items."
+permissions = [
+  "allow-get-workshop-items",
+  "allow-subscribe-workshop-item",
+  "allow-unsubscribe-workshop-item",
+  "allow-download-workshop-item",
+]
+
+[[set]]
+identifier = "allow-input"
+description = "Starts Steam Input and reads controllers, action sets, action state and button glyphs."
+permissions = [
+  "allow-input-init",
+  "allow-get-input-controllers",
+  "allow-get-input-action-set",
+  "allow-activate-input-action-set",
+  "allow-get-input-action",
+  "allow-get-digital-action-state",
+  "allow-get-analog-action-state",
+  "allow-get-input-glyph",
+]

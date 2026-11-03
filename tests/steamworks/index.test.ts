@@ -147,6 +147,86 @@ describe('DLC, device and screenshots', () => {
 	});
 });
 
+describe('lobbies', () => {
+	it('sends lobby calls with string IDs', async () => {
+		invoke.mockResolvedValue(undefined);
+		await api.createLobby('friendsOnly', 4);
+		await api.joinLobby('109775240000000001');
+		await api.listLobbies();
+		await api.getLobby('109775240000000001');
+		await api.setLobbyData('109775240000000001', 'map', 'fizzton');
+		await api.setLobbyData('109775240000000001', 'map', null);
+		await api.setLobbyJoinable('109775240000000001', false);
+		await api.leaveLobby('109775240000000001');
+		expect(invoke.mock.calls).toEqual([
+			['plugin:steamworks|create_lobby', { kind: 'friendsOnly', maxMembers: 4 }],
+			['plugin:steamworks|join_lobby', { id: '109775240000000001' }],
+			['plugin:steamworks|list_lobbies', {}],
+			['plugin:steamworks|get_lobby', { id: '109775240000000001' }],
+			[
+				'plugin:steamworks|set_lobby_data',
+				{ id: '109775240000000001', key: 'map', value: 'fizzton' },
+			],
+			['plugin:steamworks|set_lobby_data', { id: '109775240000000001', key: 'map', value: null }],
+			['plugin:steamworks|set_lobby_joinable', { id: '109775240000000001', joinable: false }],
+			['plugin:steamworks|leave_lobby', { id: '109775240000000001' }],
+		]);
+	});
+});
+
+describe('Workshop', () => {
+	it('sends item calls, defaulting downloads to normal priority', async () => {
+		invoke.mockResolvedValue(true);
+		await api.getWorkshopItems();
+		await api.subscribeWorkshopItem('55');
+		await api.unsubscribeWorkshopItem('55');
+		await api.downloadWorkshopItem('55');
+		await api.downloadWorkshopItem('55', true);
+		expect(invoke.mock.calls).toEqual([
+			['plugin:steamworks|get_workshop_items', {}],
+			['plugin:steamworks|subscribe_workshop_item', { id: '55' }],
+			['plugin:steamworks|unsubscribe_workshop_item', { id: '55' }],
+			['plugin:steamworks|download_workshop_item', { id: '55', highPriority: false }],
+			['plugin:steamworks|download_workshop_item', { id: '55', highPriority: true }],
+		]);
+	});
+});
+
+describe('Steam Input', () => {
+	it('sends input calls with handles as strings', async () => {
+		invoke.mockResolvedValue(undefined);
+		await api.inputInit();
+		await api.getInputControllers();
+		await api.getInputActionSet('Gameplay');
+		await api.activateInputActionSet('77', '1');
+		await api.getInputAction('digital', 'jump');
+		await api.getDigitalActionState('77', '2');
+		await api.getAnalogActionState('77', '3');
+		expect(invoke.mock.calls).toEqual([
+			['plugin:steamworks|input_init', {}],
+			['plugin:steamworks|get_input_controllers', {}],
+			['plugin:steamworks|get_input_action_set', { name: 'Gameplay' }],
+			['plugin:steamworks|activate_input_action_set', { controller: '77', actionSet: '1' }],
+			['plugin:steamworks|get_input_action', { kind: 'digital', name: 'jump' }],
+			['plugin:steamworks|get_digital_action_state', { controller: '77', action: '2' }],
+			['plugin:steamworks|get_analog_action_state', { controller: '77', action: '3' }],
+		]);
+	});
+
+	it('returns the glyph as bytes and defaults to a medium size', async () => {
+		invoke.mockResolvedValue(new Uint8Array([0x89, 0x50, 0x4e, 0x47]).buffer);
+		const bytes = await api.getInputGlyph('77', '1', 'digital', '2');
+		expect(bytes).toEqual(new Uint8Array([0x89, 0x50, 0x4e, 0x47]));
+		expect(invoke).toHaveBeenCalledWith('plugin:steamworks|get_input_glyph', {
+			controller: '77',
+			actionSet: '1',
+			kind: 'digital',
+			action: '2',
+			size: 'medium',
+		});
+	});
+});
+
 describe('stats', () => {
 	it('sends whole numbers as ints and fractions as floats by default', async () => {
 		invoke.mockResolvedValue(undefined);
@@ -196,5 +276,7 @@ describe('events', () => {
 		expect(api.ACHIEVEMENT_STORED_EVENT).toBe('steamworks://achievement-stored');
 		expect(api.OVERLAY_TOGGLED_EVENT).toBe('steamworks://overlay-toggled');
 		expect(api.SCREENSHOT_REQUESTED_EVENT).toBe('steamworks://screenshot-requested');
+		expect(api.LOBBY_CHAT_UPDATE_EVENT).toBe('steamworks://lobby-chat-update');
+		expect(api.LOBBY_DATA_UPDATE_EVENT).toBe('steamworks://lobby-data-update');
 	});
 });
