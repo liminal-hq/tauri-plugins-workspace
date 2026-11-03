@@ -18,6 +18,12 @@ const COMMANDS: &[&str] = &[
     "clear_rich_presence",
     "activate_overlay",
     "activate_overlay_to_web_page",
+    "cloud_write",
+    "cloud_read",
+    "cloud_delete",
+    "cloud_list",
+    "cloud_quota",
+    "cloud_status",
 ];
 
 fn main() {

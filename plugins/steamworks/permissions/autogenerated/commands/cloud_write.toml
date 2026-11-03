@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-cloud-write"
+description = "Enables the cloud_write command without any pre-configured scope."
+commands.allow = ["cloud_write"]
+
+[[permission]]
+identifier = "deny-cloud-write"
+description = "Denies the cloud_write command without any pre-configured scope."
+commands.deny = ["cloud_write"]

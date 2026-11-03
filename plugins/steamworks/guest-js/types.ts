@@ -65,3 +65,22 @@ export interface OverlayToggledPayload {
 	/** True while the overlay is open. */
 	active: boolean;
 }
+
+export interface CloudFile {
+	name: string;
+	size: number;
+	/** Unix time the file was last written. */
+	timestamp: number;
+}
+
+export interface CloudQuota {
+	totalBytes: number;
+	availableBytes: number;
+}
+
+export interface CloudStatus {
+	/** Whether the player's account allows Steam Cloud. */
+	accountEnabled: boolean;
+	/** Whether the player has Steam Cloud turned on for this app. */
+	appEnabled: boolean;
+}

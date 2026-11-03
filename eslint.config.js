@@ -63,5 +63,15 @@ export default [
 			'no-unused-vars': 'off',
 		},
 	},
+	{
+		// The steamworks guest bindings encode and decode Cloud file contents as UTF-8.
+		files: ['plugins/steamworks/guest-js/**/*.ts', 'tests/steamworks/**/*.ts'],
+		languageOptions: {
+			globals: {
+				TextDecoder: 'readonly',
+				TextEncoder: 'readonly',
+			},
+		},
+	},
 	baseIgnores,
 ];

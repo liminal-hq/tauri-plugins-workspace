@@ -343,6 +343,78 @@
           "markdownDescription": "Denies the clear_rich_presence command without any pre-configured scope."
         },
         {
+          "description": "Enables the cloud_delete command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cloud-delete",
+          "markdownDescription": "Enables the cloud_delete command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the cloud_delete command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cloud-delete",
+          "markdownDescription": "Denies the cloud_delete command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the cloud_list command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cloud-list",
+          "markdownDescription": "Enables the cloud_list command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the cloud_list command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cloud-list",
+          "markdownDescription": "Denies the cloud_list command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the cloud_quota command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cloud-quota",
+          "markdownDescription": "Enables the cloud_quota command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the cloud_quota command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cloud-quota",
+          "markdownDescription": "Denies the cloud_quota command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the cloud_read command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cloud-read",
+          "markdownDescription": "Enables the cloud_read command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the cloud_read command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cloud-read",
+          "markdownDescription": "Denies the cloud_read command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the cloud_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cloud-status",
+          "markdownDescription": "Enables the cloud_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the cloud_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cloud-status",
+          "markdownDescription": "Denies the cloud_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the cloud_write command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cloud-write",
+          "markdownDescription": "Enables the cloud_write command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the cloud_write command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cloud-write",
+          "markdownDescription": "Denies the cloud_write command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_achievement command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-achievement",
@@ -503,6 +575,12 @@
           "type": "string",
           "const": "allow-overlay",
           "markdownDescription": "Opens Steam overlay pages and web pages.\n#### This permission set includes:\n\n- `allow-activate-overlay`\n- `allow-activate-overlay-to-web-page`"
+        },
+        {
+          "description": "Reads, writes, lists and deletes Steam Cloud files, and reads the Cloud quota and status. Prefer Auto-Cloud for save games.\n#### This permission set includes:\n\n- `allow-cloud-write`\n- `allow-cloud-read`\n- `allow-cloud-delete`\n- `allow-cloud-list`\n- `allow-cloud-quota`\n- `allow-cloud-status`",
+          "type": "string",
+          "const": "allow-cloud",
+          "markdownDescription": "Reads, writes, lists and deletes Steam Cloud files, and reads the Cloud quota and status. Prefer Auto-Cloud for save games.\n#### This permission set includes:\n\n- `allow-cloud-write`\n- `allow-cloud-read`\n- `allow-cloud-delete`\n- `allow-cloud-list`\n- `allow-cloud-quota`\n- `allow-cloud-status`"
         }
       ]
     }

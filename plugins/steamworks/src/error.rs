@@ -19,6 +19,8 @@ pub enum Error {
     UnknownAchievement(String),
     #[error("unknown stat `{0}`")]
     UnknownStat(String),
+    #[error("unknown cloud file `{0}`")]
+    UnknownCloudFile(String),
     #[error("steam: {0}")]
     Steam(String),
 }

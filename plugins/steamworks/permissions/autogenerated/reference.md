@@ -124,6 +124,162 @@ Denies the clear_rich_presence command without any pre-configured scope.
 <tr>
 <td>
 
+`steamworks:allow-cloud-delete`
+
+</td>
+<td>
+
+Enables the cloud_delete command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-cloud-delete`
+
+</td>
+<td>
+
+Denies the cloud_delete command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-cloud-list`
+
+</td>
+<td>
+
+Enables the cloud_list command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-cloud-list`
+
+</td>
+<td>
+
+Denies the cloud_list command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-cloud-quota`
+
+</td>
+<td>
+
+Enables the cloud_quota command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-cloud-quota`
+
+</td>
+<td>
+
+Denies the cloud_quota command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-cloud-read`
+
+</td>
+<td>
+
+Enables the cloud_read command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-cloud-read`
+
+</td>
+<td>
+
+Denies the cloud_read command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-cloud-status`
+
+</td>
+<td>
+
+Enables the cloud_status command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-cloud-status`
+
+</td>
+<td>
+
+Denies the cloud_status command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-cloud-write`
+
+</td>
+<td>
+
+Enables the cloud_write command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-cloud-write`
+
+</td>
+<td>
+
+Denies the cloud_write command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `steamworks:allow-get-achievement`
 
 </td>
@@ -455,6 +611,19 @@ Sets and clears rich presence, the status line friends see.
 <td>
 
 Opens Steam overlay pages and web pages.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-cloud`
+
+</td>
+<td>
+
+Reads, writes, lists and deletes Steam Cloud files, and reads the Cloud quota and status. Prefer Auto-Cloud for save games.
 
 </td>
 </tr>

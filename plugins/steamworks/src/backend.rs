@@ -8,8 +8,8 @@ use std::{collections::BTreeMap, sync::Arc};
 use crate::{
     error::{Error, Result},
     models::{
-        Achievement, BackendKind, OverlayPage, Player, StatKind, StatValue, SteamEvent,
-        UnavailableReason,
+        Achievement, BackendKind, CloudFile, CloudQuota, CloudStatus, OverlayPage, Player,
+        StatKind, StatValue, SteamEvent, UnavailableReason,
     },
 };
 
@@ -33,6 +33,13 @@ pub trait SteamworksBackend: Send + Sync + 'static {
     fn clear_rich_presence(&self) -> Result<()>;
     fn activate_overlay(&self, page: OverlayPage) -> Result<()>;
     fn activate_overlay_to_web_page(&self, url: &str) -> Result<()>;
+    /// File names are already validated; data is within the size limit.
+    fn cloud_write(&self, name: &str, data: &[u8]) -> Result<()>;
+    fn cloud_read(&self, name: &str) -> Result<Vec<u8>>;
+    fn cloud_delete(&self, name: &str) -> Result<()>;
+    fn cloud_list(&self) -> Result<Vec<CloudFile>>;
+    fn cloud_quota(&self) -> Result<CloudQuota>;
+    fn cloud_status(&self) -> Result<CloudStatus>;
 }
 
 /// Answers every call with `Error::Unavailable`.
@@ -92,6 +99,24 @@ impl SteamworksBackend for NullBackend {
         self.fail()
     }
     fn activate_overlay_to_web_page(&self, _url: &str) -> Result<()> {
+        self.fail()
+    }
+    fn cloud_write(&self, _name: &str, _data: &[u8]) -> Result<()> {
+        self.fail()
+    }
+    fn cloud_read(&self, _name: &str) -> Result<Vec<u8>> {
+        self.fail()
+    }
+    fn cloud_delete(&self, _name: &str) -> Result<()> {
+        self.fail()
+    }
+    fn cloud_list(&self) -> Result<Vec<CloudFile>> {
+        self.fail()
+    }
+    fn cloud_quota(&self) -> Result<CloudQuota> {
+        self.fail()
+    }
+    fn cloud_status(&self) -> Result<CloudStatus> {
         self.fail()
     }
 }
