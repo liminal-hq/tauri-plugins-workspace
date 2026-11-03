@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-get-player"
+description = "Enables the get_player command without any pre-configured scope."
+commands.allow = ["get_player"]
+
+[[permission]]
+identifier = "deny-get-player"
+description = "Denies the get_player command without any pre-configured scope."
+commands.deny = ["get_player"]

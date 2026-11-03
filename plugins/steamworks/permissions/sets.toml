@@ -1,0 +1,23 @@
+[[set]]
+identifier = "allow-player-info"
+description = "Reads whether Steam is available, its status, and the signed-in player's name, ID and language."
+permissions = ["allow-is-available", "allow-get-status", "allow-get-player"]
+
+[[set]]
+identifier = "allow-achievements"
+description = "Reads and unlocks achievements and shows their progress."
+permissions = [
+  "allow-get-achievement",
+  "allow-unlock-achievement",
+  "allow-indicate-achievement-progress",
+]
+
+[[set]]
+identifier = "allow-achievements-dev"
+description = "Re-locks achievements. Meant for development builds, so a shipped app cannot wipe a player's progress."
+permissions = ["allow-clear-achievement"]
+
+[[set]]
+identifier = "allow-stats"
+description = "Reads, writes and stores stats."
+permissions = ["allow-get-stat", "allow-set-stat", "allow-store-stats"]

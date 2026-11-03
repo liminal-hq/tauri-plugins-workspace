@@ -123,6 +123,15 @@
 			"path": "./plugins/gamepad-haptics",
 			"manager": "javascript"
 		},
+		"steamworks": {
+			"path": "./plugins/steamworks",
+			"manager": "rust",
+			"publish": false
+		},
+		"steamworks-js": {
+			"path": "./plugins/steamworks",
+			"manager": "javascript"
+		},
 		"api-example": {
 			"path": "./examples/api/src-tauri",
 			"manager": "rust",

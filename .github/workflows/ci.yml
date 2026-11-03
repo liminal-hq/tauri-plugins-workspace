@@ -54,6 +54,8 @@ jobs:
           echo "## Rust clippy" >> "${GITHUB_STEP_SUMMARY}"
           echo "- Result: \`${{ steps.rust_clippy.outcome }}\`" >> "${GITHUB_STEP_SUMMARY}"
           echo "- Command: \`cargo clippy --workspace --all-targets -- -D warnings\`" >> "${GITHUB_STEP_SUMMARY}"
+      - name: Run Clippy on the Steamworks plugin with its optional features
+        run: cargo clippy -p tauri-plugin-steamworks --all-targets --features steam,mock -- -D warnings
 
   test-rust:
     runs-on: ubuntu-latest
@@ -75,6 +77,8 @@ jobs:
           echo "## Rust tests" >> "${GITHUB_STEP_SUMMARY}"
           echo "- Result: \`${{ steps.rust_tests.outcome }}\`" >> "${GITHUB_STEP_SUMMARY}"
           echo "- Command: \`cargo test --workspace\`" >> "${GITHUB_STEP_SUMMARY}"
+      - name: Run the Steamworks plugin tests with the mock backend
+        run: cargo test -p tauri-plugin-steamworks --features mock
 
   test-js:
     runs-on: ubuntu-latest
