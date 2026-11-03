@@ -382,6 +382,8 @@ impl Steamworks {
 }
 
 /// Steam's per-file limit for Cloud files.
+mod social;
+
 const MAX_CLOUD_FILE_BYTES: usize = 100 * 1024 * 1024;
 const MAX_CLOUD_NAME_BYTES: usize = 260;
 

@@ -20,6 +20,32 @@ Default permissions for the steamworks plugin: player info, achievements and sta
 <tr>
 <td>
 
+`steamworks:allow-activate-input-action-set`
+
+</td>
+<td>
+
+Enables the activate_input_action_set command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-activate-input-action-set`
+
+</td>
+<td>
+
+Denies the activate_input_action_set command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `steamworks:allow-activate-overlay`
 
 </td>
@@ -306,6 +332,58 @@ Denies the cloud_write command without any pre-configured scope.
 <tr>
 <td>
 
+`steamworks:allow-create-lobby`
+
+</td>
+<td>
+
+Enables the create_lobby command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-create-lobby`
+
+</td>
+<td>
+
+Denies the create_lobby command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-download-workshop-item`
+
+</td>
+<td>
+
+Enables the download_workshop_item command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-download-workshop-item`
+
+</td>
+<td>
+
+Denies the download_workshop_item command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `steamworks:allow-get-achievement`
 
 </td>
@@ -325,6 +403,32 @@ Enables the get_achievement command without any pre-configured scope.
 <td>
 
 Denies the get_achievement command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-get-analog-action-state`
+
+</td>
+<td>
+
+Enables the get_analog_action_state command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-get-analog-action-state`
+
+</td>
+<td>
+
+Denies the get_analog_action_state command without any pre-configured scope.
 
 </td>
 </tr>
@@ -358,6 +462,32 @@ Denies the get_device_info command without any pre-configured scope.
 <tr>
 <td>
 
+`steamworks:allow-get-digital-action-state`
+
+</td>
+<td>
+
+Enables the get_digital_action_state command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-get-digital-action-state`
+
+</td>
+<td>
+
+Denies the get_digital_action_state command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `steamworks:allow-get-dlc`
 
 </td>
@@ -377,6 +507,136 @@ Enables the get_dlc command without any pre-configured scope.
 <td>
 
 Denies the get_dlc command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-get-input-action`
+
+</td>
+<td>
+
+Enables the get_input_action command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-get-input-action`
+
+</td>
+<td>
+
+Denies the get_input_action command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-get-input-action-set`
+
+</td>
+<td>
+
+Enables the get_input_action_set command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-get-input-action-set`
+
+</td>
+<td>
+
+Denies the get_input_action_set command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-get-input-controllers`
+
+</td>
+<td>
+
+Enables the get_input_controllers command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-get-input-controllers`
+
+</td>
+<td>
+
+Denies the get_input_controllers command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-get-input-glyph`
+
+</td>
+<td>
+
+Enables the get_input_glyph command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-get-input-glyph`
+
+</td>
+<td>
+
+Denies the get_input_glyph command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-get-lobby`
+
+</td>
+<td>
+
+Enables the get_lobby command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-get-lobby`
+
+</td>
+<td>
+
+Denies the get_lobby command without any pre-configured scope.
 
 </td>
 </tr>
@@ -462,6 +722,32 @@ Denies the get_status command without any pre-configured scope.
 <tr>
 <td>
 
+`steamworks:allow-get-workshop-items`
+
+</td>
+<td>
+
+Enables the get_workshop_items command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-get-workshop-items`
+
+</td>
+<td>
+
+Denies the get_workshop_items command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `steamworks:allow-hook-screenshots`
 
 </td>
@@ -514,6 +800,32 @@ Denies the indicate_achievement_progress command without any pre-configured scop
 <tr>
 <td>
 
+`steamworks:allow-input-init`
+
+</td>
+<td>
+
+Enables the input_init command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-input-init`
+
+</td>
+<td>
+
+Denies the input_init command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `steamworks:allow-is-available`
 
 </td>
@@ -559,6 +871,136 @@ Enables the is_dlc_installed command without any pre-configured scope.
 <td>
 
 Denies the is_dlc_installed command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-join-lobby`
+
+</td>
+<td>
+
+Enables the join_lobby command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-join-lobby`
+
+</td>
+<td>
+
+Denies the join_lobby command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-leave-lobby`
+
+</td>
+<td>
+
+Enables the leave_lobby command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-leave-lobby`
+
+</td>
+<td>
+
+Denies the leave_lobby command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-list-lobbies`
+
+</td>
+<td>
+
+Enables the list_lobbies command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-list-lobbies`
+
+</td>
+<td>
+
+Denies the list_lobbies command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-set-lobby-data`
+
+</td>
+<td>
+
+Enables the set_lobby_data command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-set-lobby-data`
+
+</td>
+<td>
+
+Denies the set_lobby_data command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-set-lobby-joinable`
+
+</td>
+<td>
+
+Enables the set_lobby_joinable command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-set-lobby-joinable`
+
+</td>
+<td>
+
+Denies the set_lobby_joinable command without any pre-configured scope.
 
 </td>
 </tr>
@@ -644,6 +1086,32 @@ Denies the store_stats command without any pre-configured scope.
 <tr>
 <td>
 
+`steamworks:allow-subscribe-workshop-item`
+
+</td>
+<td>
+
+Enables the subscribe_workshop_item command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-subscribe-workshop-item`
+
+</td>
+<td>
+
+Denies the subscribe_workshop_item command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `steamworks:allow-trigger-screenshot`
 
 </td>
@@ -689,6 +1157,32 @@ Enables the unlock_achievement command without any pre-configured scope.
 <td>
 
 Denies the unlock_achievement command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-unsubscribe-workshop-item`
+
+</td>
+<td>
+
+Enables the unsubscribe_workshop_item command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-unsubscribe-workshop-item`
+
+</td>
+<td>
+
+Denies the unsubscribe_workshop_item command without any pre-configured scope.
 
 </td>
 </tr>
@@ -819,6 +1313,45 @@ Reports whether the app runs on a Steam Deck or in Big Picture mode.
 <td>
 
 Hooks Steam screenshots, triggers one, and adds an image file to the player's Steam screenshot library.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-lobbies`
+
+</td>
+<td>
+
+Creates, joins, lists, reads and changes Steam lobbies.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-workshop`
+
+</td>
+<td>
+
+Lists, subscribes to, unsubscribes from and downloads Steam Workshop items.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-input`
+
+</td>
+<td>
+
+Starts Steam Input and reads controllers, action sets, action state and button glyphs.
 
 </td>
 </tr>

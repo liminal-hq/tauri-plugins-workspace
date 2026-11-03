@@ -7,17 +7,42 @@ use std::{collections::BTreeMap, path::Path, sync::Arc};
 
 use crate::{
     error::{Error, Result},
+    input::InputBackend,
+    lobby::LobbyBackend,
     models::{
         Achievement, BackendKind, CloudFile, CloudQuota, CloudStatus, DeviceInfo, DlcInfo,
         OverlayPage, Player, StatKind, StatValue, SteamEvent, UnavailableReason,
     },
+    workshop::WorkshopBackend,
 };
 
 /// Receives events the backends raise.
 pub type Emit = Arc<dyn Fn(SteamEvent) + Send + Sync>;
 
+/// Finishes a request Steam answers later. It runs from the callback pump.
+pub type Done<T> = Box<dyn FnOnce(Result<T>) + Send + 'static>;
+
+/// Says why a backend cannot serve a call. Backends that can serve everything leave the default.
+pub trait BackendReason {
+    fn unavailable_reason(&self) -> Option<UnavailableReason> {
+        None
+    }
+}
+
+/// The error for a call a backend does not support: `Unavailable` when the whole backend is
+/// unavailable, and a plain message otherwise.
+pub fn unsupported<T>(reason: Option<UnavailableReason>) -> Result<T> {
+    Err(match reason {
+        Some(reason) => Error::Unavailable(reason),
+        None => Error::Steam("this backend does not support that call".into()),
+    })
+}
+
 /// One method per capability, so the real client, the mock and the stub share a command surface.
-pub trait SteamworksBackend: Send + Sync + 'static {
+/// Lobbies, Workshop and Steam Input have their own traits.
+pub trait SteamworksBackend:
+    BackendReason + LobbyBackend + WorkshopBackend + InputBackend + Send + Sync + 'static
+{
     fn kind(&self) -> BackendKind;
     fn app_id(&self) -> u32;
     fn player(&self) -> Result<Player>;
@@ -63,6 +88,16 @@ impl NullBackend {
         Err(Error::Unavailable(self.reason))
     }
 }
+
+impl BackendReason for NullBackend {
+    fn unavailable_reason(&self) -> Option<UnavailableReason> {
+        Some(self.reason)
+    }
+}
+
+impl LobbyBackend for NullBackend {}
+impl WorkshopBackend for NullBackend {}
+impl InputBackend for NullBackend {}
 
 impl SteamworksBackend for NullBackend {
     fn kind(&self) -> BackendKind {

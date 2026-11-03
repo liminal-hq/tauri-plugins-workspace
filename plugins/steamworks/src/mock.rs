@@ -17,6 +17,8 @@ use crate::{
     },
 };
 
+mod social;
+
 /// What the fake starts with. Achievements and stats must be declared, as Steam requires.
 #[derive(Debug, Clone)]
 pub struct MockConfig {
@@ -32,6 +34,10 @@ pub struct MockConfig {
     pub cloud_disabled: bool,
     pub dlc: Vec<DlcInfo>,
     pub device: DeviceInfo,
+    /// Workshop items the player is already subscribed to.
+    pub workshop: Vec<crate::workshop::WorkshopItem>,
+    /// Controllers Steam Input reports as connected.
+    pub controllers: Vec<crate::input::InputController>,
 }
 
 impl Default for MockConfig {
@@ -50,6 +56,8 @@ impl Default for MockConfig {
             cloud_disabled: false,
             dlc: Vec::new(),
             device: DeviceInfo::default(),
+            workshop: Vec::new(),
+            controllers: Vec::new(),
         }
     }
 }
@@ -103,6 +111,7 @@ pub struct MockBackend {
     config: MockConfig,
     emit: Emit,
     state: Mutex<State>,
+    social: Mutex<social::Social>,
 }
 
 impl MockBackend {
@@ -116,9 +125,11 @@ impl MockBackend {
             stats: config.stats.iter().cloned().collect(),
             ..State::default()
         };
+        let social = social::Social::new(&config.workshop);
         Self {
             config,
             emit,
+            social: Mutex::new(social),
             state: Mutex::new(state),
         }
     }

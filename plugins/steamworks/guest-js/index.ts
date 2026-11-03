@@ -8,6 +8,16 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
 	Achievement,
 	AchievementStoredPayload,
+	ActionKind,
+	AnalogActionState,
+	DigitalActionState,
+	GlyphSize,
+	InputController,
+	LobbyChatUpdatePayload,
+	LobbyDataUpdatePayload,
+	LobbyInfo,
+	LobbyKind,
+	WorkshopItem,
 	CloudFile,
 	CloudQuota,
 	CloudStatus,
@@ -26,6 +36,17 @@ import type {
 export type {
 	Achievement,
 	AchievementStoredPayload,
+	ActionKind,
+	AnalogActionState,
+	DigitalActionState,
+	GlyphSize,
+	InputController,
+	LobbyChatUpdatePayload,
+	LobbyDataUpdatePayload,
+	LobbyInfo,
+	LobbyKind,
+	LobbyMemberChange,
+	WorkshopItem,
 	BackendKind,
 	OverlayPage,
 	OverlayToggledPayload,
@@ -46,6 +67,8 @@ export const STATS_STORED_EVENT = 'steamworks://stats-stored';
 export const ACHIEVEMENT_STORED_EVENT = 'steamworks://achievement-stored';
 export const OVERLAY_TOGGLED_EVENT = 'steamworks://overlay-toggled';
 export const SCREENSHOT_REQUESTED_EVENT = 'steamworks://screenshot-requested';
+export const LOBBY_CHAT_UPDATE_EVENT = 'steamworks://lobby-chat-update';
+export const LOBBY_DATA_UPDATE_EVENT = 'steamworks://lobby-data-update';
 
 /** True when Steam initialised, or the in-memory mock is active. Never rejects. */
 export function isAvailable(): Promise<boolean> {
@@ -203,6 +226,123 @@ export function addScreenshotToLibrary(path: string, width: number, height: numb
 	return invoke<void>(`${PREFIX}add_screenshot_to_library`, { path, width, height });
 }
 
+/**
+ * Creates a lobby and resolves with its ID. Steam allows 1 to 250 members. Lobby calls need
+ * `allow-lobbies`.
+ */
+export function createLobby(kind: LobbyKind, maxMembers: number): Promise<string> {
+	return invoke<string>(`${PREFIX}create_lobby`, { kind, maxMembers });
+}
+
+/** Joins a lobby and resolves with its ID. Rejects when the lobby is full, closed or unknown. */
+export function joinLobby(id: string): Promise<string> {
+	return invoke<string>(`${PREFIX}join_lobby`, { id });
+}
+
+/** Lists open public lobbies using Steam's default search. */
+export function listLobbies(): Promise<LobbyInfo[]> {
+	return invoke<LobbyInfo[]>(`${PREFIX}list_lobbies`);
+}
+
+export function leaveLobby(id: string): Promise<void> {
+	return invoke<void>(`${PREFIX}leave_lobby`, { id });
+}
+
+export function getLobby(id: string): Promise<LobbyInfo> {
+	return invoke<LobbyInfo>(`${PREFIX}get_lobby`, { id });
+}
+
+/** Sets a lobby data key, or removes it with `null`. Only the lobby owner can change data. */
+export function setLobbyData(id: string, key: string, value: string | null): Promise<void> {
+	return invoke<void>(`${PREFIX}set_lobby_data`, { id, key, value });
+}
+
+/** Opens or closes a lobby to new members. Only the lobby owner can change it. */
+export function setLobbyJoinable(id: string, joinable: boolean): Promise<void> {
+	return invoke<void>(`${PREFIX}set_lobby_joinable`, { id, joinable });
+}
+
+/** Lists the Workshop items the player is subscribed to. Needs `allow-workshop`. */
+export function getWorkshopItems(): Promise<WorkshopItem[]> {
+	return invoke<WorkshopItem[]>(`${PREFIX}get_workshop_items`);
+}
+
+export function subscribeWorkshopItem(id: string): Promise<void> {
+	return invoke<void>(`${PREFIX}subscribe_workshop_item`, { id });
+}
+
+export function unsubscribeWorkshopItem(id: string): Promise<void> {
+	return invoke<void>(`${PREFIX}unsubscribe_workshop_item`, { id });
+}
+
+/** Starts or prioritises a download. Resolves with whether Steam accepted the request. */
+export function downloadWorkshopItem(id: string, highPriority = false): Promise<boolean> {
+	return invoke<boolean>(`${PREFIX}download_workshop_item`, { id, highPriority });
+}
+
+/**
+ * Starts Steam Input; call it once before the other input functions. Needs `allow-input` and an
+ * action manifest configured for the app in Steamworks. Steam updates input whenever callbacks run,
+ * so a short `callbackIntervalMs` makes input more responsive.
+ */
+export function inputInit(): Promise<void> {
+	return invoke<void>(`${PREFIX}input_init`);
+}
+
+export function getInputControllers(): Promise<InputController[]> {
+	return invoke<InputController[]>(`${PREFIX}get_input_controllers`);
+}
+
+/** Looks up an action set from the app's action manifest and resolves with its handle. */
+export function getInputActionSet(name: string): Promise<string> {
+	return invoke<string>(`${PREFIX}get_input_action_set`, { name });
+}
+
+export function activateInputActionSet(controller: string, actionSet: string): Promise<void> {
+	return invoke<void>(`${PREFIX}activate_input_action_set`, { controller, actionSet });
+}
+
+/** Looks up a digital or analog action from the action manifest and resolves with its handle. */
+export function getInputAction(kind: ActionKind, name: string): Promise<string> {
+	return invoke<string>(`${PREFIX}get_input_action`, { kind, name });
+}
+
+export function getDigitalActionState(
+	controller: string,
+	action: string
+): Promise<DigitalActionState> {
+	return invoke<DigitalActionState>(`${PREFIX}get_digital_action_state`, { controller, action });
+}
+
+export function getAnalogActionState(
+	controller: string,
+	action: string
+): Promise<AnalogActionState> {
+	return invoke<AnalogActionState>(`${PREFIX}get_analog_action_state`, { controller, action });
+}
+
+/**
+ * Resolves with the PNG of the first button bound to an action on a controller, for showing
+ * prompts such as "Press (A)". Wrap it with `new Blob([bytes], { type: 'image/png' })` for an
+ * image URL. Rejects when the action has no button bound.
+ */
+export async function getInputGlyph(
+	controller: string,
+	actionSet: string,
+	kind: ActionKind,
+	action: string,
+	size: GlyphSize = 'medium'
+): Promise<Uint8Array> {
+	const data = await invoke<ArrayBuffer | number[]>(`${PREFIX}get_input_glyph`, {
+		controller,
+		actionSet,
+		kind,
+		action,
+		size,
+	});
+	return new Uint8Array(data);
+}
+
 /** Needs `core:event:default` as well as the plugin's permissions. */
 export function onStatsReceived(
 	handler: (_payload: StatsReceivedPayload) => void
@@ -232,6 +372,20 @@ export function onOverlayToggled(
 /** Fires when Steam asks the app for a screenshot; needs `hookScreenshots(true)`. */
 export function onScreenshotRequested(handler: () => void): Promise<UnlistenFn> {
 	return listen<Record<string, never>>(SCREENSHOT_REQUESTED_EVENT, () => handler());
+}
+
+/** Fires when a lobby member joins, leaves or is removed. */
+export function onLobbyChatUpdate(
+	handler: (_payload: LobbyChatUpdatePayload) => void
+): Promise<UnlistenFn> {
+	return listen<LobbyChatUpdatePayload>(LOBBY_CHAT_UPDATE_EVENT, (e) => handler(e.payload));
+}
+
+/** Fires when lobby data, or a member's data in a lobby, changes. */
+export function onLobbyDataUpdate(
+	handler: (_payload: LobbyDataUpdatePayload) => void
+): Promise<UnlistenFn> {
+	return listen<LobbyDataUpdatePayload>(LOBBY_DATA_UPDATE_EVENT, (e) => handler(e.payload));
 }
 
 /** True when a rejection means Steam is not usable, as opposed to a bad id or a failed call. */

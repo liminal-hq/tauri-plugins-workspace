@@ -1,6 +1,6 @@
 # Tauri Plugin Steamworks
 
-Steamworks for Tauri v2 games: player identity, achievements, stats, rich presence, the overlay, Steam Cloud files, DLC checks, Steam Deck detection and screenshots. One binary can ship inside and outside Steam, because the plugin reports a queryable _unavailable_ state instead of failing when Steam is missing.
+Steamworks for Tauri v2 games: player identity, achievements, stats, rich presence, the overlay, Steam Cloud files, DLC checks, Steam Deck detection, screenshots, lobbies, Workshop subscriptions and Steam Input. One binary can ship inside and outside Steam, because the plugin reports a queryable _unavailable_ state instead of failing when Steam is missing.
 
 ## Highlights
 
@@ -86,33 +86,40 @@ const unlisten = await onAchievementStored(({ id }) => console.log('stored', id)
 
 ### Commands
 
-| Function                                                                                | Notes                                                                                     |
-| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `isAvailable()`, `getStatus()`                                                          | Never reject. The status carries a `reason` when unavailable.                             |
-| `getPlayer()`                                                                           | `steamId` is a decimal string because JavaScript numbers lose 64-bit precision.           |
-| `getAchievement(id)`                                                                    | `{ id, achieved, unlockTime }`.                                                           |
-| `unlockAchievement(id)`                                                                 | Sets the achievement and stores it so Steam shows its notification.                       |
-| `clearAchievement(id)`                                                                  | For development. Needs the `allow-achievements-dev` permission.                           |
-| `indicateProgress(id, current, max)`                                                    | Progress toast for counted achievements. `current` must not exceed `max`.                 |
-| `getStat(name, kind = 'int')`, `setStat(name, value, kind?)`                            | `setStat` does not store; call `storeStats()` to batch writes.                            |
-| `storeStats()`                                                                          | Persists pending stat and achievement changes.                                            |
-| `setRichPresence(entries)`, `clearRichPresence()`                                       | The status line friends see. A `null` value removes a key. Needs `allow-presence`.        |
-| `activateOverlay(page)`, `activateOverlayToWebPage(url)`                                | Opens an overlay page, or an `http(s)` address. Needs `allow-overlay`.                    |
-| `cloudWrite(name, data)`, `cloudRead(name)`, `cloudReadText(name)`, `cloudDelete(name)` | Whole-file Steam Cloud access. Needs `allow-cloud`. See [Steam Cloud](#steam-cloud).      |
-| `cloudList()`, `cloudQuota()`, `cloudStatus()`                                          | Files, quota in bytes, and whether the account and app allow Cloud. Needs `allow-cloud`.  |
-| `getDlc()`, `isDlcInstalled(appId)`                                                     | The app's downloadable content and whether each is installed. Needs `allow-dlc`.          |
-| `getDeviceInfo()`, `isSteamDeck()`                                                      | Whether the app runs on a Steam Deck or in Big Picture mode. Needs `allow-device`.        |
-| `hookScreenshots(hook)`, `triggerScreenshot()`, `addScreenshotToLibrary(path, w, h)`    | Steam screenshot integration. Needs `allow-screenshots`. See [Screenshots](#screenshots). |
+| Function                                                                                                                                                                                                        | Notes                                                                                     |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `isAvailable()`, `getStatus()`                                                                                                                                                                                  | Never reject. The status carries a `reason` when unavailable.                             |
+| `getPlayer()`                                                                                                                                                                                                   | `steamId` is a decimal string because JavaScript numbers lose 64-bit precision.           |
+| `getAchievement(id)`                                                                                                                                                                                            | `{ id, achieved, unlockTime }`.                                                           |
+| `unlockAchievement(id)`                                                                                                                                                                                         | Sets the achievement and stores it so Steam shows its notification.                       |
+| `clearAchievement(id)`                                                                                                                                                                                          | For development. Needs the `allow-achievements-dev` permission.                           |
+| `indicateProgress(id, current, max)`                                                                                                                                                                            | Progress toast for counted achievements. `current` must not exceed `max`.                 |
+| `getStat(name, kind = 'int')`, `setStat(name, value, kind?)`                                                                                                                                                    | `setStat` does not store; call `storeStats()` to batch writes.                            |
+| `storeStats()`                                                                                                                                                                                                  | Persists pending stat and achievement changes.                                            |
+| `setRichPresence(entries)`, `clearRichPresence()`                                                                                                                                                               | The status line friends see. A `null` value removes a key. Needs `allow-presence`.        |
+| `activateOverlay(page)`, `activateOverlayToWebPage(url)`                                                                                                                                                        | Opens an overlay page, or an `http(s)` address. Needs `allow-overlay`.                    |
+| `cloudWrite(name, data)`, `cloudRead(name)`, `cloudReadText(name)`, `cloudDelete(name)`                                                                                                                         | Whole-file Steam Cloud access. Needs `allow-cloud`. See [Steam Cloud](#steam-cloud).      |
+| `cloudList()`, `cloudQuota()`, `cloudStatus()`                                                                                                                                                                  | Files, quota in bytes, and whether the account and app allow Cloud. Needs `allow-cloud`.  |
+| `getDlc()`, `isDlcInstalled(appId)`                                                                                                                                                                             | The app's downloadable content and whether each is installed. Needs `allow-dlc`.          |
+| `createLobby(kind, maxMembers)`, `joinLobby(id)`, `listLobbies()`, `leaveLobby(id)`, `getLobby(id)`, `setLobbyData(id, key, value)`, `setLobbyJoinable(id, joinable)`                                           | Steam lobbies. Needs `allow-lobbies`. See [Lobbies](#lobbies).                            |
+| `getWorkshopItems()`, `subscribeWorkshopItem(id)`, `unsubscribeWorkshopItem(id)`, `downloadWorkshopItem(id, highPriority?)`                                                                                     | Workshop subscriptions and downloads. Needs `allow-workshop`. See [Workshop](#workshop).  |
+| `inputInit()`, `getInputControllers()`, `getInputActionSet(name)`, `activateInputActionSet(...)`, `getInputAction(kind, name)`, `getDigitalActionState(...)`, `getAnalogActionState(...)`, `getInputGlyph(...)` | Steam Input. Needs `allow-input`. See [Steam Input](#steam-input).                        |
+| `getDeviceInfo()`, `isSteamDeck()`                                                                                                                                                                              | Whether the app runs on a Steam Deck or in Big Picture mode. Needs `allow-device`.        |
+| `hookScreenshots(hook)`, `triggerScreenshot()`, `addScreenshotToLibrary(path, w, h)`                                                                                                                            | Steam screenshot integration. Needs `allow-screenshots`. See [Screenshots](#screenshots). |
 
 `setStat` sends a whole number as an int and a fraction as a float. Pass `kind: 'float'` for a float stat that currently holds a whole number.
 
 ### Events
 
-| Event                             | Helper                | Payload                |
-| --------------------------------- | --------------------- | ---------------------- |
-| `steamworks://stats-received`     | `onStatsReceived`     | `{ success, steamId }` |
-| `steamworks://stats-stored`       | `onStatsStored`       | `{ success }`          |
-| `steamworks://achievement-stored` | `onAchievementStored` | `{ id, current, max }` |
+| Event                               | Helper                  | Payload                                          |
+| ----------------------------------- | ----------------------- | ------------------------------------------------ |
+| `steamworks://stats-received`       | `onStatsReceived`       | `{ success, steamId }`                           |
+| `steamworks://stats-stored`         | `onStatsStored`         | `{ success }`                                    |
+| `steamworks://achievement-stored`   | `onAchievementStored`   | `{ id, current, max }`                           |
+| `steamworks://overlay-toggled`      | `onOverlayToggled`      | `{ active }`                                     |
+| `steamworks://screenshot-requested` | `onScreenshotRequested` | `{}` (needs `hookScreenshots(true)`)             |
+| `steamworks://lobby-chat-update`    | `onLobbyChatUpdate`     | `{ lobbyId, userChanged, makingChange, change }` |
+| `steamworks://lobby-data-update`    | `onLobbyDataUpdate`     | `{ lobbyId, memberId, success }`                 |
 
 ## Rust API
 
@@ -156,6 +163,9 @@ Optional, in `tauri.conf.json`:
 | `allow-presence`         | `setRichPresence`, `clearRichPresence`                           | no           |
 | `allow-overlay`          | `activateOverlay`, `activateOverlayToWebPage`                    | no           |
 | `allow-cloud`            | the `cloud*` functions                                           | no           |
+| `allow-lobbies`          | the lobby functions                                              | no           |
+| `allow-workshop`         | the Workshop functions                                           | no           |
+| `allow-input`            | the Steam Input functions                                        | no           |
 | `allow-dlc`              | `getDlc`, `isDlcInstalled`                                       | no           |
 | `allow-device`           | `getDeviceInfo`, `isSteamDeck`                                   | no           |
 | `allow-screenshots`      | `hookScreenshots`, `triggerScreenshot`, `addScreenshotToLibrary` | no           |
@@ -219,6 +229,60 @@ await cloudWrite('settings.json', JSON.stringify({ volume: 0.8 }));
 const settings = JSON.parse(await cloudReadText('settings.json'));
 console.log(await cloudList());
 ```
+
+## Lobbies
+
+Lobbies group players before a match and carry shared data. This plugin covers the lobby itself: create, join, list, read, set data, and open or close it. Steam IDs are decimal strings throughout, because JavaScript numbers lose 64-bit precision.
+
+```ts
+import { createLobby, setLobbyData, onLobbyChatUpdate } from '@liminal-hq/plugin-steamworks';
+
+const id = await createLobby('friendsOnly', 4);
+await setLobbyData(id, 'map', 'fizzton'); // only the owner can change lobby data
+await onLobbyChatUpdate(({ change, userChanged }) => console.log(userChanged, change));
+```
+
+- Kinds are `private`, `friendsOnly`, `public` and `invisible`. A lobby holds 1 to 250 members.
+- `listLobbies()` uses Steam's default search and returns open public lobbies; it does not take filters.
+- Lobby data keys are at most 255 bytes and values at most 8192 bytes.
+- Not included: lobby chat messages, invites, game-server hand-off and the networking layer that real-time play needs. They are separate work.
+
+## Workshop
+
+`getWorkshopItems()` lists the items the player is subscribed to with their install state, folder and size. `subscribeWorkshopItem`, `unsubscribeWorkshopItem` and `downloadWorkshopItem` change subscriptions and start downloads; poll `getWorkshopItems()` to watch an install finish. The install folder is a path on the player's machine for your app to read content from.
+
+Not included: publishing or updating items and searching the Workshop.
+
+## Steam Input
+
+Steam Input lets players rebind controllers, and gives you the glyph for the button an action is bound to, so prompts match their hardware (for example a PlayStation or Steam Deck button). It needs an action manifest configured for the app in Steamworks.
+
+```ts
+import {
+	inputInit,
+	getInputControllers,
+	getInputActionSet,
+	getInputAction,
+	activateInputActionSet,
+	getDigitalActionState,
+	getInputGlyph,
+} from '@liminal-hq/plugin-steamworks';
+
+await inputInit();
+const [pad] = await getInputControllers();
+const set = await getInputActionSet('Gameplay');
+const jump = await getInputAction('digital', 'jump');
+await activateInputActionSet(pad.handle, set);
+
+const { pressed } = await getDigitalActionState(pad.handle, jump);
+const png = await getInputGlyph(pad.handle, set, 'digital', jump, 'small');
+const url = URL.createObjectURL(new Blob([png], { type: 'image/png' }));
+```
+
+- Handles are decimal strings. Look actions and sets up once and reuse the handles.
+- Steam updates input whenever callbacks run, so the default 100 ms callback interval makes polling feel sluggish. Set `callbackIntervalMs` to about 16 while using Steam Input.
+- Each state read is an IPC call. That suits menus and prompts; for per-frame gameplay input prefer the browser's Gamepad API, and use Steam Input for bindings and glyphs.
+- `getInputGlyph` rejects when the action has no button bound on that controller.
 
 ## Screenshots
 

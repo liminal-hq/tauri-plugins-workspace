@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-input-init"
+description = "Enables the input_init command without any pre-configured scope."
+commands.allow = ["input_init"]
+
+[[permission]]
+identifier = "deny-input-init"
+description = "Denies the input_init command without any pre-configured scope."
+commands.deny = ["input_init"]

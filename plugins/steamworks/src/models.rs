@@ -5,6 +5,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::lobby::LobbyMemberChange;
+
 pub const STATS_RECEIVED_EVENT: &str = "steamworks://stats-received";
 pub const STATS_STORED_EVENT: &str = "steamworks://stats-stored";
 pub const ACHIEVEMENT_STORED_EVENT: &str = "steamworks://achievement-stored";
@@ -200,11 +202,33 @@ impl OverlayPage {
 /// Events the backends raise. The plugin turns them into Tauri events.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SteamEvent {
-    StatsReceived { success: bool, steam_id: String },
-    StatsStored { success: bool },
-    AchievementStored { id: String, current: u32, max: u32 },
-    OverlayToggled { active: bool },
+    StatsReceived {
+        success: bool,
+        steam_id: String,
+    },
+    StatsStored {
+        success: bool,
+    },
+    AchievementStored {
+        id: String,
+        current: u32,
+        max: u32,
+    },
+    OverlayToggled {
+        active: bool,
+    },
     ScreenshotRequested,
+    LobbyChatUpdate {
+        lobby_id: String,
+        user_changed: String,
+        making_change: String,
+        change: LobbyMemberChange,
+    },
+    LobbyDataUpdate {
+        lobby_id: String,
+        member_id: String,
+        success: bool,
+    },
 }
 
 #[cfg(test)]

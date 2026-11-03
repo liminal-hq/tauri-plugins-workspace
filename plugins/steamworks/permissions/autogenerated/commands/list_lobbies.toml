@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-list-lobbies"
+description = "Enables the list_lobbies command without any pre-configured scope."
+commands.allow = ["list_lobbies"]
+
+[[permission]]
+identifier = "deny-list-lobbies"
+description = "Denies the list_lobbies command without any pre-configured scope."
+commands.deny = ["list_lobbies"]

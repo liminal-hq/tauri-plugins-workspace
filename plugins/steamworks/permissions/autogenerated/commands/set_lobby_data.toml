@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-set-lobby-data"
+description = "Enables the set_lobby_data command without any pre-configured scope."
+commands.allow = ["set_lobby_data"]
+
+[[permission]]
+identifier = "deny-set-lobby-data"
+description = "Denies the set_lobby_data command without any pre-configured scope."
+commands.deny = ["set_lobby_data"]

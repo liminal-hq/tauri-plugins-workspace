@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-download-workshop-item"
+description = "Enables the download_workshop_item command without any pre-configured scope."
+commands.allow = ["download_workshop_item"]
+
+[[permission]]
+identifier = "deny-download-workshop-item"
+description = "Denies the download_workshop_item command without any pre-configured scope."
+commands.deny = ["download_workshop_item"]
