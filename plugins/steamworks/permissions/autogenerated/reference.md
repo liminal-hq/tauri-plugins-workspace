@@ -72,6 +72,32 @@ Denies the activate_overlay_to_web_page command without any pre-configured scope
 <tr>
 <td>
 
+`steamworks:allow-add-screenshot-to-library`
+
+</td>
+<td>
+
+Enables the add_screenshot_to_library command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-add-screenshot-to-library`
+
+</td>
+<td>
+
+Denies the add_screenshot_to_library command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `steamworks:allow-clear-achievement`
 
 </td>
@@ -306,6 +332,58 @@ Denies the get_achievement command without any pre-configured scope.
 <tr>
 <td>
 
+`steamworks:allow-get-device-info`
+
+</td>
+<td>
+
+Enables the get_device_info command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-get-device-info`
+
+</td>
+<td>
+
+Denies the get_device_info command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-get-dlc`
+
+</td>
+<td>
+
+Enables the get_dlc command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-get-dlc`
+
+</td>
+<td>
+
+Denies the get_dlc command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `steamworks:allow-get-player`
 
 </td>
@@ -384,6 +462,32 @@ Denies the get_status command without any pre-configured scope.
 <tr>
 <td>
 
+`steamworks:allow-hook-screenshots`
+
+</td>
+<td>
+
+Enables the hook_screenshots command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-hook-screenshots`
+
+</td>
+<td>
+
+Denies the hook_screenshots command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `steamworks:allow-indicate-achievement-progress`
 
 </td>
@@ -429,6 +533,32 @@ Enables the is_available command without any pre-configured scope.
 <td>
 
 Denies the is_available command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-is-dlc-installed`
+
+</td>
+<td>
+
+Enables the is_dlc_installed command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-is-dlc-installed`
+
+</td>
+<td>
+
+Denies the is_dlc_installed command without any pre-configured scope.
 
 </td>
 </tr>
@@ -507,6 +637,32 @@ Enables the store_stats command without any pre-configured scope.
 <td>
 
 Denies the store_stats command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-trigger-screenshot`
+
+</td>
+<td>
+
+Enables the trigger_screenshot command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:deny-trigger-screenshot`
+
+</td>
+<td>
+
+Denies the trigger_screenshot command without any pre-configured scope.
 
 </td>
 </tr>
@@ -624,6 +780,45 @@ Opens Steam overlay pages and web pages.
 <td>
 
 Reads, writes, lists and deletes Steam Cloud files, and reads the Cloud quota and status. Prefer Auto-Cloud for save games.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-dlc`
+
+</td>
+<td>
+
+Lists the app's downloadable content and checks whether each is installed.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-device`
+
+</td>
+<td>
+
+Reports whether the app runs on a Steam Deck or in Big Picture mode.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`steamworks:allow-screenshots`
+
+</td>
+<td>
+
+Hooks Steam screenshots, triggers one, and adds an image file to the player's Steam screenshot library.
 
 </td>
 </tr>

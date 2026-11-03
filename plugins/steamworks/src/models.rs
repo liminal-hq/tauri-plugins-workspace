@@ -9,6 +9,7 @@ pub const STATS_RECEIVED_EVENT: &str = "steamworks://stats-received";
 pub const STATS_STORED_EVENT: &str = "steamworks://stats-stored";
 pub const ACHIEVEMENT_STORED_EVENT: &str = "steamworks://achievement-stored";
 pub const OVERLAY_TOGGLED_EVENT: &str = "steamworks://overlay-toggled";
+pub const SCREENSHOT_REQUESTED_EVENT: &str = "steamworks://screenshot-requested";
 
 /// Which implementation answers the commands.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -121,6 +122,27 @@ impl StatValue {
     }
 }
 
+/// Downloadable content the app offers.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DlcInfo {
+    pub app_id: u32,
+    pub name: String,
+    /// Whether the player can get it, as Steam reports availability.
+    pub available: bool,
+    /// Whether the player owns it and has it installed.
+    pub installed: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceInfo {
+    /// Whether the app runs on a Steam Deck.
+    pub steam_deck: bool,
+    /// Whether Steam is in Big Picture mode.
+    pub big_picture: bool,
+}
+
 /// A file in Steam Cloud.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -182,6 +204,7 @@ pub enum SteamEvent {
     StatsStored { success: bool },
     AchievementStored { id: String, current: u32, max: u32 },
     OverlayToggled { active: bool },
+    ScreenshotRequested,
 }
 
 #[cfg(test)]

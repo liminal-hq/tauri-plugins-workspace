@@ -12,6 +12,7 @@ var __TAURI_PLUGIN_STEAMWORKS__ = (function (exports, core, event) {
     const STATS_STORED_EVENT = 'steamworks://stats-stored';
     const ACHIEVEMENT_STORED_EVENT = 'steamworks://achievement-stored';
     const OVERLAY_TOGGLED_EVENT = 'steamworks://overlay-toggled';
+    const SCREENSHOT_REQUESTED_EVENT = 'steamworks://screenshot-requested';
     /** True when Steam initialised, or the in-memory mock is active. Never rejects. */
     function isAvailable() {
         return core.invoke(`${PREFIX}is_available`);
@@ -107,6 +108,39 @@ var __TAURI_PLUGIN_STEAMWORKS__ = (function (exports, core, event) {
     function cloudStatus() {
         return core.invoke(`${PREFIX}cloud_status`);
     }
+    /** Lists the app's downloadable content and whether each is installed. Needs `allow-dlc`. */
+    function getDlc() {
+        return core.invoke(`${PREFIX}get_dlc`);
+    }
+    function isDlcInstalled(appId) {
+        return core.invoke(`${PREFIX}is_dlc_installed`, { appId });
+    }
+    /** Says whether the app runs on a Steam Deck or in Big Picture mode. Needs `allow-device`. */
+    function getDeviceInfo() {
+        return core.invoke(`${PREFIX}get_device_info`);
+    }
+    async function isSteamDeck() {
+        return (await getDeviceInfo()).steamDeck;
+    }
+    /**
+     * Makes Steam send a `screenshot-requested` event, and leaves the capture to the app, instead of
+     * taking screenshots itself. Do not enable it when an overlay-surface plugin already hooks
+     * screenshots. Needs `allow-screenshots`.
+     */
+    function hookScreenshots(hook) {
+        return core.invoke(`${PREFIX}hook_screenshots`, { hook });
+    }
+    /** Asks Steam for a screenshot; when hooked, the app gets `screenshot-requested` instead. */
+    function triggerScreenshot() {
+        return core.invoke(`${PREFIX}trigger_screenshot`);
+    }
+    /**
+     * Adds an image the app saved to the player's Steam screenshot library. The path must be absolute
+     * and name an existing `png`, `jpg`, `jpeg` or `tga` file.
+     */
+    function addScreenshotToLibrary(path, width, height) {
+        return core.invoke(`${PREFIX}add_screenshot_to_library`, { path, width, height });
+    }
     /** Needs `core:event:default` as well as the plugin's permissions. */
     function onStatsReceived(handler) {
         return event.listen(STATS_RECEIVED_EVENT, (e) => handler(e.payload));
@@ -121,6 +155,10 @@ var __TAURI_PLUGIN_STEAMWORKS__ = (function (exports, core, event) {
     function onOverlayToggled(handler) {
         return event.listen(OVERLAY_TOGGLED_EVENT, (e) => handler(e.payload));
     }
+    /** Fires when Steam asks the app for a screenshot; needs `hookScreenshots(true)`. */
+    function onScreenshotRequested(handler) {
+        return event.listen(SCREENSHOT_REQUESTED_EVENT, () => handler());
+    }
     /** True when a rejection means Steam is not usable, as opposed to a bad id or a failed call. */
     function isUnavailableError(error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -129,10 +167,12 @@ var __TAURI_PLUGIN_STEAMWORKS__ = (function (exports, core, event) {
 
     exports.ACHIEVEMENT_STORED_EVENT = ACHIEVEMENT_STORED_EVENT;
     exports.OVERLAY_TOGGLED_EVENT = OVERLAY_TOGGLED_EVENT;
+    exports.SCREENSHOT_REQUESTED_EVENT = SCREENSHOT_REQUESTED_EVENT;
     exports.STATS_RECEIVED_EVENT = STATS_RECEIVED_EVENT;
     exports.STATS_STORED_EVENT = STATS_STORED_EVENT;
     exports.activateOverlay = activateOverlay;
     exports.activateOverlayToWebPage = activateOverlayToWebPage;
+    exports.addScreenshotToLibrary = addScreenshotToLibrary;
     exports.clearAchievement = clearAchievement;
     exports.clearRichPresence = clearRichPresence;
     exports.cloudDelete = cloudDelete;
@@ -143,19 +183,26 @@ var __TAURI_PLUGIN_STEAMWORKS__ = (function (exports, core, event) {
     exports.cloudStatus = cloudStatus;
     exports.cloudWrite = cloudWrite;
     exports.getAchievement = getAchievement;
+    exports.getDeviceInfo = getDeviceInfo;
+    exports.getDlc = getDlc;
     exports.getPlayer = getPlayer;
     exports.getStat = getStat;
     exports.getStatus = getStatus;
+    exports.hookScreenshots = hookScreenshots;
     exports.indicateProgress = indicateProgress;
     exports.isAvailable = isAvailable;
+    exports.isDlcInstalled = isDlcInstalled;
+    exports.isSteamDeck = isSteamDeck;
     exports.isUnavailableError = isUnavailableError;
     exports.onAchievementStored = onAchievementStored;
     exports.onOverlayToggled = onOverlayToggled;
+    exports.onScreenshotRequested = onScreenshotRequested;
     exports.onStatsReceived = onStatsReceived;
     exports.onStatsStored = onStatsStored;
     exports.setRichPresence = setRichPresence;
     exports.setStat = setStat;
     exports.storeStats = storeStats;
+    exports.triggerScreenshot = triggerScreenshot;
     exports.unlockAchievement = unlockAchievement;
 
     return exports;

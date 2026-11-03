@@ -16,8 +16,8 @@ use crate::{
     config::{clamp_interval, Config, DEFAULT_CALLBACK_INTERVAL},
     error::{Error, Result},
     models::{
-        Achievement, CloudFile, CloudQuota, CloudStatus, OverlayPage, Player, StatKind, StatValue,
-        SteamEvent, SteamStatus, UnavailableReason,
+        Achievement, CloudFile, CloudQuota, CloudStatus, DeviceInfo, DlcInfo, OverlayPage, Player,
+        StatKind, StatValue, SteamEvent, SteamStatus, UnavailableReason,
     },
     pump::Pump,
     real::{self, InitOutcome},
@@ -323,6 +323,42 @@ impl Steamworks {
         self.backend().cloud_status()
     }
 
+    /// The downloadable content the app offers and whether each is installed.
+    pub fn dlc_list(&self) -> Result<Vec<DlcInfo>> {
+        self.backend().dlc_list()
+    }
+
+    pub fn is_dlc_installed(&self, app_id: u32) -> Result<bool> {
+        self.backend().is_dlc_installed(app_id)
+    }
+
+    pub fn device_info(&self) -> Result<DeviceInfo> {
+        self.backend().device_info()
+    }
+
+    /// Makes Steam ask the app for screenshots (a `screenshot-requested` event) instead of taking
+    /// them itself. Do not enable it when an overlay-surface plugin already hooks screenshots.
+    pub fn hook_screenshots(&self, hook: bool) -> Result<()> {
+        self.backend().hook_screenshots(hook)
+    }
+
+    pub fn trigger_screenshot(&self) -> Result<()> {
+        self.backend().trigger_screenshot()
+    }
+
+    /// Adds an image file to the player's Steam screenshot library. The path must be absolute and
+    /// name an existing `png`, `jpg`, `jpeg` or `tga` file, so the webview cannot make Steam read
+    /// other files.
+    pub fn add_screenshot_to_library(
+        &self,
+        path: &std::path::Path,
+        width: u32,
+        height: u32,
+    ) -> Result<()> {
+        check_screenshot(path, width, height)?;
+        self.backend().add_screenshot(path, width, height)
+    }
+
     /// Calls `hook` with `true` or `false` whenever the Steam overlay opens or closes. Use it to
     /// pass the change to other integrations, such as an overlay-surface plugin, from Rust.
     pub fn on_overlay_toggled(&self, hook: impl Fn(bool) + Send + Sync + 'static) {
@@ -366,6 +402,32 @@ fn check_cloud_name(name: &str) -> Result<()> {
         if segment.is_empty() || segment == "." || segment == ".." || segment.trim() != segment {
             return bad("has an empty, dot or padded folder segment");
         }
+    }
+    Ok(())
+}
+
+const MAX_SCREENSHOT_SIDE: u32 = 16_384;
+
+fn check_screenshot(path: &std::path::Path, width: u32, height: u32) -> Result<()> {
+    let bad = |why: &str| Err(Error::InvalidRequest(format!("screenshot {why}")));
+    if !path.is_absolute() {
+        return bad("path must be absolute");
+    }
+    let extension = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(str::to_ascii_lowercase);
+    if !matches!(extension.as_deref(), Some("png" | "jpg" | "jpeg" | "tga")) {
+        return bad("file must be a png, jpg, jpeg or tga image");
+    }
+    if !std::fs::metadata(path)
+        .map(|m| m.is_file())
+        .unwrap_or(false)
+    {
+        return bad("file does not exist");
+    }
+    if width == 0 || height == 0 || width > MAX_SCREENSHOT_SIDE || height > MAX_SCREENSHOT_SIDE {
+        return bad("size must be between 1 and 16384 pixels on each side");
     }
     Ok(())
 }
@@ -587,6 +649,36 @@ mod tests {
             .to_string()
             .starts_with("unavailable: "));
         assert!(steam.cloud_quota().is_err());
+    }
+
+    #[test]
+    fn screenshots_are_limited_to_existing_absolute_image_files() {
+        let (steam, _) = mock_steam();
+        let dir = std::env::temp_dir().join(format!("steamworks-shot-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let png = dir.join("shot.PNG");
+        let text = dir.join("notes.txt");
+        std::fs::write(&png, b"not really a png").unwrap();
+        std::fs::write(&text, b"hi").unwrap();
+
+        steam.add_screenshot_to_library(&png, 1920, 1080).unwrap();
+        for (path, w, h) in [
+            (text.clone(), 10, 10),
+            (dir.join("missing.png"), 10, 10),
+            (std::path::PathBuf::from("relative.png"), 10, 10),
+            (dir.clone(), 10, 10),
+            (png.clone(), 0, 10),
+            (png.clone(), 10, 16_385),
+        ] {
+            assert!(
+                matches!(
+                    steam.add_screenshot_to_library(&path, w, h),
+                    Err(Error::InvalidRequest(_))
+                ),
+                "{path:?} {w}x{h} should be refused"
+            );
+        }
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

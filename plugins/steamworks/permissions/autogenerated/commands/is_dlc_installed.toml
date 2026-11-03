@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-is-dlc-installed"
+description = "Enables the is_dlc_installed command without any pre-configured scope."
+commands.allow = ["is_dlc_installed"]
+
+[[permission]]
+identifier = "deny-is-dlc-installed"
+description = "Denies the is_dlc_installed command without any pre-configured scope."
+commands.deny = ["is_dlc_installed"]

@@ -84,3 +84,19 @@ export interface CloudStatus {
 	/** Whether the player has Steam Cloud turned on for this app. */
 	appEnabled: boolean;
 }
+
+export interface DlcInfo {
+	appId: number;
+	name: string;
+	/** Whether the player can get it, as Steam reports availability. */
+	available: boolean;
+	/** Whether the player owns it and has it installed. */
+	installed: boolean;
+}
+
+export interface DeviceInfo {
+	/** Whether the app runs on a Steam Deck. */
+	steamDeck: boolean;
+	/** Whether Steam is in Big Picture mode. */
+	bigPicture: boolean;
+}

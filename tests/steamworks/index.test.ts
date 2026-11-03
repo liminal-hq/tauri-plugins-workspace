@@ -124,6 +124,29 @@ describe('cloud files', () => {
 	});
 });
 
+describe('DLC, device and screenshots', () => {
+	it('sends the documented command names and arguments', async () => {
+		invoke.mockResolvedValue({ steamDeck: true, bigPicture: false });
+		await api.getDlc();
+		await api.isDlcInstalled(481);
+		expect(await api.isSteamDeck()).toBe(true);
+		await api.hookScreenshots(true);
+		await api.triggerScreenshot();
+		await api.addScreenshotToLibrary('/tmp/shot.png', 1920, 1080);
+		expect(invoke.mock.calls).toEqual([
+			['plugin:steamworks|get_dlc', {}],
+			['plugin:steamworks|is_dlc_installed', { appId: 481 }],
+			['plugin:steamworks|get_device_info', {}],
+			['plugin:steamworks|hook_screenshots', { hook: true }],
+			['plugin:steamworks|trigger_screenshot', {}],
+			[
+				'plugin:steamworks|add_screenshot_to_library',
+				{ path: '/tmp/shot.png', width: 1920, height: 1080 },
+			],
+		]);
+	});
+});
+
 describe('stats', () => {
 	it('sends whole numbers as ints and fractions as floats by default', async () => {
 		invoke.mockResolvedValue(undefined);
@@ -172,5 +195,6 @@ describe('events', () => {
 		expect(api.STATS_STORED_EVENT).toBe('steamworks://stats-stored');
 		expect(api.ACHIEVEMENT_STORED_EVENT).toBe('steamworks://achievement-stored');
 		expect(api.OVERLAY_TOGGLED_EVENT).toBe('steamworks://overlay-toggled');
+		expect(api.SCREENSHOT_REQUESTED_EVENT).toBe('steamworks://screenshot-requested');
 	});
 });

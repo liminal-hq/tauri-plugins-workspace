@@ -10,8 +10,8 @@ use tauri::{command, AppHandle, Runtime};
 use crate::{
     error::{Error, Result},
     models::{
-        Achievement, CloudFile, CloudQuota, CloudStatus, OverlayPage, Player, StatKind, StatValue,
-        SteamStatus,
+        Achievement, CloudFile, CloudQuota, CloudStatus, DeviceInfo, DlcInfo, OverlayPage, Player,
+        StatKind, StatValue, SteamStatus,
     },
     SteamworksExt,
 };
@@ -165,4 +165,40 @@ pub(crate) async fn cloud_quota<R: Runtime>(app: AppHandle<R>) -> Result<CloudQu
 #[command]
 pub(crate) async fn cloud_status<R: Runtime>(app: AppHandle<R>) -> Result<CloudStatus> {
     app.steamworks().cloud_status()
+}
+
+#[command]
+pub(crate) async fn get_dlc<R: Runtime>(app: AppHandle<R>) -> Result<Vec<DlcInfo>> {
+    app.steamworks().dlc_list()
+}
+
+#[command]
+pub(crate) async fn is_dlc_installed<R: Runtime>(app: AppHandle<R>, app_id: u32) -> Result<bool> {
+    app.steamworks().is_dlc_installed(app_id)
+}
+
+#[command]
+pub(crate) async fn get_device_info<R: Runtime>(app: AppHandle<R>) -> Result<DeviceInfo> {
+    app.steamworks().device_info()
+}
+
+#[command]
+pub(crate) async fn hook_screenshots<R: Runtime>(app: AppHandle<R>, hook: bool) -> Result<()> {
+    app.steamworks().hook_screenshots(hook)
+}
+
+#[command]
+pub(crate) async fn trigger_screenshot<R: Runtime>(app: AppHandle<R>) -> Result<()> {
+    app.steamworks().trigger_screenshot()
+}
+
+#[command]
+pub(crate) async fn add_screenshot_to_library<R: Runtime>(
+    app: AppHandle<R>,
+    path: std::path::PathBuf,
+    width: u32,
+    height: u32,
+) -> Result<()> {
+    app.steamworks()
+        .add_screenshot_to_library(&path, width, height)
 }

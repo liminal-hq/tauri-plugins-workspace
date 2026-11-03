@@ -43,3 +43,22 @@ permissions = [
   "allow-cloud-quota",
   "allow-cloud-status",
 ]
+
+[[set]]
+identifier = "allow-dlc"
+description = "Lists the app's downloadable content and checks whether each is installed."
+permissions = ["allow-get-dlc", "allow-is-dlc-installed"]
+
+[[set]]
+identifier = "allow-device"
+description = "Reports whether the app runs on a Steam Deck or in Big Picture mode."
+permissions = ["allow-get-device-info"]
+
+[[set]]
+identifier = "allow-screenshots"
+description = "Hooks Steam screenshots, triggers one, and adds an image file to the player's Steam screenshot library."
+permissions = [
+  "allow-hook-screenshots",
+  "allow-trigger-screenshot",
+  "allow-add-screenshot-to-library",
+]

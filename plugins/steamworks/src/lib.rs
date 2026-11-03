@@ -122,7 +122,13 @@ impl Builder {
                 commands::cloud_delete,
                 commands::cloud_list,
                 commands::cloud_quota,
-                commands::cloud_status
+                commands::cloud_status,
+                commands::get_dlc,
+                commands::is_dlc_installed,
+                commands::get_device_info,
+                commands::hook_screenshots,
+                commands::trigger_screenshot,
+                commands::add_screenshot_to_library
             ])
             .setup(move |app, api| {
                 let config = api.config().clone().unwrap_or_default();
@@ -177,6 +183,7 @@ fn emit_event<R: Runtime>(app: &AppHandle<R>, event: SteamEvent) {
             OVERLAY_TOGGLED_EVENT,
             serde_json::json!({ "active": active }),
         ),
+        SteamEvent::ScreenshotRequested => (SCREENSHOT_REQUESTED_EVENT, serde_json::json!({})),
     };
     if let Err(e) = app.emit(name, payload) {
         log::warn!("steamworks: could not emit {name}: {e}");

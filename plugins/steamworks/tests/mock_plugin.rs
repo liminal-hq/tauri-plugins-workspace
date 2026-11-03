@@ -165,3 +165,49 @@ fn cloud_files_survive_a_round_trip_through_the_plugin_state() {
     assert_eq!(err.to_string(), "unknown cloud file `saves/fizzton.sav`");
     assert!(steam.cloud_write("../escape", b"x").is_err());
 }
+
+#[test]
+fn a_hooked_screenshot_trigger_reaches_the_webview_as_an_event() {
+    let app = app_with(config());
+    let seen = Arc::new(Mutex::new(Vec::<String>::new()));
+    let sink = seen.clone();
+    app.listen(
+        tauri_plugin_steamworks::SCREENSHOT_REQUESTED_EVENT,
+        move |e| sink.lock().unwrap().push(e.payload().to_string()),
+    );
+
+    app.steamworks().trigger_screenshot().unwrap();
+    assert!(
+        seen.lock().unwrap().is_empty(),
+        "Steam handles it when not hooked"
+    );
+
+    app.steamworks().hook_screenshots(true).unwrap();
+    app.steamworks().trigger_screenshot().unwrap();
+    assert_eq!(seen.lock().unwrap().as_slice(), ["{}"]);
+}
+
+#[test]
+fn dlc_and_device_reports_come_through_the_plugin_state() {
+    use tauri_plugin_steamworks::{DeviceInfo, DlcInfo};
+
+    let app = app_with(MockConfig {
+        dlc: vec![DlcInfo {
+            app_id: 481,
+            name: "Soundtrack".into(),
+            available: true,
+            installed: true,
+        }],
+        device: DeviceInfo {
+            steam_deck: true,
+            big_picture: true,
+        },
+        ..config()
+    });
+    assert!(app.steamworks().is_dlc_installed(481).unwrap());
+    assert_eq!(app.steamworks().dlc_list().unwrap()[0].name, "Soundtrack");
+    assert_eq!(
+        serde_json::to_value(app.steamworks().device_info().unwrap()).unwrap(),
+        serde_json::json!({"steamDeck": true, "bigPicture": true})
+    );
+}
