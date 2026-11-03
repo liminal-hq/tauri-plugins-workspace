@@ -9,7 +9,10 @@ const invoke = vi.fn();
 
 (globalThis as unknown as { window: unknown }).window = {
 	__TAURI_INTERNALS__: {
-		invoke: (cmd: string, args?: unknown) => (args === undefined ? invoke(cmd) : invoke(cmd, args)),
+		invoke: (cmd: string, args?: unknown, options?: unknown) => {
+			if (options !== undefined) return invoke(cmd, args, options);
+			return args === undefined ? invoke(cmd) : invoke(cmd, args);
+		},
 	},
 };
 
@@ -77,6 +80,46 @@ describe('presence and overlay', () => {
 				'plugin:steamworks|activate_overlay_to_web_page',
 				{ url: 'https://store.steampowered.com/app/480' },
 			],
+		]);
+	});
+});
+
+describe('cloud files', () => {
+	it('sends bytes as the body and the name in a header', async () => {
+		invoke.mockResolvedValue(undefined);
+		await api.cloudWrite('saves/city.sav', new Uint8Array([1, 2, 3]));
+		await api.cloudWrite('notes.txt', 'héllo');
+
+		expect(invoke.mock.calls[0]).toEqual([
+			'plugin:steamworks|cloud_write',
+			new Uint8Array([1, 2, 3]),
+			{ headers: { 'x-steamworks-cloud-name': 'saves/city.sav' } },
+		]);
+		const [, text, options] = invoke.mock.calls[1];
+		expect(new TextDecoder().decode(text as Uint8Array)).toBe('héllo');
+		expect(options).toEqual({ headers: { 'x-steamworks-cloud-name': 'notes.txt' } });
+	});
+
+	it('reads bytes and text back', async () => {
+		invoke.mockResolvedValue(new TextEncoder().encode('héllo').buffer);
+		expect(await api.cloudReadText('notes.txt')).toBe('héllo');
+		expect(invoke).toHaveBeenCalledWith('plugin:steamworks|cloud_read', { name: 'notes.txt' });
+
+		invoke.mockResolvedValue([9, 8]);
+		expect(await api.cloudRead('a')).toEqual(new Uint8Array([9, 8]));
+	});
+
+	it('lists, deletes and reads quota and status', async () => {
+		invoke.mockResolvedValue(undefined);
+		await api.cloudList();
+		await api.cloudDelete('a');
+		await api.cloudQuota();
+		await api.cloudStatus();
+		expect(invoke.mock.calls).toEqual([
+			['plugin:steamworks|cloud_list', {}],
+			['plugin:steamworks|cloud_delete', { name: 'a' }],
+			['plugin:steamworks|cloud_quota', {}],
+			['plugin:steamworks|cloud_status', {}],
 		]);
 	});
 });

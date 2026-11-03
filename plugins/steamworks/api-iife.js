@@ -7,6 +7,7 @@ var __TAURI_PLUGIN_STEAMWORKS__ = (function (exports, core, event) {
     // (c) Copyright 2026 Liminal HQ, Scott Morris
     // SPDX-License-Identifier: Apache-2.0 OR MIT
     const PREFIX = 'plugin:steamworks|';
+    const CLOUD_NAME_HEADER = 'x-steamworks-cloud-name';
     const STATS_RECEIVED_EVENT = 'steamworks://stats-received';
     const STATS_STORED_EVENT = 'steamworks://stats-stored';
     const ACHIEVEMENT_STORED_EVENT = 'steamworks://achievement-stored';
@@ -74,6 +75,38 @@ var __TAURI_PLUGIN_STEAMWORKS__ = (function (exports, core, event) {
     function activateOverlayToWebPage(url) {
         return core.invoke(`${PREFIX}activate_overlay_to_web_page`, { url });
     }
+    /**
+     * Writes a whole file to Steam Cloud, replacing any file of that name. Names use ASCII letters,
+     * digits and ` ._-`, with `/` between folders, and files are at most 100 MiB. Strings are written as
+     * UTF-8. Needs `allow-cloud`. Prefer Auto-Cloud for save games; this is for apps that cannot use it.
+     */
+    function cloudWrite(name, data) {
+        const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+        return core.invoke(`${PREFIX}cloud_write`, bytes, { headers: { [CLOUD_NAME_HEADER]: name } });
+    }
+    /** Reads a whole Cloud file. Rejects when the file does not exist. */
+    async function cloudRead(name) {
+        const data = await core.invoke(`${PREFIX}cloud_read`, { name });
+        return new Uint8Array(data);
+    }
+    /** Reads a whole Cloud file as UTF-8 text. */
+    async function cloudReadText(name) {
+        return new TextDecoder().decode(await cloudRead(name));
+    }
+    /** Deletes a Cloud file. Rejects when the file does not exist. */
+    function cloudDelete(name) {
+        return core.invoke(`${PREFIX}cloud_delete`, { name });
+    }
+    function cloudList() {
+        return core.invoke(`${PREFIX}cloud_list`);
+    }
+    function cloudQuota() {
+        return core.invoke(`${PREFIX}cloud_quota`);
+    }
+    /** Says whether the player's account and this app allow Steam Cloud. */
+    function cloudStatus() {
+        return core.invoke(`${PREFIX}cloud_status`);
+    }
     /** Needs `core:event:default` as well as the plugin's permissions. */
     function onStatsReceived(handler) {
         return event.listen(STATS_RECEIVED_EVENT, (e) => handler(e.payload));
@@ -102,6 +135,13 @@ var __TAURI_PLUGIN_STEAMWORKS__ = (function (exports, core, event) {
     exports.activateOverlayToWebPage = activateOverlayToWebPage;
     exports.clearAchievement = clearAchievement;
     exports.clearRichPresence = clearRichPresence;
+    exports.cloudDelete = cloudDelete;
+    exports.cloudList = cloudList;
+    exports.cloudQuota = cloudQuota;
+    exports.cloudRead = cloudRead;
+    exports.cloudReadText = cloudReadText;
+    exports.cloudStatus = cloudStatus;
+    exports.cloudWrite = cloudWrite;
     exports.getAchievement = getAchievement;
     exports.getPlayer = getPlayer;
     exports.getStat = getStat;

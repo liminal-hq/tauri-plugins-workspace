@@ -264,4 +264,124 @@ impl SteamworksBackend for SteamBackend {
         self.client.friends().activate_game_overlay_to_web_page(url);
         Ok(())
     }
+
+    fn cloud_write(&self, name: &str, data: &[u8]) -> crate::Result<()> {
+        let file = cloud_name(name)?;
+        let len = i32::try_from(data.len())
+            .map_err(|_| crate::Error::InvalidRequest("the file is too large".into()))?;
+        // `FileWrite` is Steam's synchronous whole-file write. The interface pointer stays valid
+        // while the client is alive, which `self.client` guarantees, and `data` outlives the call.
+        let written = unsafe {
+            steamworks_sys::SteamAPI_ISteamRemoteStorage_FileWrite(
+                steamworks_sys::SteamAPI_SteamRemoteStorage_v016(),
+                file.as_ptr(),
+                data.as_ptr().cast(),
+                len,
+            )
+        };
+        if written {
+            Ok(())
+        } else {
+            Err(crate::Error::Steam(format!(
+                "Steam could not write the cloud file `{name}` (quota, size or Cloud settings)"
+            )))
+        }
+    }
+
+    fn cloud_read(&self, name: &str) -> crate::Result<Vec<u8>> {
+        let file = cloud_name(name)?;
+        // SAFETY: as in `cloud_write`; the buffer is exactly `size` bytes long.
+        unsafe {
+            let storage = steamworks_sys::SteamAPI_SteamRemoteStorage_v016();
+            if !steamworks_sys::SteamAPI_ISteamRemoteStorage_FileExists(storage, file.as_ptr()) {
+                return Err(crate::Error::UnknownCloudFile(name.to_string()));
+            }
+            let size =
+                steamworks_sys::SteamAPI_ISteamRemoteStorage_GetFileSize(storage, file.as_ptr());
+            let Ok(len) = usize::try_from(size) else {
+                return Err(crate::Error::UnknownCloudFile(name.to_string()));
+            };
+            let mut buffer = vec![0u8; len];
+            let read = steamworks_sys::SteamAPI_ISteamRemoteStorage_FileRead(
+                storage,
+                file.as_ptr(),
+                buffer.as_mut_ptr().cast(),
+                size,
+            );
+            if read < 0 || read as usize != len {
+                return Err(crate::Error::Steam(format!(
+                    "Steam could not read the cloud file `{name}`"
+                )));
+            }
+            Ok(buffer)
+        }
+    }
+
+    fn cloud_delete(&self, name: &str) -> crate::Result<()> {
+        let file = cloud_name(name)?;
+        // SAFETY: as in `cloud_write`.
+        let deleted = unsafe {
+            steamworks_sys::SteamAPI_ISteamRemoteStorage_FileDelete(
+                steamworks_sys::SteamAPI_SteamRemoteStorage_v016(),
+                file.as_ptr(),
+            )
+        };
+        if deleted {
+            Ok(())
+        } else {
+            Err(crate::Error::UnknownCloudFile(name.to_string()))
+        }
+    }
+
+    fn cloud_list(&self) -> crate::Result<Vec<crate::models::CloudFile>> {
+        let storage = self.client.remote_storage();
+        Ok(storage
+            .files()
+            .into_iter()
+            .map(|info| {
+                let timestamp = storage.file(&info.name).timestamp();
+                crate::models::CloudFile {
+                    name: info.name,
+                    size: info.size,
+                    timestamp,
+                }
+            })
+            .collect())
+    }
+
+    fn cloud_quota(&self) -> crate::Result<crate::models::CloudQuota> {
+        let (mut total, mut available) = (0u64, 0u64);
+        // SAFETY: as in `cloud_write`; both out-pointers refer to live locals.
+        let ok = unsafe {
+            steamworks_sys::SteamAPI_ISteamRemoteStorage_GetQuota(
+                steamworks_sys::SteamAPI_SteamRemoteStorage_v016(),
+                &mut total,
+                &mut available,
+            )
+        };
+        if ok {
+            Ok(crate::models::CloudQuota {
+                total_bytes: total,
+                available_bytes: available,
+            })
+        } else {
+            Err(crate::Error::Steam(
+                "Steam could not report the Cloud quota".into(),
+            ))
+        }
+    }
+
+    fn cloud_status(&self) -> crate::Result<crate::models::CloudStatus> {
+        let storage = self.client.remote_storage();
+        Ok(crate::models::CloudStatus {
+            account_enabled: storage.is_cloud_enabled_for_account(),
+            app_enabled: storage.is_cloud_enabled_for_app(),
+        })
+    }
+}
+
+#[cfg(steam_sdk)]
+fn cloud_name(name: &str) -> crate::Result<std::ffi::CString> {
+    std::ffi::CString::new(name)
+        .map_err(|_| crate::Error::InvalidRequest("a cloud file name cannot contain NUL".into()))
 }

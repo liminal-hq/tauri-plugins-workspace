@@ -1,6 +1,6 @@
 # Tauri Plugin Steamworks
 
-Steamworks for Tauri v2 games: player identity, achievements, stats, rich presence and the overlay, with cloud files planned. One binary can ship inside and outside Steam, because the plugin reports a queryable _unavailable_ state instead of failing when Steam is missing.
+Steamworks for Tauri v2 games: player identity, achievements, stats, rich presence, the overlay and Steam Cloud files. One binary can ship inside and outside Steam, because the plugin reports a queryable _unavailable_ state instead of failing when Steam is missing.
 
 ## Highlights
 
@@ -86,18 +86,20 @@ const unlisten = await onAchievementStored(({ id }) => console.log('stored', id)
 
 ### Commands
 
-| Function                                                     | Notes                                                                              |
-| ------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| `isAvailable()`, `getStatus()`                               | Never reject. The status carries a `reason` when unavailable.                      |
-| `getPlayer()`                                                | `steamId` is a decimal string because JavaScript numbers lose 64-bit precision.    |
-| `getAchievement(id)`                                         | `{ id, achieved, unlockTime }`.                                                    |
-| `unlockAchievement(id)`                                      | Sets the achievement and stores it so Steam shows its notification.                |
-| `clearAchievement(id)`                                       | For development. Needs the `allow-achievements-dev` permission.                    |
-| `indicateProgress(id, current, max)`                         | Progress toast for counted achievements. `current` must not exceed `max`.          |
-| `getStat(name, kind = 'int')`, `setStat(name, value, kind?)` | `setStat` does not store; call `storeStats()` to batch writes.                     |
-| `storeStats()`                                               | Persists pending stat and achievement changes.                                     |
-| `setRichPresence(entries)`, `clearRichPresence()`            | The status line friends see. A `null` value removes a key. Needs `allow-presence`. |
-| `activateOverlay(page)`, `activateOverlayToWebPage(url)`     | Opens an overlay page, or an `http(s)` address. Needs `allow-overlay`.             |
+| Function                                                                                | Notes                                                                                    |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `isAvailable()`, `getStatus()`                                                          | Never reject. The status carries a `reason` when unavailable.                            |
+| `getPlayer()`                                                                           | `steamId` is a decimal string because JavaScript numbers lose 64-bit precision.          |
+| `getAchievement(id)`                                                                    | `{ id, achieved, unlockTime }`.                                                          |
+| `unlockAchievement(id)`                                                                 | Sets the achievement and stores it so Steam shows its notification.                      |
+| `clearAchievement(id)`                                                                  | For development. Needs the `allow-achievements-dev` permission.                          |
+| `indicateProgress(id, current, max)`                                                    | Progress toast for counted achievements. `current` must not exceed `max`.                |
+| `getStat(name, kind = 'int')`, `setStat(name, value, kind?)`                            | `setStat` does not store; call `storeStats()` to batch writes.                           |
+| `storeStats()`                                                                          | Persists pending stat and achievement changes.                                           |
+| `setRichPresence(entries)`, `clearRichPresence()`                                       | The status line friends see. A `null` value removes a key. Needs `allow-presence`.       |
+| `activateOverlay(page)`, `activateOverlayToWebPage(url)`                                | Opens an overlay page, or an `http(s)` address. Needs `allow-overlay`.                   |
+| `cloudWrite(name, data)`, `cloudRead(name)`, `cloudReadText(name)`, `cloudDelete(name)` | Whole-file Steam Cloud access. Needs `allow-cloud`. See [Steam Cloud](#steam-cloud).     |
+| `cloudList()`, `cloudQuota()`, `cloudStatus()`                                          | Files, quota in bytes, and whether the account and app allow Cloud. Needs `allow-cloud`. |
 
 `setStat` sends a whole number as an int and a fraction as a float. Pass `kind: 'float'` for a float stat that currently holds a whole number.
 
@@ -150,9 +152,10 @@ Optional, in `tauri.conf.json`:
 | `allow-stats`            | `getStat`, `setStat`, `storeStats`                               | yes          |
 | `allow-presence`         | `setRichPresence`, `clearRichPresence`                           | no           |
 | `allow-overlay`          | `activateOverlay`, `activateOverlayToWebPage`                    | no           |
+| `allow-cloud`            | the `cloud*` functions                                           | no           |
 | `allow-achievements-dev` | `clearAchievement`, so a shipped app cannot wipe player progress | no           |
 
-Individual `allow-<command>` and `deny-<command>` permissions also exist. Later releases add an `allow-cloud` set that is never part of `default` either.
+Individual `allow-<command>` and `deny-<command>` permissions also exist. Sets that reach outside the game, such as presence, overlay and cloud, are never part of `default`.
 
 ## Testing without Steam
 
@@ -192,6 +195,24 @@ This plugin is `Apache-2.0 OR MIT` and contains no Steamworks SDK code or binari
 | macOS    | With the `steam` feature and a running Steam client; otherwise reports unavailable     |
 | Android  | Stub; always reports `unsupportedPlatform`. The SDK is never linked, even with `steam` |
 | iOS      | Stub; always reports `unsupportedPlatform`. The SDK is never linked, even with `steam` |
+
+## Steam Cloud
+
+Most games should use Steam's **Auto-Cloud**, which syncs a save directory with no code at all: configure it for your app in the Steamworks partner settings (Application → Steam Cloud → Auto-Cloud) and nothing in this plugin is needed. The `cloud*` functions are for apps that cannot use Auto-Cloud.
+
+- Files are written and read whole; there is no streaming. A file is at most 100 MiB, and a read or write holds the call until Steam finishes.
+- Names use ASCII letters, digits and space `. _ -`, with `/` between folders. Empty, `.` and `..` segments, absolute paths and other characters are rejected, so a name is always a safe relative path.
+- Bytes cross the IPC boundary as the raw request and response body, not as JSON.
+- Steam enforces a per-account quota. `cloudQuota()` reports it, and a write over quota rejects.
+- `cloudStatus()` says whether the player has Cloud turned on for your app; writes can fail when they have not.
+
+```ts
+import { cloudWrite, cloudReadText, cloudList } from '@liminal-hq/plugin-steamworks';
+
+await cloudWrite('settings.json', JSON.stringify({ volume: 0.8 }));
+const settings = JSON.parse(await cloudReadText('settings.json'));
+console.log(await cloudList());
+```
 
 ## Steam overlay
 

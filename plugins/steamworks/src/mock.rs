@@ -11,7 +11,10 @@ use std::{
 use crate::{
     backend::{Emit, SteamworksBackend},
     error::{Error, Result},
-    models::{Achievement, BackendKind, OverlayPage, Player, StatKind, StatValue, SteamEvent},
+    models::{
+        Achievement, BackendKind, CloudFile, CloudQuota, CloudStatus, OverlayPage, Player,
+        StatKind, StatValue, SteamEvent,
+    },
 };
 
 /// What the fake starts with. Achievements and stats must be declared, as Steam requires.
@@ -23,6 +26,10 @@ pub struct MockConfig {
     pub stats: Vec<(String, StatValue)>,
     /// Makes `store_stats` report failure, to exercise error paths.
     pub fail_store: bool,
+    /// Steam Cloud quota in bytes.
+    pub cloud_quota_bytes: u64,
+    /// Reports Steam Cloud as turned off for the app.
+    pub cloud_disabled: bool,
 }
 
 impl Default for MockConfig {
@@ -37,6 +44,8 @@ impl Default for MockConfig {
             achievements: Vec::new(),
             stats: Vec::new(),
             fail_store: false,
+            cloud_quota_bytes: 100 * 1024 * 1024,
+            cloud_disabled: false,
         }
     }
 }
@@ -53,6 +62,9 @@ pub enum Call {
     ClearRichPresence,
     Overlay(OverlayPage),
     OverlayWebPage(String),
+    CloudWrite { name: String, len: usize },
+    CloudRead(String),
+    CloudDelete(String),
 }
 
 #[derive(Default)]
@@ -63,6 +75,8 @@ struct State {
     progress: BTreeMap<String, (u32, u32)>,
     stats: BTreeMap<String, StatValue>,
     presence: BTreeMap<String, String>,
+    /// Cloud file name to contents and write time.
+    cloud: BTreeMap<String, (Vec<u8>, i64)>,
     calls: Vec<Call>,
 }
 
@@ -262,6 +276,82 @@ impl SteamworksBackend for MockBackend {
         (self.emit)(SteamEvent::OverlayToggled { active: true });
         Ok(())
     }
+
+    fn cloud_write(&self, name: &str, data: &[u8]) -> Result<()> {
+        let mut state = self.state();
+        let used: u64 = state
+            .cloud
+            .iter()
+            .filter(|(existing, _)| existing.as_str() != name)
+            .map(|(_, (bytes, _))| bytes.len() as u64)
+            .sum();
+        if used + data.len() as u64 > self.config.cloud_quota_bytes {
+            return Err(Error::Steam("not enough Steam Cloud quota".into()));
+        }
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+        state.cloud.insert(name.to_string(), (data.to_vec(), now));
+        state.calls.push(Call::CloudWrite {
+            name: name.to_string(),
+            len: data.len(),
+        });
+        Ok(())
+    }
+
+    fn cloud_read(&self, name: &str) -> Result<Vec<u8>> {
+        let mut state = self.state();
+        state.calls.push(Call::CloudRead(name.to_string()));
+        state
+            .cloud
+            .get(name)
+            .map(|(bytes, _)| bytes.clone())
+            .ok_or_else(|| Error::UnknownCloudFile(name.to_string()))
+    }
+
+    fn cloud_delete(&self, name: &str) -> Result<()> {
+        let mut state = self.state();
+        state.calls.push(Call::CloudDelete(name.to_string()));
+        state
+            .cloud
+            .remove(name)
+            .map(|_| ())
+            .ok_or_else(|| Error::UnknownCloudFile(name.to_string()))
+    }
+
+    fn cloud_list(&self) -> Result<Vec<CloudFile>> {
+        Ok(self
+            .state()
+            .cloud
+            .iter()
+            .map(|(name, (bytes, timestamp))| CloudFile {
+                name: name.clone(),
+                size: bytes.len() as u64,
+                timestamp: *timestamp,
+            })
+            .collect())
+    }
+
+    fn cloud_quota(&self) -> Result<CloudQuota> {
+        let used: u64 = self
+            .state()
+            .cloud
+            .values()
+            .map(|(bytes, _)| bytes.len() as u64)
+            .sum();
+        Ok(CloudQuota {
+            total_bytes: self.config.cloud_quota_bytes,
+            available_bytes: self.config.cloud_quota_bytes.saturating_sub(used),
+        })
+    }
+
+    fn cloud_status(&self) -> Result<CloudStatus> {
+        Ok(CloudStatus {
+            account_enabled: true,
+            app_enabled: !self.config.cloud_disabled,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -408,6 +498,47 @@ mod tests {
                 Call::OverlayWebPage("https://example.com/".into())
             ]
         );
+    }
+
+    #[test]
+    fn cloud_files_round_trip_list_and_delete() {
+        let (mock, _) = fixture(false);
+        mock.cloud_write("saves/city.sav", b"hello").unwrap();
+        mock.cloud_write("settings.json", b"{}").unwrap();
+        assert_eq!(mock.cloud_read("saves/city.sav").unwrap(), b"hello");
+        let list = mock.cloud_list().unwrap();
+        assert_eq!(
+            list.iter()
+                .map(|f| (f.name.as_str(), f.size))
+                .collect::<Vec<_>>(),
+            vec![("saves/city.sav", 5), ("settings.json", 2)]
+        );
+        mock.cloud_delete("settings.json").unwrap();
+        assert!(matches!(
+            mock.cloud_read("settings.json"),
+            Err(Error::UnknownCloudFile(_))
+        ));
+        assert!(matches!(
+            mock.cloud_delete("settings.json"),
+            Err(Error::UnknownCloudFile(_))
+        ));
+    }
+
+    #[test]
+    fn cloud_quota_counts_overwrites_once_and_rejects_overflow() {
+        let emit: Emit = Arc::new(|_| {});
+        let mock = MockBackend::new(
+            MockConfig {
+                cloud_quota_bytes: 10,
+                ..MockConfig::default()
+            },
+            emit,
+        );
+        mock.cloud_write("a", &[0; 8]).unwrap();
+        mock.cloud_write("a", &[0; 9]).unwrap();
+        assert_eq!(mock.cloud_quota().unwrap().available_bytes, 1);
+        assert!(mock.cloud_write("b", &[0; 2]).is_err());
+        assert_eq!(mock.cloud_quota().unwrap().total_bytes, 10);
     }
 
     #[test]

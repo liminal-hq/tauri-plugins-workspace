@@ -31,3 +31,15 @@ permissions = ["allow-set-rich-presence", "allow-clear-rich-presence"]
 identifier = "allow-overlay"
 description = "Opens Steam overlay pages and web pages."
 permissions = ["allow-activate-overlay", "allow-activate-overlay-to-web-page"]
+
+[[set]]
+identifier = "allow-cloud"
+description = "Reads, writes, lists and deletes Steam Cloud files, and reads the Cloud quota and status. Prefer Auto-Cloud for save games."
+permissions = [
+  "allow-cloud-write",
+  "allow-cloud-read",
+  "allow-cloud-delete",
+  "allow-cloud-list",
+  "allow-cloud-quota",
+  "allow-cloud-status",
+]

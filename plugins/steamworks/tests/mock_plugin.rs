@@ -140,3 +140,28 @@ fn presence_set_through_the_plugin_state_reaches_the_backend() {
     app.steamworks().set_rich_presence(&entries).unwrap();
     app.steamworks().clear_rich_presence().unwrap();
 }
+
+#[test]
+fn cloud_files_survive_a_round_trip_through_the_plugin_state() {
+    let app = app_with(MockConfig {
+        cloud_quota_bytes: 1024,
+        ..config()
+    });
+    let steam = app.steamworks();
+
+    steam
+        .cloud_write("saves/fizzton.sav", b"population=12400")
+        .unwrap();
+    assert_eq!(
+        steam.cloud_read("saves/fizzton.sav").unwrap(),
+        b"population=12400"
+    );
+    assert_eq!(steam.cloud_list().unwrap().len(), 1);
+    assert_eq!(steam.cloud_quota().unwrap().available_bytes, 1024 - 16);
+    assert!(steam.cloud_status().unwrap().app_enabled);
+
+    steam.cloud_delete("saves/fizzton.sav").unwrap();
+    let err = steam.cloud_read("saves/fizzton.sav").unwrap_err();
+    assert_eq!(err.to_string(), "unknown cloud file `saves/fizzton.sav`");
+    assert!(steam.cloud_write("../escape", b"x").is_err());
+}

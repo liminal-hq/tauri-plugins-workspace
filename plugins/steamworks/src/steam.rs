@@ -16,8 +16,8 @@ use crate::{
     config::{clamp_interval, Config, DEFAULT_CALLBACK_INTERVAL},
     error::{Error, Result},
     models::{
-        Achievement, OverlayPage, Player, StatKind, StatValue, SteamEvent, SteamStatus,
-        UnavailableReason,
+        Achievement, CloudFile, CloudQuota, CloudStatus, OverlayPage, Player, StatKind, StatValue,
+        SteamEvent, SteamStatus, UnavailableReason,
     },
     pump::Pump,
     real::{self, InitOutcome},
@@ -289,6 +289,40 @@ impl Steamworks {
         self.backend().activate_overlay_to_web_page(parsed.as_str())
     }
 
+    /// Writes a whole file to Steam Cloud. Names use ASCII letters, digits and ` ._-`, with `/`
+    /// separating folders; files are at most 100 MiB. Prefer Auto-Cloud for save games.
+    pub fn cloud_write(&self, name: &str, data: &[u8]) -> Result<()> {
+        check_cloud_name(name)?;
+        if data.len() > MAX_CLOUD_FILE_BYTES {
+            return Err(Error::InvalidRequest(format!(
+                "a cloud file is at most {MAX_CLOUD_FILE_BYTES} bytes"
+            )));
+        }
+        self.backend().cloud_write(name, data)
+    }
+
+    pub fn cloud_read(&self, name: &str) -> Result<Vec<u8>> {
+        check_cloud_name(name)?;
+        self.backend().cloud_read(name)
+    }
+
+    pub fn cloud_delete(&self, name: &str) -> Result<()> {
+        check_cloud_name(name)?;
+        self.backend().cloud_delete(name)
+    }
+
+    pub fn cloud_list(&self) -> Result<Vec<CloudFile>> {
+        self.backend().cloud_list()
+    }
+
+    pub fn cloud_quota(&self) -> Result<CloudQuota> {
+        self.backend().cloud_quota()
+    }
+
+    pub fn cloud_status(&self) -> Result<CloudStatus> {
+        self.backend().cloud_status()
+    }
+
     /// Calls `hook` with `true` or `false` whenever the Steam overlay opens or closes. Use it to
     /// pass the change to other integrations, such as an overlay-surface plugin, from Rust.
     pub fn on_overlay_toggled(&self, hook: impl Fn(bool) + Send + Sync + 'static) {
@@ -309,6 +343,31 @@ impl Steamworks {
         *self.inner.status.write().unwrap_or_else(|e| e.into_inner()) =
             SteamStatus::unavailable(UnavailableReason::Shutdown);
     }
+}
+
+/// Steam's per-file limit for Cloud files.
+const MAX_CLOUD_FILE_BYTES: usize = 100 * 1024 * 1024;
+const MAX_CLOUD_NAME_BYTES: usize = 260;
+
+/// Accepts a conservative set of names so they are safe as headers and as paths: ASCII letters,
+/// digits and ` ._-`, with `/` between folder segments and no `.`, `..` or empty segments.
+fn check_cloud_name(name: &str) -> Result<()> {
+    let bad = |why: &str| Err(Error::InvalidRequest(format!("cloud file name {why}")));
+    if name.is_empty() || name.len() > MAX_CLOUD_NAME_BYTES {
+        return bad("must be 1-260 bytes");
+    }
+    if !name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || matches!(c, ' ' | '.' | '_' | '-' | '/'))
+    {
+        return bad("may use only ASCII letters, digits and space . _ - /");
+    }
+    for segment in name.split('/') {
+        if segment.is_empty() || segment == "." || segment == ".." || segment.trim() != segment {
+            return bad("has an empty, dot or padded folder segment");
+        }
+    }
+    Ok(())
 }
 
 const MAX_PRESENCE_KEYS: usize = 20;
@@ -476,6 +535,58 @@ mod tests {
         steam
             .set_rich_presence(&entry("status", &exactly_max))
             .unwrap();
+    }
+
+    #[test]
+    fn cloud_names_are_confined_to_safe_relative_paths() {
+        let (steam, _) = mock_steam();
+        for good in ["save.dat", "saves/city 1.sav", "a-b_c.d/e"] {
+            steam
+                .cloud_write(good, b"x")
+                .unwrap_or_else(|e| panic!("{good}: {e}"));
+        }
+        let too_long = "a".repeat(261);
+        for bad in [
+            "",
+            "/etc/passwd",
+            "../escape",
+            "a/../b",
+            "a//b",
+            "a/",
+            "./a",
+            "back\\slash",
+            "unicode-é",
+            "nul\0byte",
+            " padded /x",
+            &too_long,
+        ] {
+            assert!(
+                matches!(steam.cloud_write(bad, b"x"), Err(Error::InvalidRequest(_))),
+                "{bad:?} should be refused"
+            );
+            assert!(matches!(
+                steam.cloud_read(bad),
+                Err(Error::InvalidRequest(_))
+            ));
+            assert!(matches!(
+                steam.cloud_delete(bad),
+                Err(Error::InvalidRequest(_))
+            ));
+        }
+    }
+
+    #[test]
+    fn cloud_calls_without_steam_report_unavailable() {
+        let (emit, _) = emit_sink();
+        let mut opts = options();
+        opts.mock = None;
+        let steam = Steamworks::start(opts, &Config::default(), emit);
+        assert!(steam
+            .cloud_list()
+            .unwrap_err()
+            .to_string()
+            .starts_with("unavailable: "));
+        assert!(steam.cloud_quota().is_err());
     }
 
     #[test]

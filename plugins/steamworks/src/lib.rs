@@ -116,7 +116,13 @@ impl Builder {
                 commands::set_rich_presence,
                 commands::clear_rich_presence,
                 commands::activate_overlay,
-                commands::activate_overlay_to_web_page
+                commands::activate_overlay_to_web_page,
+                commands::cloud_write,
+                commands::cloud_read,
+                commands::cloud_delete,
+                commands::cloud_list,
+                commands::cloud_quota,
+                commands::cloud_status
             ])
             .setup(move |app, api| {
                 let config = api.config().clone().unwrap_or_default();

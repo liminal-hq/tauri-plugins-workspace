@@ -8,8 +8,11 @@ use std::collections::BTreeMap;
 use tauri::{command, AppHandle, Runtime};
 
 use crate::{
-    error::Result,
-    models::{Achievement, OverlayPage, Player, StatKind, StatValue, SteamStatus},
+    error::{Error, Result},
+    models::{
+        Achievement, CloudFile, CloudQuota, CloudStatus, OverlayPage, Player, StatKind, StatValue,
+        SteamStatus,
+    },
     SteamworksExt,
 };
 
@@ -109,4 +112,57 @@ pub(crate) async fn activate_overlay_to_web_page<R: Runtime>(
     url: String,
 ) -> Result<()> {
     app.steamworks().activate_overlay_to_web_page(&url)
+}
+
+/// The header that carries the cloud file name, so the request body can be the raw bytes.
+pub(crate) const CLOUD_NAME_HEADER: &str = "x-steamworks-cloud-name";
+
+/// Writes a Cloud file. The body is the raw file bytes and the name travels in a header.
+#[command]
+pub(crate) async fn cloud_write<R: Runtime>(
+    app: AppHandle<R>,
+    request: tauri::ipc::Request<'_>,
+) -> Result<()> {
+    let name = request
+        .headers()
+        .get(CLOUD_NAME_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| Error::InvalidRequest(format!("missing the {CLOUD_NAME_HEADER} header")))?
+        .to_string();
+    let tauri::ipc::InvokeBody::Raw(data) = request.body() else {
+        return Err(Error::InvalidRequest(
+            "cloud_write expects the raw file bytes as its body".into(),
+        ));
+    };
+    app.steamworks().cloud_write(&name, data)
+}
+
+#[command]
+pub(crate) async fn cloud_read<R: Runtime>(
+    app: AppHandle<R>,
+    name: String,
+) -> Result<tauri::ipc::Response> {
+    app.steamworks()
+        .cloud_read(&name)
+        .map(tauri::ipc::Response::new)
+}
+
+#[command]
+pub(crate) async fn cloud_delete<R: Runtime>(app: AppHandle<R>, name: String) -> Result<()> {
+    app.steamworks().cloud_delete(&name)
+}
+
+#[command]
+pub(crate) async fn cloud_list<R: Runtime>(app: AppHandle<R>) -> Result<Vec<CloudFile>> {
+    app.steamworks().cloud_list()
+}
+
+#[command]
+pub(crate) async fn cloud_quota<R: Runtime>(app: AppHandle<R>) -> Result<CloudQuota> {
+    app.steamworks().cloud_quota()
+}
+
+#[command]
+pub(crate) async fn cloud_status<R: Runtime>(app: AppHandle<R>) -> Result<CloudStatus> {
+    app.steamworks().cloud_status()
 }

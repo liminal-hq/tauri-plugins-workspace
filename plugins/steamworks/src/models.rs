@@ -121,6 +121,32 @@ impl StatValue {
     }
 }
 
+/// A file in Steam Cloud.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CloudFile {
+    pub name: String,
+    pub size: u64,
+    /// Unix time the file was last written.
+    pub timestamp: i64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CloudQuota {
+    pub total_bytes: u64,
+    pub available_bytes: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CloudStatus {
+    /// Whether the player's account allows Steam Cloud.
+    pub account_enabled: bool,
+    /// Whether the player has Steam Cloud turned on for this app.
+    pub app_enabled: bool,
+}
+
 /// A page of the Steam overlay.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

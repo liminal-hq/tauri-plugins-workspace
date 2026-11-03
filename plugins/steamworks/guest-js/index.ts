@@ -8,6 +8,9 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
 	Achievement,
 	AchievementStoredPayload,
+	CloudFile,
+	CloudQuota,
+	CloudStatus,
 	OverlayPage,
 	OverlayToggledPayload,
 	Player,
@@ -34,6 +37,7 @@ export type {
 } from './types';
 
 const PREFIX = 'plugin:steamworks|';
+const CLOUD_NAME_HEADER = 'x-steamworks-cloud-name';
 
 export const STATS_RECEIVED_EVENT = 'steamworks://stats-received';
 export const STATS_STORED_EVENT = 'steamworks://stats-stored';
@@ -115,6 +119,45 @@ export function activateOverlay(page: OverlayPage): Promise<void> {
 /** Opens an `http` or `https` address in the overlay's browser. Needs `allow-overlay`. */
 export function activateOverlayToWebPage(url: string): Promise<void> {
 	return invoke<void>(`${PREFIX}activate_overlay_to_web_page`, { url });
+}
+
+/**
+ * Writes a whole file to Steam Cloud, replacing any file of that name. Names use ASCII letters,
+ * digits and ` ._-`, with `/` between folders, and files are at most 100 MiB. Strings are written as
+ * UTF-8. Needs `allow-cloud`. Prefer Auto-Cloud for save games; this is for apps that cannot use it.
+ */
+export function cloudWrite(name: string, data: Uint8Array | string): Promise<void> {
+	const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+	return invoke<void>(`${PREFIX}cloud_write`, bytes, { headers: { [CLOUD_NAME_HEADER]: name } });
+}
+
+/** Reads a whole Cloud file. Rejects when the file does not exist. */
+export async function cloudRead(name: string): Promise<Uint8Array> {
+	const data = await invoke<ArrayBuffer | number[]>(`${PREFIX}cloud_read`, { name });
+	return new Uint8Array(data);
+}
+
+/** Reads a whole Cloud file as UTF-8 text. */
+export async function cloudReadText(name: string): Promise<string> {
+	return new TextDecoder().decode(await cloudRead(name));
+}
+
+/** Deletes a Cloud file. Rejects when the file does not exist. */
+export function cloudDelete(name: string): Promise<void> {
+	return invoke<void>(`${PREFIX}cloud_delete`, { name });
+}
+
+export function cloudList(): Promise<CloudFile[]> {
+	return invoke<CloudFile[]>(`${PREFIX}cloud_list`);
+}
+
+export function cloudQuota(): Promise<CloudQuota> {
+	return invoke<CloudQuota>(`${PREFIX}cloud_quota`);
+}
+
+/** Says whether the player's account and this app allow Steam Cloud. */
+export function cloudStatus(): Promise<CloudStatus> {
+	return invoke<CloudStatus>(`${PREFIX}cloud_status`);
 }
 
 /** Needs `core:event:default` as well as the plugin's permissions. */
